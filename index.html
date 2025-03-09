@@ -689,6 +689,22 @@
         function init() {
           logger.info("gameState", "Initializing game");
 
+          // Special handling for mobile devices
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          if (isMobile) {
+            logger.info("device", "Mobile device detected, adding special audio handling");
+
+            // Add an explicit note in the intro
+            const introContent = document.querySelector(".intro-content");
+            if (introContent) {
+              const audioNote = document.createElement("p");
+              audioNote.textContent = "Tap 'Start Game' to enable audio.";
+              audioNote.style.fontWeight = "bold";
+              audioNote.style.color = "#b22234";
+              introContent.insertBefore(audioNote, elements.buttons.start);
+            }
+          }
+
           // Initialize AudioManager
           audioManager.init();
           audioManager.setLogger(logger);
@@ -744,7 +760,21 @@
           elements.trump = trumpElements;
 
           // Add event listeners
-          elements.buttons.start.addEventListener("click", startGame);
+          elements.buttons.start.addEventListener("click", function () {
+            // Ensure audio is initialized on first user interaction
+            if (!audioManager.initialized) {
+              audioManager.init();
+            }
+
+            // Resume the AudioContext (crucial for mobile)
+            audioManager.resumeAudioContext().then(() => {
+              // Play UI click sound
+              audioManager.play("ui", "click");
+
+              // Start the game
+              startGame();
+            });
+          });
           elements.buttons.restart.addEventListener("click", restartGame);
           elements.buttons.share.addEventListener("click", shareResults);
 
@@ -793,40 +823,40 @@
           // Add to game screen
           elements.screens.game.appendChild(audioControls);
 
-          // Add event listeners
-          document.getElementById("toggle-audio").addEventListener("click", function () {
+          // Add event listeners for both click and touch
+          const toggleAudioBtn = document.getElementById("toggle-audio");
+
+          // Handle both click and touch events
+          const handleToggleAudio = function () {
             const muted = audioManager.toggleMute();
             this.querySelector(".icon").textContent = muted ? "🔇" : "🔊";
-          });
 
-          // Add audio initialization to start button
-          const originalStartHandler = elements.buttons.start.onclick;
-          elements.buttons.start.onclick = function (event) {
-            // Initialize audio on first user interaction
-            if (!audioManager.initialized) {
-              audioManager.init();
-            }
-
-            // Play UI click sound
-            audioManager.play("ui", "click");
-
-            // Execute original handler
-            if (originalStartHandler) {
-              originalStartHandler.call(this, event);
-            }
+            // Always try to resume AudioContext on user interaction
+            audioManager.resumeAudioContext();
           };
+
+          toggleAudioBtn.addEventListener("click", handleToggleAudio);
+          toggleAudioBtn.addEventListener("touchend", function (e) {
+            e.preventDefault(); // Prevent double events on touch devices
+            handleToggleAudio.call(this);
+          });
         }
-
         function startGame() {
-          audioManager.logAudioState();
+          // Always try to resume AudioContext on game start (user interaction)
+          if (audioManager) {
+            audioManager.resumeAudioContext().then(() => {
+              // Log audio state for debugging
+              audioManager.logAudioState();
 
-          // Play start game sound
-          audioManager.play("ui", "start");
+              // Play start game sound
+              audioManager.play("ui", "start");
 
-          // Start background music
-          setTimeout(() => {
-            audioManager.startBackgroundMusic();
-          }, 1000);
+              // Start background music after a short delay
+              setTimeout(() => {
+                audioManager.startBackgroundMusic();
+              }, 1000);
+            });
+          }
 
           logger.info("gameState", "Starting game");
 
@@ -1222,7 +1252,6 @@
           }
 
           audioManager.playGrabWarning();
-
 
           // Select a random country that's not fully claimed
           const availableCountries = Object.keys(gameState.countries).filter((country) => {
