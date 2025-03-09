@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
     <title>Presidential Grab</title>
     <style>
       * {
@@ -344,6 +344,41 @@
         }
       }
 
+      .touch-ripple {
+        position: absolute;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.4);
+        transform: scale(0);
+        pointer-events: none;
+        animation: ripple 0.5s ease-out;
+      }
+
+      @keyframes ripple {
+        0% {
+          transform: scale(0);
+          opacity: 0.8;
+        }
+        100% {
+          transform: scale(1.5);
+          opacity: 0;
+        }
+      }
+
+      /* Increase touch targets for mobile */
+      button,
+      .control-button {
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      /* Prevent unwanted selection */
+      #game-container {
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
+      }
+
       /* audio  */
       /* Audio Controls Styling */
       .game-controls {
@@ -524,6 +559,7 @@
 
     <script src="debug-manager.js"></script>
     <script src="effects-manager.js"></script>
+    <script src="touch-input-manager.js"></script>
 
     <script>
       // Main game script
@@ -660,26 +696,31 @@
           const trumpSprite = document.getElementById("trump-sprite");
           const handHitbox = document.getElementById("hand-hitbox");
 
-          // Make sure the hand hitbox has the correct styles for interaction
+          // Basic setup of dimensions and position
           if (handHitbox) {
             handHitbox.style.position = "absolute";
-            handHitbox.style.zIndex = "1000";
+            handHitbox.style.zIndex = "2000";
             handHitbox.style.cursor = "pointer";
+
             handHitbox.style.pointerEvents = "all";
+
+            // Make hitbox more visible for debugging on mobile
+            if (DEBUG_MODE) {
+              handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
+              handHitbox.style.border = "2px solid red";
+            }
 
             // Force remove and re-add event listeners to ensure they work
             handHitbox.removeEventListener("click", handleHandClick);
             handHitbox.removeEventListener("touchstart", handleHandTouch);
 
-            // Add event listeners directly to the hand
-            handHitbox.addEventListener("click", handleHandClick);
+            // Add touch events with proper options
             handHitbox.addEventListener("touchstart", handleHandTouch, { passive: false });
-            handHitbox.hasEventListener = true; // Mark as having listeners
+            handHitbox.addEventListener("click", handleHandClick);
 
-            // Debug click handler
-            console.log("Event listeners attached to hand hitbox");
+            logger.info("input", "Event listeners attached to hand hitbox");
           }
-          // Return references to elements
+
           return {
             container: trumpContainer,
             sprite: trumpSprite,
@@ -689,6 +730,9 @@
 
         function init() {
           logger.info("gameState", "Initializing game");
+
+          // Apply mobile optimizations early
+          const isMobileDevice = optimizeForMobile();
 
           // Special handling for mobile devices
           const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -757,6 +801,24 @@
             return; // Exit if AnimationManager is not available
           }
 
+          // Initialize Touch Input Manager
+          const touchInputManager = new TouchInputManager(gameState, logger);
+          touchInputManager.init();
+
+          // Set the callback to your existing logic
+          touchInputManager.setHandInteractionCallback(function (event) {
+            // This is where you call your existing logic for handling hand interactions
+            if (gameState.currentTarget && gameState.isPlaying && !gameState.isPaused) {
+              // Call your existing stopGrab function directly
+              stopGrab(event);
+            }
+          });
+
+          // Debug mode visual
+          if (DEBUG_MODE) {
+            touchInputManager.showHitbox(true);
+          }
+
           // Create Trump sprite elements
           const trumpElements = createTrumpSprite();
 
@@ -795,227 +857,282 @@
           logger.toggleCategory("audio", true);
         }
 
+        function optimizeForMobile() {
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
+          if (isMobile) {
+            logger.info("device", "Mobile device detected, applying optimizations");
+
+            // 1. Ensure buttons are large enough to tap
+            document.querySelectorAll("button").forEach((btn) => {
+              if (!btn.classList.contains("control-button")) {
+                btn.style.minHeight = "44px";
+                btn.style.minWidth = "44px";
+                btn.style.padding = "12px 24px";
+              }
+            });
+
+            // 2. Add touch-action manipulation to game container
+            document.getElementById("game-container").style.touchAction = "manipulation";
+
+            // 3. Add touch-specific helpers
+            document.addEventListener(
+              "touchmove",
+              function (e) {
+                // Prevent scrolling when touching the game area
+                if (e.target.closest("#game-container")) {
+                  e.preventDefault();
+                }
+              },
+              { passive: false }
+            );
+
+            // 4. Make hitbox larger on mobile
+            const handHitbox = document.getElementById("hand-hitbox");
+            if (handHitbox) {
+              handHitbox.style.width = "60px";
+              handHitbox.style.height = "60px";
+            }
+
+            // 5. Add a touch indicator to help users
+            const touchIndicator = document.createElement("div");
+            touchIndicator.id = "touch-indicator";
+            touchIndicator.style.position = "absolute";
+            touchIndicator.style.top = "70px";
+            touchIndicator.style.left = "50%";
+            touchIndicator.style.transform = "translateX(-50%)";
+            touchIndicator.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+            touchIndicator.style.color = "black";
+            touchIndicator.style.padding = "8px 16px";
+            touchIndicator.style.borderRadius = "20px";
+            touchIndicator.style.fontSize = "14px";
+            touchIndicator.style.zIndex = "1000";
+            touchIndicator.style.opacity = "1";
+            touchIndicator.style.transition = "opacity 1s";
+            touchIndicator.textContent = "Tap Trump's hand when it moves!";
+
+            document.getElementById("game-screen").appendChild(touchIndicator);
+
+            // Fade out the indicator after 5 seconds
+            setTimeout(() => {
+              touchIndicator.style.opacity = "0";
+            }, 5000);
+
+            return true;
+          }
+
+          return false;
+        }
 
         function setupAudioStatusIndicator() {
-  const audioStatus = document.createElement("div");
-  audioStatus.id = "audio-status-indicator";
-  audioStatus.style.position = "absolute";
-  audioStatus.style.bottom = "10px";
-  audioStatus.style.left = "10px";
-  audioStatus.style.width = "auto";  // Changed from fixed 100px
-  audioStatus.style.height = "auto";  // Changed from fixed 100px
-  audioStatus.style.backgroundColor = "rgba(255, 0, 0, 0.6)";
-  audioStatus.style.color = "white";
-  audioStatus.style.padding = "5px 10px";
-  audioStatus.style.borderRadius = "4px";
-  audioStatus.style.fontSize = "12px";
-  audioStatus.style.zIndex = "3000";
-  audioStatus.style.display = "block";
-  audioStatus.textContent = "Audio: Waiting for interaction";
-  document.body.appendChild(audioStatus);
-}
+          const audioStatus = document.createElement("div");
+          audioStatus.id = "audio-status-indicator";
+          audioStatus.style.position = "absolute";
+          audioStatus.style.bottom = "10px";
+          audioStatus.style.left = "10px";
+          audioStatus.style.width = "auto"; // Changed from fixed 100px
+          audioStatus.style.height = "auto"; // Changed from fixed 100px
+          audioStatus.style.backgroundColor = "rgba(255, 0, 0, 0.6)";
+          audioStatus.style.color = "white";
+          audioStatus.style.padding = "5px 10px";
+          audioStatus.style.borderRadius = "4px";
+          audioStatus.style.fontSize = "12px";
+          audioStatus.style.zIndex = "3000";
+          audioStatus.style.display = "block";
+          audioStatus.textContent = "Audio: Waiting for interaction";
+          document.body.appendChild(audioStatus);
+        }
 
-// Helper to set up event listeners
-function setupEventListeners() {
-  // Start button click handler with audio initialization
-  elements.buttons.start.addEventListener("click", function() {
-    // Ensure audio is initialized
-    if (!audioManager.initialized) {
-      audioManager.init();
-    }
-    
-    // Resume the AudioContext (crucial for mobile)
-    audioManager.resumeAudioContext().then(() => {
-      // Play UI click sound
-      audioManager.play("ui", "click");
-      
-      // Update status indicator if present
-      const audioStatus = document.getElementById("audio-status-indicator");
-      if (audioStatus) {
-        audioStatus.textContent = "Audio: Ready";
-        audioStatus.style.backgroundColor = "rgba(0, 128, 0, 0.6)";
-        setTimeout(() => {
-          audioStatus.style.opacity = "0";
-          audioStatus.style.transition = "opacity 0.5s";
-        }, 3000);
-      }
-      
-      // Start the game
-      startGame();
-    });
-  });
-  
-  // Other button event listeners
-  elements.buttons.restart.addEventListener("click", restartGame);
-  elements.buttons.share.addEventListener("click", shareResults);
-}
+        // Helper to set up event listeners
+        function setupEventListeners() {
+          // Start button click handler with audio initialization
+          elements.buttons.start.addEventListener("click", function () {
+            // Ensure audio is initialized
+            if (!audioManager.initialized) {
+              audioManager.init();
+            }
 
-// Helper to set up responsive handling
-function setupResponsiveHandling() {
-  // Resize handler
-  window.addEventListener("resize", () => {
-    if (gameState.isPlaying) {
-      logger.debug("rendering", "Window resize detected, repositioning elements");
-      setTimeout(positionElements, 100);
-    }
-    positionCountryFlagOverlays();
-  });
-  
-  // Orientation change handler for mobile
-  window.addEventListener("orientationchange", () => {
-    if (gameState.isPlaying) {
-      logger.debug("rendering", "Orientation change detected, repositioning elements");
-      setTimeout(positionElements, 300);
-    }
-    positionCountryFlagOverlays();
-  });
-}
+            // Resume the AudioContext (crucial for mobile)
+            audioManager.resumeAudioContext().then(() => {
+              // Play UI click sound
+              audioManager.play("ui", "click");
 
-// Enhance debug panel with better styling and functionality
-function enhanceDebugPanel() {
-  // Find the debug panel
-  const debugPanel = document.getElementById("debug-panel");
-  if (!debugPanel) return;
-  
-  // Apply improved styling
-  Object.assign(debugPanel.style, {
-    position: "fixed",
-    bottom: "50px",
-    left: "10px",
-    maxWidth: "350px",
-    maxHeight: "60vh",
-    overflowY: "auto",
-    background: "rgba(0, 0, 0, 0.85)",
-    color: "white",
-    padding: "10px",
-    borderRadius: "5px",
-    zIndex: "1000",
-    fontSize: "12px",
-    display: "block",
-    boxShadow: "0 0 10px rgba(0,0,0,0.5)"
-  });
-  
-  // Create toggle button
-  const debugToggle = document.createElement("div");
-  debugToggle.id = "debug-toggle";
-  
-  // Style toggle button
-  Object.assign(debugToggle.style, {
-    position: "fixed",
-    bottom: "10px",
-    right: "10px",
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    backgroundColor: "rgba(0, 128, 0, 0.9)",
-    color: "white",
-    textAlign: "center",
-    lineHeight: "40px",
-    fontSize: "24px",
-    cursor: "pointer",
-    zIndex: "9999",
-    boxShadow: "0 0 10px rgba(0,0,0,0.5)",
-    userSelect: "none",
-    border: "2px solid white"
-  });
-  
-  debugToggle.textContent = "🛠️";
-  debugToggle.title = "Toggle Debug Panel";
-  
-  // Add to document
-  document.body.appendChild(debugToggle);
-  
-  // Toggle functionality
-  debugToggle.addEventListener("click", () => {
-    const isVisible = debugPanel.style.display === "block";
-    debugPanel.style.display = isVisible ? "none" : "block";
-    debugToggle.style.backgroundColor = isVisible ? "rgba(255, 0, 0, 0.9)" : "rgba(0, 128, 0, 0.9)";
-  });
-  
-  // Add keyboard shortcut
-  document.addEventListener("keydown", (e) => {
-    if (e.ctrlKey && e.key === "d") {
-      e.preventDefault();
-      debugToggle.click();
-    }
-  });
-  
-  // Add close button
-  const closeButton = document.createElement("button");
-  closeButton.textContent = "X";
-  closeButton.title = "Close Debug Panel";
-  
-  Object.assign(closeButton.style, {
-    position: "absolute",
-    top: "5px",
-    right: "5px",
-    background: "red",
-    color: "white",
-    border: "none",
-    borderRadius: "50%",
-    width: "20px",
-    height: "20px",
-    lineHeight: "18px",
-    textAlign: "center",
-    fontSize: "12px",
-    cursor: "pointer",
-    padding: "0"
-  });
-  
-  closeButton.addEventListener("click", () => {
-    debugPanel.style.display = "none";
-    debugToggle.style.backgroundColor = "rgba(255, 0, 0, 0.9)";
-  });
-  
-  // Add title to panel
-  const title = document.createElement("div");
-  title.textContent = "DEBUG PANEL";
-  title.style.fontWeight = "bold";
-  title.style.marginBottom = "10px";
-  title.style.fontSize = "14px";
-  title.style.borderBottom = "1px solid white";
-  title.style.paddingBottom = "5px";
-  
-  // Insert close button and title
-  debugPanel.insertBefore(closeButton, debugPanel.firstChild);
-  debugPanel.insertBefore(title, debugPanel.firstChild);
-  
-  // Improve styling of inputs and buttons
-  debugPanel.querySelectorAll("input").forEach(input => {
-    input.style.color = "black";
-    input.style.padding = "2px";
-  });
-  
-  debugPanel.querySelectorAll("button").forEach(button => {
-    if (button !== closeButton) {
-      Object.assign(button.style, {
-        backgroundColor: "#4CAF50",
-        border: "none",
-        color: "white",
-        padding: "3px 8px",
-        textAlign: "center",
-        textDecoration: "none",
-        display: "inline-block",
-        fontSize: "12px",
-        margin: "2px",
-        cursor: "pointer",
-        borderRadius: "3px"
-      });
-    }
-  });
-}
+              // Update status indicator if present
+              const audioStatus = document.getElementById("audio-status-indicator");
+              if (audioStatus) {
+                audioStatus.textContent = "Audio: Ready";
+                audioStatus.style.backgroundColor = "rgba(0, 128, 0, 0.6)";
+                setTimeout(() => {
+                  audioStatus.style.opacity = "0";
+                  audioStatus.style.transition = "opacity 0.5s";
+                }, 3000);
+              }
 
+              // Start the game
+              startGame();
+            });
+          });
 
+          // Other button event listeners
+          elements.buttons.restart.addEventListener("click", restartGame);
+          elements.buttons.share.addEventListener("click", shareResults);
+        }
 
+        // Helper to set up responsive handling
+        function setupResponsiveHandling() {
+          // Resize handler
+          window.addEventListener("resize", () => {
+            if (gameState.isPlaying) {
+              logger.debug("rendering", "Window resize detected, repositioning elements");
+              setTimeout(positionElements, 100);
+            }
+            positionCountryFlagOverlays();
+          });
 
+          // Orientation change handler for mobile
+          window.addEventListener("orientationchange", () => {
+            if (gameState.isPlaying) {
+              logger.debug("rendering", "Orientation change detected, repositioning elements");
+              setTimeout(positionElements, 300);
+            }
+            positionCountryFlagOverlays();
+          });
+        }
 
+        // Enhance debug panel with better styling and functionality
+        function enhanceDebugPanel() {
+          // Find the debug panel
+          const debugPanel = document.getElementById("debug-panel");
+          if (!debugPanel) return;
 
+          // Apply improved styling
+          Object.assign(debugPanel.style, {
+            position: "fixed",
+            bottom: "50px",
+            left: "10px",
+            maxWidth: "350px",
+            maxHeight: "60vh",
+            overflowY: "auto",
+            background: "rgba(0, 0, 0, 0.85)",
+            color: "white",
+            padding: "10px",
+            borderRadius: "5px",
+            zIndex: "1000",
+            fontSize: "12px",
+            display: "block",
+            boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+          });
 
+          // Create toggle button
+          const debugToggle = document.createElement("div");
+          debugToggle.id = "debug-toggle";
 
+          // Style toggle button
+          Object.assign(debugToggle.style, {
+            position: "fixed",
+            bottom: "10px",
+            right: "10px",
+            width: "40px",
+            height: "40px",
+            borderRadius: "50%",
+            backgroundColor: "rgba(0, 128, 0, 0.9)",
+            color: "white",
+            textAlign: "center",
+            lineHeight: "40px",
+            fontSize: "24px",
+            cursor: "pointer",
+            zIndex: "9999",
+            boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+            userSelect: "none",
+            border: "2px solid white",
+          });
 
+          debugToggle.textContent = "🛠️";
+          debugToggle.title = "Toggle Debug Panel";
 
+          // Add to document
+          document.body.appendChild(debugToggle);
 
+          // Toggle functionality
+          debugToggle.addEventListener("click", () => {
+            const isVisible = debugPanel.style.display === "block";
+            debugPanel.style.display = isVisible ? "none" : "block";
+            debugToggle.style.backgroundColor = isVisible ? "rgba(255, 0, 0, 0.9)" : "rgba(0, 128, 0, 0.9)";
+          });
+
+          // Add keyboard shortcut
+          document.addEventListener("keydown", (e) => {
+            if (e.ctrlKey && e.key === "d") {
+              e.preventDefault();
+              debugToggle.click();
+            }
+          });
+
+          // Add close button
+          const closeButton = document.createElement("button");
+          closeButton.textContent = "X";
+          closeButton.title = "Close Debug Panel";
+
+          Object.assign(closeButton.style, {
+            position: "absolute",
+            top: "5px",
+            right: "5px",
+            background: "red",
+            color: "white",
+            border: "none",
+            borderRadius: "50%",
+            width: "20px",
+            height: "20px",
+            lineHeight: "18px",
+            textAlign: "center",
+            fontSize: "12px",
+            cursor: "pointer",
+            padding: "0",
+          });
+
+          closeButton.addEventListener("click", () => {
+            debugPanel.style.display = "none";
+            debugToggle.style.backgroundColor = "rgba(255, 0, 0, 0.9)";
+          });
+
+          // Add title to panel
+          const title = document.createElement("div");
+          title.textContent = "DEBUG PANEL";
+          title.style.fontWeight = "bold";
+          title.style.marginBottom = "10px";
+          title.style.fontSize = "14px";
+          title.style.borderBottom = "1px solid white";
+          title.style.paddingBottom = "5px";
+
+          // Insert close button and title
+          debugPanel.insertBefore(closeButton, debugPanel.firstChild);
+          debugPanel.insertBefore(title, debugPanel.firstChild);
+
+          // Improve styling of inputs and buttons
+          debugPanel.querySelectorAll("input").forEach((input) => {
+            input.style.color = "black";
+            input.style.padding = "2px";
+          });
+
+          debugPanel.querySelectorAll("button").forEach((button) => {
+            if (button !== closeButton) {
+              Object.assign(button.style, {
+                backgroundColor: "#4CAF50",
+                border: "none",
+                color: "white",
+                minHeight: "10px",
+                padding: "1px 1px",
+                textAlign: "center",
+                textDecoration: "none",
+                display: "inline-block",
+                fontSize: "12px",
+                margin: "2px",
+                cursor: "pointer",
+                borderRadius: "3px",
+              });
+            }
+          });
+        }
 
         function fixDebugAudio() {
           // Only apply if we're in DEBUG_MODE and have both managers
@@ -2074,17 +2191,24 @@ function enhanceDebugPanel() {
         }
 
         function handleHandTouch(event) {
-          logger.debug("input", "Hand touched");
+          logger.info("input", "Hand touched");
+
+          // Always prevent default to avoid scrolling/zooming
+          if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
 
           if (!gameState.currentTarget || !gameState.isPlaying || gameState.isPaused) {
             logger.debug("input", "Hand touch ignored - conditions not met");
             return;
           }
 
-          // Prevent scrolling
-          if (event) {
-            event.preventDefault();
-            event.stopPropagation();
+          logger.info("input", `Defending against grab on ${gameState.currentTarget} via touch`);
+
+          // Play a haptic feedback if available
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
           }
 
           // Stop the grab
