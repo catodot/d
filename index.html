@@ -1217,6 +1217,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Always try to resume AudioContext on game start (user interaction)
     if (audioManager) {
       audioManager.resumeAudioContext().then(() => {
+        audioManager.ensureSoundsAreLoaded();
+
   // Start background music after context is resumed
   audioManager.startBackgroundMusic();
   
