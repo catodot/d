@@ -776,7 +776,7 @@ class DebugManager {
     dialog.style.zIndex = "2000";
     dialog.style.top = "20%";
     dialog.style.left = "20%";
-    dialog.style.transform = "translate(-50%, -50%)";
+    // dialog.style.transform = "translate(-50%, -50%)";
     dialog.style.backgroundColor = "rgba(0,0,0,0.8)";
     dialog.style.padding = "15px";
     dialog.style.borderRadius = "5px";
@@ -1142,60 +1142,87 @@ class DebugManager {
     this.updateCoordsDisplay(frameIndex);
   }
 
-  // Format coordinates as JavaScript object
-  formatCoordinatesOutput() {
+  formatCoordinatesOutput(deviceType) {
     const animName = this.calibration.currentAnimation;
-
+    
     let output = `${animName}: {\n`;
-    output += `  spriteSheet: "images/trump-${animName.replace(/([A-Z])/g, "-$1").toLowerCase()}-sprite.png",\n`;
-    output += `  frameCount: ${this.calibration.frameCoordinates.length},\n`;
-    output += `  frameDuration: 800,\n`; // Updated to 800ms to match our animations
-    output += `  looping: true,\n`;
-    output += `  maxLoops: 4,\n`; // Default to 4 loops for grab animations
-    output += `  handVisible: true,\n`;
-    output += `  handCoordinates: [\n`;
-
-    this.calibration.frameCoordinates.forEach((coords, index) => {
-      output += `    { x: ${coords.x}, y: ${coords.y}, width: ${coords.width}, height: ${coords.height} }`;
-      if (index < this.calibration.frameCoordinates.length - 1) {
-        output += ",";
-      }
-      output += ` // Frame ${index}\n`;
-    });
-
-    output += `  ]\n},`;
-
+    
+    if (deviceType === "mobile") {
+      output += `  // Mobile coordinates for ${animName}\n`;
+      output += `  deviceCoordinates: {\n`;
+      output += `    mobile: [\n`;
+      
+      this.calibration.frameCoordinates.forEach((coords, index) => {
+        output += `      { x: ${coords.x}, y: ${coords.y}, width: ${coords.width}, height: ${coords.height} }`;
+        if (index < this.calibration.frameCoordinates.length - 1) {
+          output += ",";
+        }
+        output += ` // Frame ${index}\n`;
+      });
+      
+      output += `    ]\n`;
+      output += `  },\n`;
+    } else {
+      // Standard desktop coordinates
+      output += `  // Desktop coordinates for ${animName}\n`;
+      output += `  handCoordinates: [\n`;
+      
+      this.calibration.frameCoordinates.forEach((coords, index) => {
+        output += `    { x: ${coords.x}, y: ${coords.y}, width: ${coords.width}, height: ${coords.height} }`;
+        if (index < this.calibration.frameCoordinates.length - 1) {
+          output += ",";
+        }
+        output += ` // Frame ${index}\n`;
+      });
+      
+      output += `  ],\n`;
+    }
+    
+    output += `},`;
+    
     return output;
   }
 
   saveCalibration() {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const deviceType = isMobile ? "mobile" : "desktop";
+    
+    // Format for clipboard
+    const formattedOutput = this.formatCoordinatesOutput(deviceType);
+    
     // Copy to clipboard
-    const formattedOutput = this.formatCoordinatesOutput();
-
-    console.log("Saving calibration:", formattedOutput);
-
     navigator.clipboard
       .writeText(formattedOutput)
       .then(() => {
         console.log("Coordinates copied to clipboard!");
-        alert("Coordinates copied to clipboard! You'll need to update your code with these values.");
+        alert(`${deviceType.toUpperCase()} coordinates saved and copied to clipboard. Update your code with these values.`);
       })
       .catch((err) => {
         console.error("Error copying to clipboard:", err);
         alert("Failed to copy to clipboard. See console for details.");
       });
-
-    // Also update the animation object in the current session
-    if (this.animationManager && this.animationManager.animations[this.calibration.currentAnimation]) {
-      console.log("Updating animationManager with new coordinates");
-      this.animationManager.animations[this.calibration.currentAnimation].handCoordinates = [...this.calibration.frameCoordinates];
-    } else if (this.trumpAnimations && this.trumpAnimations[this.calibration.currentAnimation]) {
-      console.log("Updating trumpAnimations with new coordinates");
-      this.trumpAnimations[this.calibration.currentAnimation].handCoordinates = [...this.calibration.frameCoordinates];
+  
+    // Update the animation object for the current session
+    const animObj = this.animationManager?.animations[this.calibration.currentAnimation] || 
+                   this.trumpAnimations?.[this.calibration.currentAnimation];
+    
+    if (animObj) {
+      if (isMobile) {
+        // Store mobile coordinates
+        if (!animObj.deviceCoordinates) {
+          animObj.deviceCoordinates = {};
+        }
+        animObj.deviceCoordinates.mobile = [...this.calibration.frameCoordinates];
+        console.log(`Updated mobile coordinates for ${this.calibration.currentAnimation}`);
+      } else {
+        // Update desktop (standard) coordinates
+        animObj.handCoordinates = [...this.calibration.frameCoordinates];
+        console.log(`Updated desktop coordinates for ${this.calibration.currentAnimation}`);
+      }
     } else {
       console.warn("No animation object found to update with new coordinates");
     }
-
+  
     this.endCalibration();
   }
 
