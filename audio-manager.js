@@ -927,45 +927,52 @@ playSound(sound) {
 
   playCatchphrase(country) {
     if (!this.initialized || this.muted) return null;
-
-    // Determine which country to use
-    const useCountry = this.catchphrases[country] && this.catchphrases[country].length > 0 ? country : "generic";
-
-    if (this.logger) {
-      this.logger.info("audio", `Playing catchphrase for ${country}, using ${useCountry} sounds`);
-    }
-
-    // Get the catchphrase array
-    const catchphraseArray = this.catchphrases[useCountry];
-    const filesArray = this.catchphraseFiles[useCountry];
-
-    // If no catchphrases loaded yet, load the first one
-    if (!catchphraseArray || catchphraseArray.length === 0) {
-      this.loadCatchphrase(useCountry, 0);
+  
+    // Check if the specified country's catchphrases are loaded
+    if (!this.catchphrases[country] || this.catchphrases[country].length === 0) {
+      // If not loaded or empty, explicitly log this event
       if (this.logger) {
-        this.logger.debug("audio", `No catchphrases loaded for ${useCountry}, loading now...`);
+        this.logger.warn("audio", `No catchphrases loaded for ${country}, attempting to load one now`);
       }
+      
+      // Try to load the catchphrase if files exist for this country
+      if (this.catchphraseFiles[country]) {
+        this.loadCatchphrase(country, 0);
+      }
+      
+      // Fall back to generic only if needed
+      if (this.catchphrases.generic && this.catchphrases.generic.length > 0) {
+        if (this.logger) {
+          this.logger.info("audio", `Falling back to generic catchphrase due to missing ${country} catchphrases`);
+        }
+        return this.playCatchphraseForCountry("generic");
+      }
+      
       return null;
     }
-
-    // Initialize playback queue for this country's catchphrases
-    const queueKey = `catchphrase.${useCountry}`;
-    this.initPlaybackQueue(queueKey, catchphraseArray);
-
+    
+    // Country has catchphrases available, use them
+    if (this.logger) {
+      this.logger.info("audio", `Playing ${country} catchphrase - ${this.catchphrases[country].length} available`);
+    }
+    return this.playCatchphraseForCountry(country);
+  }
+  
+  // Helper function to play catchphrase for a specific country
+  playCatchphraseForCountry(country) {
+    // Initialize playback queue for this country's catchphrases if needed
+    const queueKey = `catchphrase.${country}`;
+    this.initPlaybackQueue(queueKey, this.catchphrases[country]);
+    
     // Get the next catchphrase from the queue
     const sound = this.getNextSoundFromQueue(queueKey);
-
+    
     if (this.logger) {
       const queuePosition = this.playbackQueues[queueKey].position - 1;
       const queueLength = this.playbackQueues[queueKey].currentQueue.length;
-      this.logger.debug("audio", `Selected catchphrase for ${useCountry} (position: ${queuePosition}/${queueLength})`);
+      this.logger.debug("audio", `Selected catchphrase for ${country} (position: ${queuePosition}/${queueLength})`);
     }
-
-    // If not all catchphrases in this category are loaded, load the next one
-    if (catchphraseArray.length < filesArray.length) {
-      this.loadCatchphrase(useCountry, catchphraseArray.length);
-    }
-
+    
     // Make sure it's a valid audio element
     if (!sound || typeof sound.play !== "function") {
       if (this.logger) {
@@ -973,11 +980,11 @@ playSound(sound) {
       }
       return null;
     }
-
+    
     // Play the catchphrase
     sound.currentTime = 0;
     sound.volume = this.volume;
-
+    
     try {
       const playPromise = sound.play();
       if (playPromise !== undefined) {
@@ -987,16 +994,16 @@ playSound(sound) {
           }
         });
       }
-
+      
       // Add end event listener for better tracking
       const originalOnEnded = sound.onended;
       sound.onended = (e) => {
         if (this.logger) {
-          this.logger.trace("audio", `Catchphrase for ${useCountry} finished playing`);
+          this.logger.trace("audio", `Catchphrase for ${country} finished playing`);
         }
         if (originalOnEnded) originalOnEnded(e);
       };
-
+      
       return sound;
     } catch (e) {
       if (this.logger) {
@@ -1005,6 +1012,87 @@ playSound(sound) {
       return null;
     }
   }
+
+  // playCatchphrase(country) {
+  //   if (!this.initialized || this.muted) return null;
+
+  //   // Determine which country to use
+  //   const useCountry = this.catchphrases[country] && this.catchphrases[country].length > 0 ? country : "generic";
+
+  //   if (this.logger) {
+  //     this.logger.info("audio", `Playing catchphrase for ${country}, using ${useCountry} sounds`);
+  //   }
+
+  //   // Get the catchphrase array
+  //   const catchphraseArray = this.catchphrases[useCountry];
+  //   const filesArray = this.catchphraseFiles[useCountry];
+
+  //   // If no catchphrases loaded yet, load the first one
+  //   if (!catchphraseArray || catchphraseArray.length === 0) {
+  //     this.loadCatchphrase(useCountry, 0);
+  //     if (this.logger) {
+  //       this.logger.debug("audio", `No catchphrases loaded for ${useCountry}, loading now...`);
+  //     }
+  //     return null;
+  //   }
+
+  //   // Initialize playback queue for this country's catchphrases
+  //   const queueKey = `catchphrase.${useCountry}`;
+  //   this.initPlaybackQueue(queueKey, catchphraseArray);
+
+  //   // Get the next catchphrase from the queue
+  //   const sound = this.getNextSoundFromQueue(queueKey);
+
+  //   if (this.logger) {
+  //     const queuePosition = this.playbackQueues[queueKey].position - 1;
+  //     const queueLength = this.playbackQueues[queueKey].currentQueue.length;
+  //     this.logger.debug("audio", `Selected catchphrase for ${useCountry} (position: ${queuePosition}/${queueLength})`);
+  //   }
+
+  //   // If not all catchphrases in this category are loaded, load the next one
+  //   if (catchphraseArray.length < filesArray.length) {
+  //     this.loadCatchphrase(useCountry, catchphraseArray.length);
+  //   }
+
+  //   // Make sure it's a valid audio element
+  //   if (!sound || typeof sound.play !== "function") {
+  //     if (this.logger) {
+  //       this.logger.warn("audio", `Invalid catchphrase from queue ${queueKey}`);
+  //     }
+  //     return null;
+  //   }
+
+  //   // Play the catchphrase
+  //   sound.currentTime = 0;
+  //   sound.volume = this.volume;
+
+  //   try {
+  //     const playPromise = sound.play();
+  //     if (playPromise !== undefined) {
+  //       playPromise.catch((error) => {
+  //         if (this.logger) {
+  //           this.logger.warn("audio", `Catchphrase playback prevented: ${error}`);
+  //         }
+  //       });
+  //     }
+
+  //     // Add end event listener for better tracking
+  //     const originalOnEnded = sound.onended;
+  //     sound.onended = (e) => {
+  //       if (this.logger) {
+  //         this.logger.trace("audio", `Catchphrase for ${useCountry} finished playing`);
+  //       }
+  //       if (originalOnEnded) originalOnEnded(e);
+  //     };
+
+  //     return sound;
+  //   } catch (e) {
+  //     if (this.logger) {
+  //       this.logger.error("audio", `Error playing catchphrase:`, e);
+  //     }
+  //     return null;
+  //   }
+  // }
 
   // Start a grab attempt with looping sound and increasing volume
   playGrabAttempt(country) {
