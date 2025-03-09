@@ -1433,6 +1433,49 @@ playSound(sound) {
     }
   }
 
+  verifyAudioAccess() {
+    // Test direct file access
+    const testSound = 'ui.click';
+    const soundPath = this.soundPath + this.soundFiles.ui.click;
+    
+    if (this.logger) {
+      this.logger.info('audio', `Testing direct file access to: ${soundPath}`);
+    }
+    
+    // Try to access the file with fetch
+    fetch(soundPath)
+      .then(response => {
+        if (!response.ok) {
+          if (this.logger) {
+            this.logger.error('audio', `Fetch error: ${response.status} ${response.statusText}`);
+          }
+          return Promise.reject('File access failed');
+        }
+        
+        if (this.logger) {
+          this.logger.info('audio', `File access successful (${response.status}), checking content type...`);
+        }
+        
+        // Check content type
+        const contentType = response.headers.get('content-type');
+        if (this.logger) {
+          this.logger.info('audio', `Content-Type: ${contentType || 'not specified'}`);
+        }
+        
+        return response.blob();
+      })
+      .then(blob => {
+        if (this.logger) {
+          this.logger.info('audio', `File loaded successfully, size: ${blob.size} bytes, type: ${blob.type}`);
+        }
+      })
+      .catch(error => {
+        if (this.logger) {
+          this.logger.error('audio', `File access error: ${error}`);
+        }
+      });
+  }
+
   updateMusicIntensity(annexedCountries) {
     // Calculate desired intensity (0-3)
     const newIntensity = Math.min(annexedCountries, 3);
