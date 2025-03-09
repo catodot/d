@@ -358,6 +358,7 @@
       .control-button {
         background-color: rgba(60, 59, 110, 0.7);
         color: white;
+        margin-top: 5rem;
         border: none;
         border-radius: 50%;
         width: 40px;
@@ -709,21 +710,29 @@
           audioManager.init();
           audioManager.setLogger(logger);
 
-          // Enable detailed audio logging
-          logger.toggleCategory("audio", true);
-          logger.toggleLevel("info", true);
-          logger.toggleLevel("debug", true);
-          logger.toggleLevel("trace", true);
+          // Enable detailed audio logging in debug mode
+          if (DEBUG_MODE) {
+            logger.toggleCategory("audio", true);
+            logger.toggleLevel("info", true);
+            logger.toggleLevel("debug", true);
+            logger.toggleLevel("trace", true);
+          }
 
-          // Optionally preload important sounds
+          // Preload important sounds
           audioManager.preloadGameSounds();
 
           // Log initial audio state
           audioManager.logAudioState();
 
+          // Setup audio status indicator for mobile
+          if (isMobile || DEBUG_MODE) {
+            setupAudioStatusIndicator();
+          }
+
+          // Setup game controls
           setupGameControls();
 
-          // Initialize Animation Manager if available
+          // Initialize Animation Manager
           if (typeof AnimationManager === "function") {
             logger.debug("animation", "Creating AnimationManager instance");
 
@@ -735,9 +744,8 @@
             }
 
             animationManager.init();
-            // animationManager.changeState("idle");
 
-            // Initialize Smack Manager with the Animation Manager
+            // Initialize Smack Manager
             if (typeof SmackManager === "function") {
               logger.debug("animation", "Creating SmackManager instance");
               window.smackManager = new SmackManager(animationManager);
@@ -748,6 +756,7 @@
             logger.error("animation", "AnimationManager not found!");
             return; // Exit if AnimationManager is not available
           }
+
           // Create Trump sprite elements
           const trumpElements = createTrumpSprite();
 
@@ -760,54 +769,547 @@
           elements.trump = trumpElements;
 
           // Add event listeners
-          elements.buttons.start.addEventListener("click", function () {
-            // Ensure audio is initialized on first user interaction
-            if (!audioManager.initialized) {
-              audioManager.init();
-            }
-
-            // Resume the AudioContext (crucial for mobile)
-            audioManager.resumeAudioContext().then(() => {
-              // Play UI click sound
-              audioManager.play("ui", "click");
-
-              // Start the game
-              startGame();
-            });
-          });
-          elements.buttons.restart.addEventListener("click", restartGame);
-          elements.buttons.share.addEventListener("click", shareResults);
+          setupEventListeners();
 
           // Initialize Debug Manager if in debug mode
+          let audioDebugCleanup = null;
           if (DEBUG_MODE && typeof DebugManager === "function") {
             logger.debug("debug", "Initializing DebugManager");
             debugManager = new DebugManager(elements, gameState, animationManager);
             debugManager.init();
+
+            // Set up debug panel and debug controls
+            enhanceDebugPanel();
+
+            // Fix audio debug controls
+            audioDebugCleanup = fixDebugAudio();
           }
 
           // Initialize resize handling
-          window.addEventListener("resize", () => {
-            if (gameState.isPlaying) {
-              logger.debug("rendering", "Window resize detected, repositioning elements");
-              setTimeout(positionElements, 100);
-            }
-            positionCountryFlagOverlays();
-          });
-
-          // Handle orientation changes for mobile
-          window.addEventListener("orientationchange", () => {
-            if (gameState.isPlaying) {
-              logger.debug("rendering", "Orientation change detected, repositioning elements");
-              setTimeout(positionElements, 300);
-            }
-            positionCountryFlagOverlays();
-          });
+          setupResponsiveHandling();
 
           logger.info("gameState", "Game initialization complete");
 
+          // Keep only audio logging enabled by default
           logger.disableAllCategories();
           logger.toggleCategory("audio", true);
         }
+
+
+
+        function setupAudioStatusIndicator() {
+  const audioStatus = document.createElement("div");
+  audioStatus.id = "audio-status-indicator";
+  audioStatus.style.position = "absolute";
+  audioStatus.style.bottom = "10px";
+  audioStatus.style.left = "10px";
+  audioStatus.style.width = "auto";  // Changed from fixed 100px
+  audioStatus.style.height = "auto";  // Changed from fixed 100px
+  audioStatus.style.backgroundColor = "rgba(255, 0, 0, 0.6)";
+  audioStatus.style.color = "white";
+  audioStatus.style.padding = "5px 10px";
+  audioStatus.style.borderRadius = "4px";
+  audioStatus.style.fontSize = "12px";
+  audioStatus.style.zIndex = "3000";
+  audioStatus.style.display = "block";
+  audioStatus.textContent = "Audio: Waiting for interaction";
+  document.body.appendChild(audioStatus);
+}
+
+// Helper to set up event listeners
+function setupEventListeners() {
+  // Start button click handler with audio initialization
+  elements.buttons.start.addEventListener("click", function() {
+    // Ensure audio is initialized
+    if (!audioManager.initialized) {
+      audioManager.init();
+    }
+    
+    // Resume the AudioContext (crucial for mobile)
+    audioManager.resumeAudioContext().then(() => {
+      // Play UI click sound
+      audioManager.play("ui", "click");
+      
+      // Update status indicator if present
+      const audioStatus = document.getElementById("audio-status-indicator");
+      if (audioStatus) {
+        audioStatus.textContent = "Audio: Ready";
+        audioStatus.style.backgroundColor = "rgba(0, 128, 0, 0.6)";
+        setTimeout(() => {
+          audioStatus.style.opacity = "0";
+          audioStatus.style.transition = "opacity 0.5s";
+        }, 3000);
+      }
+      
+      // Start the game
+      startGame();
+    });
+  });
+  
+  // Other button event listeners
+  elements.buttons.restart.addEventListener("click", restartGame);
+  elements.buttons.share.addEventListener("click", shareResults);
+}
+
+// Helper to set up responsive handling
+function setupResponsiveHandling() {
+  // Resize handler
+  window.addEventListener("resize", () => {
+    if (gameState.isPlaying) {
+      logger.debug("rendering", "Window resize detected, repositioning elements");
+      setTimeout(positionElements, 100);
+    }
+    positionCountryFlagOverlays();
+  });
+  
+  // Orientation change handler for mobile
+  window.addEventListener("orientationchange", () => {
+    if (gameState.isPlaying) {
+      logger.debug("rendering", "Orientation change detected, repositioning elements");
+      setTimeout(positionElements, 300);
+    }
+    positionCountryFlagOverlays();
+  });
+}
+
+// Enhance debug panel with better styling and functionality
+function enhanceDebugPanel() {
+  // Find the debug panel
+  const debugPanel = document.getElementById("debug-panel");
+  if (!debugPanel) return;
+  
+  // Apply improved styling
+  Object.assign(debugPanel.style, {
+    position: "fixed",
+    bottom: "50px",
+    left: "10px",
+    maxWidth: "350px",
+    maxHeight: "60vh",
+    overflowY: "auto",
+    background: "rgba(0, 0, 0, 0.85)",
+    color: "white",
+    padding: "10px",
+    borderRadius: "5px",
+    zIndex: "1000",
+    fontSize: "12px",
+    display: "block",
+    boxShadow: "0 0 10px rgba(0,0,0,0.5)"
+  });
+  
+  // Create toggle button
+  const debugToggle = document.createElement("div");
+  debugToggle.id = "debug-toggle";
+  
+  // Style toggle button
+  Object.assign(debugToggle.style, {
+    position: "fixed",
+    bottom: "10px",
+    right: "10px",
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    backgroundColor: "rgba(0, 128, 0, 0.9)",
+    color: "white",
+    textAlign: "center",
+    lineHeight: "40px",
+    fontSize: "24px",
+    cursor: "pointer",
+    zIndex: "9999",
+    boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+    userSelect: "none",
+    border: "2px solid white"
+  });
+  
+  debugToggle.textContent = "🛠️";
+  debugToggle.title = "Toggle Debug Panel";
+  
+  // Add to document
+  document.body.appendChild(debugToggle);
+  
+  // Toggle functionality
+  debugToggle.addEventListener("click", () => {
+    const isVisible = debugPanel.style.display === "block";
+    debugPanel.style.display = isVisible ? "none" : "block";
+    debugToggle.style.backgroundColor = isVisible ? "rgba(255, 0, 0, 0.9)" : "rgba(0, 128, 0, 0.9)";
+  });
+  
+  // Add keyboard shortcut
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.key === "d") {
+      e.preventDefault();
+      debugToggle.click();
+    }
+  });
+  
+  // Add close button
+  const closeButton = document.createElement("button");
+  closeButton.textContent = "X";
+  closeButton.title = "Close Debug Panel";
+  
+  Object.assign(closeButton.style, {
+    position: "absolute",
+    top: "5px",
+    right: "5px",
+    background: "red",
+    color: "white",
+    border: "none",
+    borderRadius: "50%",
+    width: "20px",
+    height: "20px",
+    lineHeight: "18px",
+    textAlign: "center",
+    fontSize: "12px",
+    cursor: "pointer",
+    padding: "0"
+  });
+  
+  closeButton.addEventListener("click", () => {
+    debugPanel.style.display = "none";
+    debugToggle.style.backgroundColor = "rgba(255, 0, 0, 0.9)";
+  });
+  
+  // Add title to panel
+  const title = document.createElement("div");
+  title.textContent = "DEBUG PANEL";
+  title.style.fontWeight = "bold";
+  title.style.marginBottom = "10px";
+  title.style.fontSize = "14px";
+  title.style.borderBottom = "1px solid white";
+  title.style.paddingBottom = "5px";
+  
+  // Insert close button and title
+  debugPanel.insertBefore(closeButton, debugPanel.firstChild);
+  debugPanel.insertBefore(title, debugPanel.firstChild);
+  
+  // Improve styling of inputs and buttons
+  debugPanel.querySelectorAll("input").forEach(input => {
+    input.style.color = "black";
+    input.style.padding = "2px";
+  });
+  
+  debugPanel.querySelectorAll("button").forEach(button => {
+    if (button !== closeButton) {
+      Object.assign(button.style, {
+        backgroundColor: "#4CAF50",
+        border: "none",
+        color: "white",
+        padding: "3px 8px",
+        textAlign: "center",
+        textDecoration: "none",
+        display: "inline-block",
+        fontSize: "12px",
+        margin: "2px",
+        cursor: "pointer",
+        borderRadius: "3px"
+      });
+    }
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+        function fixDebugAudio() {
+          // Only apply if we're in DEBUG_MODE and have both managers
+          if (!DEBUG_MODE || !debugManager || !audioManager) return;
+
+          // 1. Directly connect the audioManager to debugManager
+          debugManager.audioManager = audioManager;
+
+          // 2. Add a simple test function to window for console testing
+          window.testAudio = function (category, name) {
+            if (!audioManager) return "AudioManager not available";
+
+            console.log(`Testing audio: ${category}.${name}`);
+            if (name === "grab") {
+              return audioManager.playGrabAttempt("canada");
+            } else {
+              return audioManager.play(category, name);
+            }
+          };
+
+          // 3. Update the status display
+          const updateStatus = function () {
+            const statusElement = document.getElementById("audio-status");
+            if (!statusElement) return;
+
+            let status = "";
+            if (!audioManager.initialized) {
+              status = "Not initialized";
+            } else {
+              status = `AudioContext: ${audioManager.audioContext ? audioManager.audioContext.state : "None"}<br>`;
+              status += `Muted: ${audioManager.muted}<br>`;
+              status += `Volume: ${audioManager.volume.toFixed(2)}<br>`;
+              status += `Music Playing: ${audioManager.backgroundMusicPlaying}<br>`;
+              status += `Music Intensity: ${audioManager.musicIntensity}<br>`;
+              status += `Active Sounds: ${audioManager.currentlyPlaying.length}<br>`;
+              status += `Loaded Sounds: ${audioManager.loadedSounds ? audioManager.loadedSounds.size : "Unknown"}`;
+            }
+            statusElement.innerHTML = status;
+          };
+
+          // 4. Manually fix button listeners in the debug panel
+          const fixButtons = function () {
+            // Get the debug panel
+            const debugPanel = document.getElementById("debug-panel");
+            if (!debugPanel) return;
+
+            // Fix audio test buttons
+            debugPanel.querySelectorAll(".audio-test-btn").forEach((btn) => {
+              // Remove existing listeners
+              const btnClone = btn.cloneNode(true);
+              btn.parentNode.replaceChild(btnClone, btn);
+
+              // Add new listener with proper error handling
+              btnClone.addEventListener("click", () => {
+                try {
+                  const category = btnClone.getAttribute("data-category");
+                  const name = btnClone.getAttribute("data-name");
+
+                  console.log(`Testing ${category}.${name} sound`);
+
+                  if (category && name) {
+                    if (name === "grab") {
+                      audioManager.playGrabAttempt("canada");
+                    } else {
+                      audioManager.play(category, name);
+                    }
+
+                    // Show visual feedback
+                    btnClone.style.backgroundColor = "#ff7700";
+                    setTimeout(() => {
+                      btnClone.style.backgroundColor = "";
+                    }, 300);
+                  }
+                } catch (error) {
+                  console.error("Error playing test sound:", error);
+                }
+              });
+            });
+
+            // Fix music control buttons
+            const fixButton = (id, action) => {
+              const btn = debugPanel.querySelector(`#${id}`);
+              if (btn) {
+                const btnClone = btn.cloneNode(true);
+                btn.parentNode.replaceChild(btnClone, btn);
+                btnClone.addEventListener("click", action);
+              }
+            };
+
+            fixButton("start-music-btn", () => audioManager.startBackgroundMusic());
+            fixButton("stop-music-btn", () => audioManager.stopBackgroundMusic());
+            fixButton("toggle-mute-btn", () => {
+              const muted = audioManager.toggleMute();
+              document.getElementById("toggle-mute-btn").textContent = muted ? "Unmute" : "Mute";
+            });
+            fixButton("unlock-audio-btn", () => {
+              // Silent sound to unlock audio
+              const silentSound = new Audio();
+              silentSound.src =
+                "data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
+              silentSound.load();
+              silentSound.play().catch((e) => console.log("Silent sound error (expected)", e));
+
+              // Resume AudioContext
+              if (audioManager.audioContext) {
+                audioManager.audioContext.resume().then(() => {
+                  console.log("AudioContext resumed:", audioManager.audioContext.state);
+                  updateStatus();
+                });
+              }
+
+              // Visual feedback
+              const btn = document.getElementById("unlock-audio-btn");
+              if (btn) {
+                btn.textContent = "✅ Unlocked";
+                setTimeout(() => {
+                  btn.textContent = "🔓 Unlock Audio";
+                }, 2000);
+              }
+            });
+
+            // Fix music intensity selector
+            const intensitySelect = debugPanel.querySelector("#music-intensity");
+            if (intensitySelect) {
+              intensitySelect.addEventListener("change", (e) => {
+                const intensity = parseInt(e.target.value);
+                audioManager.updateMusicIntensity(intensity);
+              });
+            }
+
+            // Fix volume control
+            const volumeControl = debugPanel.querySelector("#volume-control");
+            if (volumeControl) {
+              volumeControl.addEventListener("input", (e) => {
+                const volume = parseInt(e.target.value) / 100;
+                audioManager.setVolume(volume);
+              });
+            }
+          };
+
+          // 5. Start periodic updates
+          const statusInterval = setInterval(updateStatus, 1000);
+
+          // 6. Fix buttons after a short delay to ensure DOM is ready
+          setTimeout(fixButtons, 500);
+
+          // 7. Return cleanup function
+          return function cleanup() {
+            clearInterval(statusInterval);
+          };
+        }
+
+        // Create a better debug menu toggle system
+        // function setupDebugControls() {
+        //   if (!DEBUG_MODE) return;
+
+        //   // Find the debug panel
+        //   const debugPanel = document.getElementById("debug-panel");
+        //   if (!debugPanel) {
+        //     console.error("Debug panel not found");
+        //     return;
+        //   }
+
+        //   // Apply improved styling to make it scrollable and better sized
+        //   Object.assign(debugPanel.style, {
+        //     position: "fixed",
+        //     bottom: "50px",
+        //     left: "10px",
+        //     maxWidth: "350px",
+        //     maxHeight: "60vh", // Use percentage of viewport height
+        //     overflowY: "auto", // Make it scrollable
+        //     background: "rgba(0, 0, 0, 0.85)",
+        //     color: "white",
+        //     padding: "10px",
+        //     borderRadius: "5px",
+        //     zIndex: "1000",
+        //     fontSize: "12px",
+        //     display: "block", // Show by default in debug mode
+        //     boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+        //   });
+
+        //   // Create a larger, more visible toggle button
+        //   const debugToggle = document.createElement("div");
+        //   debugToggle.id = "debug-toggle";
+
+        //   // Style the button to be much more visible
+        //   Object.assign(debugToggle.style, {
+        //     position: "fixed",
+        //     bottom: "10px",
+        //     right: "10px",
+        //     width: "40px",
+        //     height: "40px",
+        //     borderRadius: "50%",
+        //     backgroundColor: "rgba(0, 128, 0, 0.9)", // Bright green
+        //     color: "white",
+        //     textAlign: "center",
+        //     lineHeight: "40px",
+        //     fontSize: "24px",
+        //     cursor: "pointer",
+        //     zIndex: "9999",
+        //     boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+        //     userSelect: "none",
+        //     border: "2px solid white", // Add white border for visibility
+        //   });
+
+        //   debugToggle.textContent = "🛠️";
+        //   debugToggle.title = "Toggle Debug Panel";
+
+        //   // Add to document
+        //   document.body.appendChild(debugToggle);
+
+        //   // Toggle functionality
+        //   debugToggle.addEventListener("click", () => {
+        //     const isVisible = debugPanel.style.display === "block";
+        //     debugPanel.style.display = isVisible ? "none" : "block";
+        //     debugToggle.style.backgroundColor = isVisible ? "rgba(255, 0, 0, 0.9)" : "rgba(0, 128, 0, 0.9)";
+        //   });
+
+        //   // Add keyboard shortcut (Ctrl+D)
+        //   document.addEventListener("keydown", (e) => {
+        //     if (e.ctrlKey && e.key === "d") {
+        //       e.preventDefault();
+        //       debugToggle.click();
+        //     }
+        //   });
+
+        //   // Add a close button to the debug panel
+        //   const closeButton = document.createElement("button");
+        //   closeButton.textContent = "X";
+        //   closeButton.title = "Close Debug Panel";
+
+        //   Object.assign(closeButton.style, {
+        //     position: "absolute",
+        //     top: "5px",
+        //     right: "5px",
+        //     background: "red",
+        //     color: "white",
+        //     border: "none",
+        //     borderRadius: "50%",
+        //     width: "20px",
+        //     height: "20px",
+        //     lineHeight: "18px",
+        //     textAlign: "center",
+        //     fontSize: "12px",
+        //     cursor: "pointer",
+        //     padding: "0",
+        //   });
+
+        //   closeButton.addEventListener("click", () => {
+        //     debugPanel.style.display = "none";
+        //     debugToggle.style.backgroundColor = "rgba(255, 0, 0, 0.9)";
+        //   });
+
+        //   // Add title to the panel
+        //   const title = document.createElement("div");
+        //   title.textContent = "DEBUG PANEL";
+        //   title.style.fontWeight = "bold";
+        //   title.style.marginBottom = "10px";
+        //   title.style.fontSize = "14px";
+        //   title.style.borderBottom = "1px solid white";
+        //   title.style.paddingBottom = "5px";
+
+        //   // Insert the close button and title at the beginning of the panel
+        //   debugPanel.insertBefore(closeButton, debugPanel.firstChild);
+        //   debugPanel.insertBefore(title, debugPanel.firstChild);
+
+        //   // Ensure any input fields have white text
+        //   debugPanel.querySelectorAll("input").forEach((input) => {
+        //     input.style.color = "black";
+        //     input.style.padding = "2px";
+        //   });
+
+        //   // Improve button styling within the panel
+        //   debugPanel.querySelectorAll("button").forEach((button) => {
+        //     if (button !== closeButton) {
+        //       Object.assign(button.style, {
+        //         backgroundColor: "#4CAF50",
+        //         border: "none",
+        //         color: "white",
+        //         padding: "3px 8px",
+        //         textAlign: "center",
+        //         textDecoration: "none",
+        //         display: "inline-block",
+        //         fontSize: "12px",
+        //         margin: "2px",
+        //         cursor: "pointer",
+        //         borderRadius: "3px",
+        //       });
+        //     }
+        //   });
+
+        //   // Log success
+        //   console.log("Debug panel enhanced with scrolling and improved visibility");
+        // }
 
         function setupAudio() {
           // Create audio controls for the game
