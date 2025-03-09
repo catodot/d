@@ -1,6 +1,6 @@
 class DebugManager {
   constructor(gameElements, gameState, animationManager) {
-    logger.info('debug', 'Creating Debug Manager');
+    logger.info("debug", "Creating Debug Manager");
 
     this.enabled = true;
     this.elements = gameElements;
@@ -9,7 +9,7 @@ class DebugManager {
 
     // Reference to animations - use animationManager if available, or create an empty object as fallback
     this.trumpAnimations = window.trumpAnimations || (animationManager ? animationManager.animations : {});
-  
+
     // Debug panel elements
     this.panel = null;
     this.controls = {};
@@ -29,28 +29,28 @@ class DebugManager {
       originalHandlerTouch: null,
       originalContainerClick: null,
     };
-    
-    logger.debug('debug', 'Debug Manager initialized');
+
+    logger.debug("debug", "Debug Manager initialized");
   }
 
   // Initialize debugging tools
   init() {
     if (!this.enabled) return;
- 
-    logger.info('debug', 'Initializing debug tools');
-    
+
+    logger.info("debug", "Initializing debug tools");
+
     this.createDebugPanel();
     this.setupBasicControls();
     this.setupHitboxControls();
     this.setupDeveloperControls();
     this.setupAnimationControls();
- 
-    // Show the panel
-    this.panel.style.display = "block";
- 
-    logger.info('debug', 'Debug panel initialized and displayed');
-  }
+    this.setupAudioControls();
 
+    // Show the panel by default when in debug mode
+    this.panel.style.display = "block";
+
+    logger.info("debug", "Debug panel initialized and displayed");
+  }
   // Create the debug panel
   createDebugPanel() {
     this.panel = document.getElementById("debug-panel");
@@ -101,17 +101,17 @@ class DebugManager {
     // Add time adjustment
     const timeControl = document.createElement("div");
     timeControl.innerHTML = `
-        <label>Time: <input type="number" id="dev-time" min="10" max="300" value="60" style="width: 50px;"></label>
-        <button id="dev-set-time">Set</button>
-      `;
+      <label>Time: <input type="number" id="dev-time" min="10" max="300" value="60" style="width: 50px;"></label>
+      <button id="dev-set-time">Set</button>
+    `;
     devControls.appendChild(timeControl);
 
     // Add animation flow testing
     const animFlowTest = document.createElement("div");
     animFlowTest.innerHTML = `
-        <label>Test Animation Sequence:</label>
-        <button id="test-sequence">Run Full Sequence</button>
-      `;
+      <label>Test Animation Sequence:</label>
+      <button id="test-sequence">Run Full Sequence</button>
+    `;
     devControls.appendChild(animFlowTest);
 
     // Add event listeners
@@ -143,7 +143,7 @@ class DebugManager {
         this.animationManager.changeState("victory", () => {
           // After victory completes, go back to idle
           this.animationManager.changeState("idle", () => {
-            logger.debug('debug', 'Animation sequence test complete');
+            logger.debug("debug", "Animation sequence test complete");
           });
         });
       });
@@ -156,13 +156,13 @@ class DebugManager {
     animHeading.textContent = "Animation Controls";
     animHeading.style.marginTop = "15px";
     this.panel.appendChild(animHeading);
-  
+
     // Create container for animation controls
     const animControls = document.createElement("div");
     animControls.id = "anim-controls";
     animControls.style.marginBottom = "10px";
     this.panel.appendChild(animControls);
-  
+
     // Add animation duration controls
     const durationControls = document.createElement("div");
     durationControls.innerHTML = `
@@ -186,7 +186,7 @@ class DebugManager {
       </div>
     `;
     animControls.appendChild(durationControls);
-  
+
     // Add loop count controls
     const loopControls = document.createElement("div");
     loopControls.innerHTML = `
@@ -216,7 +216,7 @@ class DebugManager {
       </div>
     `;
     animControls.appendChild(loopControls);
-  
+
     // Add animation sequence timing controls
     const sequenceControls = document.createElement("div");
     sequenceControls.innerHTML = `
@@ -228,8 +228,7 @@ class DebugManager {
       </div>
     `;
     animControls.appendChild(sequenceControls);
-  
-    
+
     // Add current animation info display
     const animInfo = document.createElement("div");
     animInfo.id = "anim-info";
@@ -243,21 +242,21 @@ class DebugManager {
       <div><strong>Loop Count:</strong> <span id="current-loop-count">0</span></div>
     `;
     animControls.appendChild(animInfo);
-  
+
     // Add refresh button to update animation info
     const refreshBtn = document.createElement("button");
     refreshBtn.textContent = "Refresh Info";
     refreshBtn.style.marginTop = "5px";
     refreshBtn.addEventListener("click", () => this.updateAnimationInfo());
     animControls.appendChild(refreshBtn);
-  
+
     // Add event listeners for all animation control buttons
     this.addAnimationControlListeners();
-  
+
     // Start periodic updates of animation info
     this.startAnimationInfoUpdates();
   }
-  
+
   addAnimationControlListeners() {
     // Idle frame time
     document.getElementById("set-idle-time").addEventListener("click", () => {
@@ -267,7 +266,7 @@ class DebugManager {
         this.updateAnimationTiming("victory", newTime);
       }
     });
-  
+
     // Grab frame time
     document.getElementById("set-grab-time").addEventListener("click", () => {
       const newTime = parseInt(document.getElementById("grab-frame-time").value);
@@ -278,7 +277,7 @@ class DebugManager {
         this.updateAnimationTiming("grabGreenland", newTime);
       }
     });
-  
+
     // Slap frame time
     document.getElementById("set-slap-time").addEventListener("click", () => {
       const newTime = parseInt(document.getElementById("slap-frame-time").value);
@@ -290,7 +289,7 @@ class DebugManager {
         this.updateAnimationTiming("smackGreenland", newTime);
       }
     });
-  
+
     // Idle loops
     document.getElementById("set-idle-loops").addEventListener("click", () => {
       const loops = parseInt(document.getElementById("idle-loops").value);
@@ -298,7 +297,7 @@ class DebugManager {
         this.updateAnimationLoops("idle", loops);
       }
     });
-  
+
     // Grab loops
     document.getElementById("set-grab-loops").addEventListener("click", () => {
       const loops = parseInt(document.getElementById("grab-loops").value);
@@ -309,7 +308,7 @@ class DebugManager {
         this.updateAnimationLoops("grabGreenland", loops);
       }
     });
-  
+
     // Victory loops
     document.getElementById("set-victory-loops").addEventListener("click", () => {
       const loops = parseInt(document.getElementById("victory-loops").value);
@@ -317,7 +316,7 @@ class DebugManager {
         this.updateAnimationLoops("victory", loops);
       }
     });
-  
+
     // Reaction loops
     document.getElementById("set-reaction-loops").addEventListener("click", () => {
       const loops = parseInt(document.getElementById("reaction-loops").value);
@@ -331,69 +330,74 @@ class DebugManager {
       const interval = parseInt(document.getElementById("grab-interval").value);
       if (interval && interval > 0) {
         this.gameState.baseGrabInterval = interval;
-        logger.debug('debug', `Set grab interval to ${interval}ms`);
+        logger.debug("debug", `Set grab interval to ${interval}ms`);
       }
     });
   }
-  
+
   updateAnimationTiming(animName, frameTime) {
     if (!this.animationManager || !this.animationManager.animations[animName]) return;
-    
+
     // Update the animation's frame duration
     this.animationManager.animations[animName].frameDuration = frameTime;
-    
+
     // Log the change
-    logger.debug('debug', `Updated ${animName} frame time to ${frameTime}ms`);
-    
+    logger.debug("debug", `Updated ${animName} frame time to ${frameTime}ms`);
+
     // If this is the current animation, restart it to apply changes
     if (this.animationManager.currentState === animName) {
       const currentLoopCount = this.animationManager.loopCount;
       const maxLoops = this.animationManager.maxLoops;
       const currentCallback = this.animationManager.onAnimationEnd;
-      
+
       this.animationManager.stop();
       this.animationManager.changeState(animName, currentCallback);
-      
+
       // Try to restore loop state
       this.animationManager.loopCount = currentLoopCount;
       this.animationManager.maxLoops = maxLoops;
     }
   }
-  
+
   updateAnimationLoops(animName, loops) {
     if (!this.animationManager || !this.animationManager.animations[animName]) return;
-    
+
     // Update the animation's max loops
     this.animationManager.animations[animName].maxLoops = loops;
-    
-    logger.debug('debug', `Updated ${animName} to loop ${loops} times`);
+
+    logger.debug("debug", `Updated ${animName} to loop ${loops} times`);
   }
-  
+
   updateAnimationInfo() {
     if (!this.animationManager) return;
-    
+
     const currentName = document.getElementById("current-anim-name");
     const currentFrame = document.getElementById("current-anim-frame");
     const currentLoop = document.getElementById("current-loop-count");
-    
+
     if (currentName && currentFrame && currentLoop) {
       currentName.textContent = this.animationManager.currentState || "none";
       currentFrame.textContent = this.animationManager.currentFrame || 0;
       currentLoop.textContent = `${this.animationManager.loopCount || 0}/${this.animationManager.maxLoops || 1}`;
     }
   }
-  
+
   startAnimationInfoUpdates() {
     // Update animation info every 200ms
     this.animInfoInterval = setInterval(() => {
       this.updateAnimationInfo();
     }, 200);
   }
-  
+
   stopAnimationInfoUpdates() {
     if (this.animInfoInterval) {
       clearInterval(this.animInfoInterval);
       this.animInfoInterval = null;
+    }
+
+    if (this.audioStatusInterval) {
+      clearInterval(this.audioStatusInterval);
+      this.audioStatusInterval = null;
     }
   }
 
@@ -401,10 +405,10 @@ class DebugManager {
   toggleHitboxVisibility() {
     document.body.classList.toggle("debug-mode");
     const handHitbox = document.getElementById("hand-hitbox");
-    
+
     const isDebugMode = document.body.classList.contains("debug-mode");
-    logger.info('debug', `Toggled hitbox visibility: ${isDebugMode ? 'visible' : 'hidden'}`);
-    
+    logger.info("debug", `Toggled hitbox visibility: ${isDebugMode ? "visible" : "hidden"}`);
+
     // If animation manager exists, update its debug mode
     if (this.animationManager) {
       this.animationManager.setDebugMode(isDebugMode);
@@ -453,7 +457,7 @@ class DebugManager {
         // If transitioning to a grab animation, go through idle first
         const isGrabAnim = selectedAnimation.startsWith("grab");
         if (isGrabAnim && this.animationManager.currentState !== "idle") {
-          logger.debug('debug', `Transitioning through idle first before ${selectedAnimation}`);
+          logger.debug("debug", `Transitioning through idle first before ${selectedAnimation}`);
           this.animationManager.changeState("idle", () => {
             this.animationManager.changeState(selectedAnimation);
           });
@@ -485,12 +489,12 @@ class DebugManager {
       const selectedAnimation = animSelect.value;
       const loopCount = parseInt(document.getElementById("test-loops").value);
       const frameTime = parseInt(document.getElementById("test-frame-time").value);
-      
+
       if (this.animationManager && selectedAnimation) {
         if (loopCount && loopCount > 0) {
           this.updateAnimationLoops(selectedAnimation, loopCount);
         }
-        
+
         if (frameTime && frameTime > 0) {
           this.updateAnimationTiming(selectedAnimation, frameTime);
         }
@@ -509,93 +513,251 @@ class DebugManager {
     document.body.appendChild(dialog);
   }
 
-  testCountryGrab(country) {
-    if (!this.gameState.isPlaying) {
-      logger.warn('debug', 'Cannot test grab: game not started');
-      alert("Start the game first");
+  // Replace the setupAudioControls method in your DebugManager class with this improved version
+  setupAudioControls() {
+    // Add a heading for audio controls
+    const audioHeading = document.createElement("h3");
+    audioHeading.textContent = "Audio Debug";
+    audioHeading.style.marginTop = "15px";
+    this.panel.appendChild(audioHeading);
+
+    // Create container for audio controls
+    const audioControls = document.createElement("div");
+    audioControls.id = "audio-debug-controls";
+    audioControls.style.marginBottom = "10px";
+    this.panel.appendChild(audioControls);
+
+    // Add audio test buttons
+    audioControls.innerHTML = `
+    <div style="margin-bottom: 5px;">Test Sounds:</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;">
+      <button class="audio-test-btn" data-category="ui" data-name="click">UI Click</button>
+      <button class="audio-test-btn" data-category="ui" data-name="start">Game Start</button>
+      <button class="audio-test-btn" data-category="ui" data-name="win">Win</button>
+      <button class="audio-test-btn" data-category="ui" data-name="lose">Lose</button>
+    </div>
+    <div style="margin-bottom: 5px;">Test Effects:</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;">
+      <button class="audio-test-btn" data-category="trump" data-name="grab">Trump Grab</button>
+      <button class="audio-test-btn" data-category="trump" data-name="success">Trump Success</button>
+      <button class="audio-test-btn" data-category="trump" data-name="annex">Trump Annex</button>
+      <button class="audio-test-btn" data-category="defense" data-name="slap">Defense Slap</button>
+    </div>
+    <div style="margin-bottom: 5px;">Music Control:</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+      <button id="start-music-btn">Start Music</button>
+      <button id="stop-music-btn">Stop Music</button>
+      <button id="toggle-mute-btn">Toggle Mute</button>
+      <select id="music-intensity">
+        <option value="0">Normal</option>
+        <option value="1">Intensity 1</option>
+        <option value="2">Intensity 2</option>
+        <option value="3">Max Intensity</option>
+      </select>
+    </div>
+    <div style="margin: 10px 0;">
+      <label>Volume: <input type="range" id="volume-control" min="0" max="100" value="100" style="width: 100%;"></label>
+      <button id="unlock-audio-btn">🔓 Unlock Audio</button>
+    </div>
+    <div style="margin: 10px 0;">
+      <div>Audio Status:</div>
+      <div id="audio-status" style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 5px; margin-top: 5px;">
+        Not initialized
+      </div>
+    </div>
+  `;
+
+    // Get audio manager reference - first try this instance, then fallback to window
+    const audioManager = this.audioManager || window.audioManager;
+    if (!audioManager) {
+      console.error("AudioManager not found for debug controls");
+
+      // Add error message to the panel
+      const errorMsg = document.createElement("div");
+      errorMsg.textContent = "Error: AudioManager not found";
+      errorMsg.style.color = "red";
+      audioControls.appendChild(errorMsg);
       return;
     }
-   
-    logger.info('debug', `Testing grab on ${country}`);
-   
-    // Grab function references from the window
-    const grabAttempt = window.audioManager ? window.audioManager.playGrabAttempt.bind(window.audioManager) : null;
-    const grabSuccess = window.grabSuccess;
-   
-    // Cancel any current grab
-    if (this.gameState.currentTarget) {
-      logger.debug('debug', `Canceling current grab on ${this.gameState.currentTarget}`);
-      const countryPath = document.getElementById(this.gameState.currentTarget);
-      if (countryPath) countryPath.classList.remove("targeted");
-      this.gameState.currentTarget = null;
-    }
-   
-    // Clear any pending grab
-    if (this.gameState.grabTimer) {
-      clearTimeout(this.gameState.grabTimer);
-    }
-   
-    // Set target country (handle East/West Canada special case)
-    if (country === 'eastCanada' || country === 'westCanada') {
-      this.gameState.currentTarget = 'canada';
-      this.gameState.isEastCanadaGrab = country === 'eastCanada';
-      this.gameState.isWestCanadaGrab = country === 'westCanada';
-    } else {
-      this.gameState.currentTarget = country;
-      this.gameState.isEastCanadaGrab = false;
-      this.gameState.isWestCanadaGrab = false;
-    }
-   
-    // Highlight country
-    const countryPath = document.getElementById(this.gameState.currentTarget);
-    if (countryPath) {
-      countryPath.classList.add("targeted");
-    }
-   
-    // Play grab sound
-    if (grabAttempt) {
-      grabAttempt(this.gameState.currentTarget);
-    }
-   
-    // Change animation - use the specific East/West animation if applicable
-    let animationName;
-    if (country === 'eastCanada') {
-      animationName = 'grabEastCanada';
-    } else if (country === 'westCanada') {
-      animationName = 'grabWestCanada';
-    } else {
-      animationName = `grab${country.charAt(0).toUpperCase() + country.slice(1)}`;
-    }
-    
-    logger.debug('debug', `Setting animation to ${animationName}`);
-    
-    if (this.animationManager) {
-      // Always transition through idle first for consistent animation flow
-      if (this.animationManager.currentState !== "idle") {
-        logger.debug('debug', `Transitioning to idle before grab test`);
-        this.animationManager.changeState("idle", () => {
-          logger.debug('debug', `Now transitioning to grab animation ${animationName}`);
-          this.animationManager.changeState(animationName, () => {
-            // If animation completed without being stopped (player didn't block)
-            if (this.gameState.currentTarget && this.gameState.isPlaying && !this.gameState.isPaused) {
-              logger.debug('debug', `Test grab complete, processing success for ${this.gameState.currentTarget}`);
-              if (grabSuccess) grabSuccess(this.gameState.currentTarget);
+
+    console.log("Setting up audio debug controls with AudioManager:", audioManager);
+
+    // Add event listeners for all audio test buttons with explicit error handling
+    const audioTestButtons = this.panel.querySelectorAll(".audio-test-btn");
+    audioTestButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        try {
+          const category = btn.getAttribute("data-category");
+          const name = btn.getAttribute("data-name");
+
+          console.log(`Audio test button clicked: ${category}.${name}`);
+
+          if (category && name) {
+            if (name === "grab") {
+              // Special case for grab sound
+              audioManager.playGrabAttempt("canada");
+            } else {
+              // Normal sound
+              audioManager.play(category, name);
             }
-          });
-        });
-      } else {
-        // Already in idle, proceed directly to grab
-        this.animationManager.changeState(animationName, () => {
-          // If animation completed without being stopped (player didn't block)
-          if (this.gameState.currentTarget && this.gameState.isPlaying && !this.gameState.isPaused) {
-            logger.debug('debug', `Test grab complete, processing success for ${this.gameState.currentTarget}`);
-            if (grabSuccess) grabSuccess(this.gameState.currentTarget);
+            console.log(`Playing ${category}.${name} sound`);
+
+            // Add visual feedback that the button was clicked
+            btn.style.backgroundColor = "#ff7700";
+            setTimeout(() => {
+              btn.style.backgroundColor = "";
+            }, 300);
           }
-        });
-      }
-    } else if (typeof window.changeAnimationState === "function") {
-      window.changeAnimationState(animationName);
+        } catch (error) {
+          console.error("Error playing test sound:", error);
+          alert("Error playing sound: " + error.message);
+        }
+      });
+    });
+
+    // Add listeners for music controls
+    const startMusicBtn = this.panel.querySelector("#start-music-btn");
+    if (startMusicBtn) {
+      startMusicBtn.addEventListener("click", () => {
+        try {
+          audioManager.startBackgroundMusic();
+          console.log("Manually started background music");
+        } catch (error) {
+          console.error("Error starting music:", error);
+        }
+      });
     }
+
+    const stopMusicBtn = this.panel.querySelector("#stop-music-btn");
+    if (stopMusicBtn) {
+      stopMusicBtn.addEventListener("click", () => {
+        try {
+          audioManager.stopBackgroundMusic();
+          console.log("Manually stopped background music");
+        } catch (error) {
+          console.error("Error stopping music:", error);
+        }
+      });
+    }
+
+    const toggleMuteBtn = this.panel.querySelector("#toggle-mute-btn");
+    if (toggleMuteBtn) {
+      toggleMuteBtn.addEventListener("click", () => {
+        try {
+          const muted = audioManager.toggleMute();
+          toggleMuteBtn.textContent = muted ? "Unmute" : "Mute";
+          console.log(`Audio ${muted ? "muted" : "unmuted"}`);
+        } catch (error) {
+          console.error("Error toggling mute:", error);
+        }
+      });
+    }
+
+    const musicIntensity = this.panel.querySelector("#music-intensity");
+    if (musicIntensity) {
+      musicIntensity.addEventListener("change", (e) => {
+        try {
+          const intensity = parseInt(e.target.value);
+          audioManager.updateMusicIntensity(intensity);
+          console.log(`Set music intensity to ${intensity}`);
+        } catch (error) {
+          console.error("Error setting music intensity:", error);
+        }
+      });
+    }
+
+    const volumeControl = this.panel.querySelector("#volume-control");
+    if (volumeControl) {
+      volumeControl.addEventListener("input", (e) => {
+        try {
+          const volume = parseInt(e.target.value) / 100;
+          audioManager.setVolume(volume);
+          console.log(`Set volume to ${volume.toFixed(2)}`);
+        } catch (error) {
+          console.error("Error setting volume:", error);
+        }
+      });
+    }
+
+    const unlockAudioBtn = this.panel.querySelector("#unlock-audio-btn");
+    if (unlockAudioBtn) {
+      unlockAudioBtn.addEventListener("click", () => {
+        try {
+          // Create and play a silent sound to unlock audio on mobile
+          this.unlockAudio();
+
+          // Also explicitly resume the AudioContext
+          if (audioManager.audioContext && audioManager.audioContext.state === "suspended") {
+            audioManager.audioContext.resume().then(() => {
+              console.log(`AudioContext resumed: ${audioManager.audioContext.state}`);
+              this.updateAudioStatus();
+            });
+          }
+
+          console.log("Manual audio unlock attempted");
+
+          // Visual feedback
+          unlockAudioBtn.textContent = "✅ Unlocked";
+          setTimeout(() => {
+            unlockAudioBtn.textContent = "🔓 Unlock Audio";
+          }, 2000);
+        } catch (error) {
+          console.error("Error unlocking audio:", error);
+        }
+      });
+    }
+
+    // Start periodic audio status updates
+    this.startAudioStatusUpdates();
+  }
+
+  // Add this helper method for audio unlock
+  unlockAudio() {
+    // Create a silent sound
+    const silentSound = new Audio();
+    silentSound.src =
+      "data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
+    silentSound.load();
+    silentSound.play().catch((e) => {
+      logger.debug("audio", "Silent sound playback prevented (expected): " + e);
+    });
+
+    // Also try to restart AudioContext
+    const audioManager = window.audioManager;
+    if (audioManager && audioManager.audioContext) {
+      audioManager.audioContext.resume();
+    }
+  }
+
+  // Add method to update audio status display
+  updateAudioStatus() {
+    const audioManager = window.audioManager;
+    const statusElement = document.getElementById("audio-status");
+
+    if (!audioManager || !statusElement) return;
+
+    let status = "";
+
+    if (!audioManager.initialized) {
+      status = "Not initialized";
+    } else {
+      status = `AudioContext: ${audioManager.audioContext ? audioManager.audioContext.state : "None"}<br>`;
+      status += `Muted: ${audioManager.muted}<br>`;
+      status += `Volume: ${audioManager.volume.toFixed(2)}<br>`;
+      status += `Music Playing: ${audioManager.backgroundMusicPlaying}<br>`;
+      status += `Music Intensity: ${audioManager.musicIntensity}<br>`;
+      status += `Active Sounds: ${audioManager.currentlyPlaying.length}<br>`;
+      status += `Loaded Sounds: ${audioManager.loadedSounds ? audioManager.loadedSounds.size : "Unknown"}`;
+    }
+
+    statusElement.innerHTML = status;
+  }
+
+  // Add method to start periodic audio status updates
+  startAudioStatusUpdates() {
+    this.audioStatusInterval = setInterval(() => {
+      this.updateAudioStatus();
+    }, 1000);
   }
 
   // Start hitbox calibration process
@@ -719,20 +881,24 @@ class DebugManager {
   updateCoordsDisplay(frameIndex) {
     const coords = this.calibration.frameCoordinates[frameIndex];
     const display = document.getElementById("coords-display");
-    display.textContent = `X: ${coords.x}, Y: ${coords.y}, W: ${coords.width}, H: ${coords.height}`;
+    if (display && coords) {
+      display.textContent = `X: ${coords.x}, Y: ${coords.y}, W: ${coords.width}, H: ${coords.height}`;
 
-    // Update full output
-    const output = document.getElementById("calib-output");
-    output.textContent = this.formatCoordinatesOutput();
+      // Update full output
+      const output = document.getElementById("calib-output");
+      if (output) {
+        output.textContent = this.formatCoordinatesOutput();
+      }
+    }
   }
 
   beginCalibration(animationName, wasPlaying) {
     console.log("Beginning calibration for animation:", animationName);
-    
+
     // Reset calibration state
     this.calibration = {
       isCalibrating: true,
-      originalAnimState: this.gameState.animation ? this.gameState.animation.currentState : null,
+      originalAnimState: this.animationManager ? this.animationManager.currentState : null,
       currentAnimation: animationName,
       frameCoordinates: [],
       wasPlaying: wasPlaying,
@@ -740,22 +906,22 @@ class DebugManager {
       originalHandlerTouch: null,
       originalContainerClick: null,
     };
-  
+
     // Force debug mode for hitbox visibility
     document.body.classList.add("debug-mode");
-  
+
     // Override event handlers to prevent game actions
     const handHitbox = document.getElementById("hand-hitbox");
     if (handHitbox) {
       this.calibration.originalHandlerClick = handHitbox.onclick;
       this.calibration.originalHandlerTouch = handHitbox.ontouchstart;
-  
+
       handHitbox.onclick = null;
       handHitbox.ontouchstart = null;
     } else {
       console.error("Hand hitbox not found for calibration");
     }
-  
+
     // Create calibration panel
     const panel = document.createElement("div");
     panel.id = "calibration-panel";
@@ -768,7 +934,7 @@ class DebugManager {
     panel.style.padding = "10px";
     panel.style.borderRadius = "5px";
     panel.style.maxWidth = "300px";
-  
+
     // Get frame count from your animation system
     let frameCount = 5; // Default frame count
     if (this.animationManager && this.animationManager.animations[animationName]) {
@@ -780,7 +946,7 @@ class DebugManager {
     } else {
       console.warn(`No animation data found for ${animationName}, using default frameCount`);
     }
-  
+
     panel.innerHTML = `
         <h4>Calibrating: ${animationName}</h4>
         <div>Frame: <span id="current-frame">0</span>/<span id="total-frames">${frameCount - 1}</span></div>
@@ -791,12 +957,12 @@ class DebugManager {
         <button id="cancel-calib">Cancel</button>
         <div id="calib-output" style="margin-top:10px;font-size:10px;max-height:100px;overflow-y:auto;"></div>
       `;
-  
+
     document.body.appendChild(panel);
-  
+
     // Initialize coordinates array
     let originalCoords = [];
-  
+
     // Get existing coordinates if available
     if (this.animationManager && this.animationManager.animations[animationName] && this.animationManager.animations[animationName].handCoordinates) {
       originalCoords = this.animationManager.animations[animationName].handCoordinates;
@@ -807,32 +973,32 @@ class DebugManager {
     } else {
       console.warn("No existing coordinates found for this animation");
     }
-  
+
     // Make deep copy to avoid reference issues
     originalCoords.forEach((coord) => {
       this.calibration.frameCoordinates.push({ ...coord });
     });
-  
+
     // Fill with defaults if needed
     while (this.calibration.frameCoordinates.length < frameCount) {
       this.calibration.frameCoordinates.push({ x: 100, y: 50, width: 50, height: 50 });
     }
-  
+
     console.log("Frame coordinates initialized:", this.calibration.frameCoordinates);
-  
+
     // IMPORTANT: Stop any running animations first
     if (this.animationManager) {
       console.log("Stopping animation manager");
       this.animationManager.stop();
     }
-    
+
     // Also clear any animation intervals from the game state
     if (this.gameState.animation && this.gameState.animation.interval) {
       console.log("Clearing game state animation interval");
       clearInterval(this.gameState.animation.interval);
       this.gameState.animation.interval = null;
     }
-  
+
     // Set animation to the calibration target but do not start the animation loop
     if (this.animationManager) {
       console.log(`Setting animation to ${animationName} without playing`);
@@ -858,10 +1024,10 @@ class DebugManager {
     } else {
       console.error("No way to set animation state found");
     }
-    
+
     // Show first frame
     this.updateCalibrationFrame(0);
-    
+
     // Add event listeners
     document.getElementById("prev-frame").addEventListener("click", () => {
       const currentFrame = parseInt(document.getElementById("current-frame").textContent);
@@ -869,7 +1035,7 @@ class DebugManager {
         this.updateCalibrationFrame(currentFrame - 1);
       }
     });
-    
+
     document.getElementById("next-frame").addEventListener("click", () => {
       const currentFrame = parseInt(document.getElementById("current-frame").textContent);
       const totalFrames = parseInt(document.getElementById("total-frames").textContent);
@@ -877,34 +1043,34 @@ class DebugManager {
         this.updateCalibrationFrame(currentFrame + 1);
       }
     });
-    
+
     document.getElementById("save-coords").addEventListener("click", () => {
       this.saveCalibration();
     });
-    
+
     document.getElementById("cancel-calib").addEventListener("click", () => {
       this.cancelCalibration();
     });
-    
+
     // Make the hitbox draggable
     this.makeHitboxDraggable();
-    
+
     // Also allow clicking in the sprite container to position the hitbox
     const trumpContainer = document.getElementById("trump-sprite-container");
     if (trumpContainer) {
       this.calibration.originalContainerClick = trumpContainer.onclick;
       trumpContainer.onclick = (e) => {
         if (!this.calibration.isCalibrating) return;
-    
+
         const containerRect = trumpContainer.getBoundingClientRect();
         const x = e.clientX - containerRect.left - 25; // Center the 50px hitbox
         const y = e.clientY - containerRect.top - 25;
-    
+
         const handHitbox = document.getElementById("hand-hitbox");
         if (handHitbox) {
           handHitbox.style.left = `${x}px`;
           handHitbox.style.top = `${y}px`;
-    
+
           // Update stored coordinates
           const currentFrame = parseInt(document.getElementById("current-frame").textContent);
           this.calibration.frameCoordinates[currentFrame] = {
@@ -913,277 +1079,242 @@ class DebugManager {
             width: 50,
             height: 50,
           };
-    
+
           this.updateCoordsDisplay(currentFrame);
         }
       };
     } else {
       console.error("Trump sprite container not found");
     }
+  }
+
+  // Update calibration frame
+  updateCalibrationFrame(frameIndex) {
+    console.log(`Updating to calibration frame ${frameIndex}`);
+
+    // Update the frame counter
+    const currentFrameElement = document.getElementById("current-frame");
+    if (currentFrameElement) {
+      currentFrameElement.textContent = frameIndex;
     }
-    
-    // Update calibration frame
-    updateCalibrationFrame(frameIndex) {
-      console.log(`Updating to calibration frame ${frameIndex}`);
-      
-      // Update the frame counter
-      const currentFrameElement = document.getElementById("current-frame");
-      if (currentFrameElement) {
-        currentFrameElement.textContent = frameIndex;
-      }
-    
-      // Update the animation frame visually
-      if (this.animationManager) {
-        console.log(`Using animationManager.setFrame(${frameIndex})`);
-        this.animationManager.setFrame(frameIndex);
-      } else if (this.gameState.animation) {
-        console.log(`Using gameState animation system`);
-        this.gameState.animation.currentFrame = frameIndex;
-        if (typeof window.updateAnimationFrame === "function") {
-          window.updateAnimationFrame(frameIndex);
-        } else {
-          console.error("window.updateAnimationFrame function not found");
-        }
+
+    // Update the animation frame visually
+    if (this.animationManager) {
+      console.log(`Using animationManager.setFrame(${frameIndex})`);
+      this.animationManager.setFrame(frameIndex);
+    } else if (this.gameState.animation) {
+      console.log(`Using gameState animation system`);
+      this.gameState.animation.currentFrame = frameIndex;
+      if (typeof window.updateAnimationFrame === "function") {
+        window.updateAnimationFrame(frameIndex);
       } else {
-        console.error("No animation system available to update frame");
+        console.error("window.updateAnimationFrame function not found");
       }
-    
-      // Update hand hitbox position
-      const handHitbox = document.getElementById("hand-hitbox");
-      if (!handHitbox) {
-        console.error("Hand hitbox not found when updating frame");
-        return;
-      }
-      
-      const coords = this.calibration.frameCoordinates[frameIndex];
-      if (!coords) {
-        console.error(`No coordinates found for frame ${frameIndex}`);
-        return;
-      }
-    
-      console.log(`Setting hitbox to position x:${coords.x}, y:${coords.y}, w:${coords.width}, h:${coords.height}`);
-      
-      handHitbox.style.left = `${coords.x}px`;
-      handHitbox.style.top = `${coords.y}px`;
-      handHitbox.style.width = `${coords.width}px`;
-      handHitbox.style.height = `${coords.height}px`;
-      handHitbox.style.display = "block";
-    
-      // Make hitbox visible for calibration
-      handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
-      handHitbox.style.border = "2px solid red";
-    
-      this.updateCoordsDisplay(frameIndex);
+    } else {
+      console.error("No animation system available to update frame");
     }
-    
-    // Format coordinates as JavaScript object
-    formatCoordinatesOutput() {
-      const animName = this.calibration.currentAnimation;
-    
-      let output = `${animName}: {\n`;
-      output += `  spriteSheet: "images/trump-${animName.replace(/([A-Z])/g, "-$1").toLowerCase()}-sprite.png",\n`;
-      output += `  frameCount: ${this.calibration.frameCoordinates.length},\n`;
-      output += `  frameDuration: 800,\n`; // Updated to 800ms to match our animations
-      output += `  looping: true,\n`;
-      output += `  maxLoops: 4,\n`; // Default to 4 loops for grab animations
-      output += `  handVisible: true,\n`;
-      output += `  handCoordinates: [\n`;
-    
-      this.calibration.frameCoordinates.forEach((coords, index) => {
-        output += `    { x: ${coords.x}, y: ${coords.y}, width: ${coords.width}, height: ${coords.height} }`;
-        if (index < this.calibration.frameCoordinates.length - 1) {
-          output += ",";
-        }
-        output += ` // Frame ${index}\n`;
+
+    // Update hand hitbox position
+    const handHitbox = document.getElementById("hand-hitbox");
+    if (!handHitbox) {
+      console.error("Hand hitbox not found when updating frame");
+      return;
+    }
+
+    const coords = this.calibration.frameCoordinates[frameIndex];
+    if (!coords) {
+      console.error(`No coordinates found for frame ${frameIndex}`);
+      return;
+    }
+
+    console.log(`Setting hitbox to position x:${coords.x}, y:${coords.y}, w:${coords.width}, h:${coords.height}`);
+
+    handHitbox.style.left = `${coords.x}px`;
+    handHitbox.style.top = `${coords.y}px`;
+    handHitbox.style.width = `${coords.width}px`;
+    handHitbox.style.height = `${coords.height}px`;
+    handHitbox.style.display = "block";
+
+    // Make hitbox visible for calibration
+    handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
+    handHitbox.style.border = "2px solid red";
+
+    this.updateCoordsDisplay(frameIndex);
+  }
+
+  // Format coordinates as JavaScript object
+  formatCoordinatesOutput() {
+    const animName = this.calibration.currentAnimation;
+
+    let output = `${animName}: {\n`;
+    output += `  spriteSheet: "images/trump-${animName.replace(/([A-Z])/g, "-$1").toLowerCase()}-sprite.png",\n`;
+    output += `  frameCount: ${this.calibration.frameCoordinates.length},\n`;
+    output += `  frameDuration: 800,\n`; // Updated to 800ms to match our animations
+    output += `  looping: true,\n`;
+    output += `  maxLoops: 4,\n`; // Default to 4 loops for grab animations
+    output += `  handVisible: true,\n`;
+    output += `  handCoordinates: [\n`;
+
+    this.calibration.frameCoordinates.forEach((coords, index) => {
+      output += `    { x: ${coords.x}, y: ${coords.y}, width: ${coords.width}, height: ${coords.height} }`;
+      if (index < this.calibration.frameCoordinates.length - 1) {
+        output += ",";
+      }
+      output += ` // Frame ${index}\n`;
+    });
+
+    output += `  ]\n},`;
+
+    return output;
+  }
+
+  saveCalibration() {
+    // Copy to clipboard
+    const formattedOutput = this.formatCoordinatesOutput();
+
+    console.log("Saving calibration:", formattedOutput);
+
+    navigator.clipboard
+      .writeText(formattedOutput)
+      .then(() => {
+        console.log("Coordinates copied to clipboard!");
+        alert("Coordinates copied to clipboard! You'll need to update your code with these values.");
+      })
+      .catch((err) => {
+        console.error("Error copying to clipboard:", err);
+        alert("Failed to copy to clipboard. See console for details.");
       });
-    
-      output += `  ]\n},`;
-    
-      return output;
+
+    // Also update the animation object in the current session
+    if (this.animationManager && this.animationManager.animations[this.calibration.currentAnimation]) {
+      console.log("Updating animationManager with new coordinates");
+      this.animationManager.animations[this.calibration.currentAnimation].handCoordinates = [...this.calibration.frameCoordinates];
+    } else if (this.trumpAnimations && this.trumpAnimations[this.calibration.currentAnimation]) {
+      console.log("Updating trumpAnimations with new coordinates");
+      this.trumpAnimations[this.calibration.currentAnimation].handCoordinates = [...this.calibration.frameCoordinates];
+    } else {
+      console.warn("No animation object found to update with new coordinates");
     }
-    
-    saveCalibration() {
-      // Copy to clipboard
-      const formattedOutput = this.formatCoordinatesOutput();
-      
-      console.log("Saving calibration:", formattedOutput);
-    
-      navigator.clipboard
-        .writeText(formattedOutput)
-        .then(() => {
-          console.log("Coordinates copied to clipboard!");
-          alert("Coordinates copied to clipboard! You'll need to update your code with these values.");
-        })
-        .catch((err) => {
-          console.error("Error copying to clipboard:", err);
-          alert("Failed to copy to clipboard. See console for details.");
-        });
-    
-      // Also update the animation object in the current session
-      if (this.animationManager && this.animationManager.animations[this.calibration.currentAnimation]) {
-        console.log("Updating animationManager with new coordinates");
-        this.animationManager.animations[this.calibration.currentAnimation].handCoordinates = [...this.calibration.frameCoordinates];
-      } else if (this.trumpAnimations && this.trumpAnimations[this.calibration.currentAnimation]) {
-        console.log("Updating trumpAnimations with new coordinates");
-        this.trumpAnimations[this.calibration.currentAnimation].handCoordinates = [...this.calibration.frameCoordinates];
-      } else {
-        console.warn("No animation object found to update with new coordinates");
-      }
-    
+
+    this.endCalibration();
+  }
+
+  // Cancel calibration
+  cancelCalibration() {
+    this.endCalibration();
+  }
+
+  // End calibration
+  endCalibration() {
+    // Remove calibration panel
+    const panel = document.getElementById("calibration-panel");
+    if (panel) panel.remove();
+
+    // Restore event handlers
+    const handHitbox = document.getElementById("hand-hitbox");
+    if (handHitbox) {
+      handHitbox.onclick = this.calibration.originalHandlerClick;
+      handHitbox.ontouchstart = this.calibration.originalHandlerTouch;
+
+      // Reset appearance
+      handHitbox.style.backgroundColor = "";
+      handHitbox.style.border = "";
+    }
+
+    // Restore container click handler
+    const trumpContainer = document.getElementById("trump-sprite-container");
+    if (trumpContainer && this.calibration.originalContainerClick) {
+      trumpContainer.onclick = this.calibration.originalContainerClick;
+    }
+
+    // Restore original animation state
+    if (this.animationManager) {
+      // Always transition to idle first for consistent animation flow
+      this.animationManager.changeState("idle", () => {
+        // Only change from idle to another state if needed
+        if (this.calibration.originalAnimState && this.calibration.originalAnimState !== "idle") {
+          this.animationManager.changeState(this.calibration.originalAnimState);
+        }
+      });
+    } else if (typeof window.changeAnimationState === "function") {
+      window.changeAnimationState("idle", () => {
+        if (this.calibration.originalAnimState && this.calibration.originalAnimState !== "idle") {
+          window.changeAnimationState(this.calibration.originalAnimState);
+        }
+      });
+    }
+
+    // Resume game if it was playing
+    if (this.calibration.wasPlaying) {
+      this.gameState.isPlaying = true;
+      this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
+      window.scheduleNextGrab();
+    }
+
+    // Reset calibration state
+    this.calibration.isCalibrating = false;
+
+    // Remove debug mode unless it was on before
+    if (!this.enabled) {
+      document.body.classList.remove("debug-mode");
+    }
+  }
+
+  // Update the game HUD (used by developer controls)
+  updateHUD() {
+    if (typeof window.updateHUD === "function") {
+      window.updateHUD();
+    } else {
+      // Fallback if updateHUD isn't available
+      const timeElement = document.getElementById("time-value");
+      const scoreElement = document.getElementById("score-value");
+
+      if (timeElement) timeElement.textContent = this.gameState.timeRemaining;
+      if (scoreElement) scoreElement.textContent = this.gameState.score;
+    }
+  }
+
+  // Clean up all debugging resources
+  cleanup() {
+    // Reset any layers
+    this.setEditModeLayering(false);
+
+    // Remove any drag points
+    document.querySelectorAll(".drag-point").forEach((point) => point.remove());
+
+    // Remove any done editing button
+    if (this.doneEditingBtn) {
+      this.doneEditingBtn.remove();
+      this.doneEditingBtn = null;
+    }
+
+    // End any calibration
+    if (this.calibration.isCalibrating) {
       this.endCalibration();
     }
-    
-    // Cancel calibration
-    cancelCalibration() {
-      this.endCalibration();
-    }
-    
-    // End calibration
-    endCalibration() {
-      // Remove calibration panel
-      const panel = document.getElementById("calibration-panel");
-      if (panel) panel.remove();
-    
-      // Restore event handlers
-      const handHitbox = document.getElementById("hand-hitbox");
-      if (handHitbox) {
-        handHitbox.onclick = this.calibration.originalHandlerClick;
-        handHitbox.ontouchstart = this.calibration.originalHandlerTouch;
-      }
-    
-      // Restore container click handler
-      const trumpContainer = document.getElementById("trump-sprite-container");
-      if (trumpContainer && this.calibration.originalContainerClick) {
-        trumpContainer.onclick = this.calibration.originalContainerClick;
-      }
-    
-      // Restore original animation state
-      if (this.animationManager) {
-        // Always transition to idle first for consistent animation flow
-        this.animationManager.changeState("idle", () => {
-          // Only change from idle to another state if needed
-          if (this.calibration.originalAnimState && this.calibration.originalAnimState !== "idle") {
-            this.animationManager.changeState(this.calibration.originalAnimState);
-          }
-        });
-      } else if (typeof window.changeAnimationState === "function") {
-        window.changeAnimationState("idle", () => {
-          if (this.calibration.originalAnimState && this.calibration.originalAnimState !== "idle") {
-            window.changeAnimationState(this.calibration.originalAnimState);
-          }
-        });
-      }
-    
-      // Resume game if it was playing
-      if (this.calibration.wasPlaying) {
-        this.gameState.isPlaying = true;
-        this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
-        window.scheduleNextGrab();
-      }
-    
-      // Reset calibration state
-      this.calibration.isCalibrating = false;
-    
-      // Remove debug mode unless it was on before
-      if (!this.enabled) {
-        document.body.classList.remove("debug-mode");
-      }
-    }
-    
-    // Update the game HUD (used by developer controls)
-    updateHUD() {
-      if (typeof window.updateHUD === "function") {
-        window.updateHUD();
+
+    // Stop animation info updates
+    this.stopAnimationInfoUpdates();
+  }
+
+  // Set layer ordering for editing mode
+  setEditModeLayering(isEditMode) {
+    const trumpContainer = document.getElementById("trump-sprite-container");
+    const interactiveOverlay = document.getElementById("interactive-overlay");
+
+    if (trumpContainer && interactiveOverlay) {
+      if (isEditMode) {
+        // When editing countries or drag points, SVG overlay should be on top
+        trumpContainer.style.zIndex = "1"; // Below the SVG
+        interactiveOverlay.style.zIndex = "5"; // Above Trump
       } else {
-        // Fallback if updateHUD isn't available
-        const timeElement = document.getElementById("time-value");
-        const scoreElement = document.getElementById("score-value");
-    
-        if (timeElement) timeElement.textContent = this.gameState.timeRemaining;
-        if (scoreElement) scoreElement.textContent = this.gameState.score;
+        // Default game state - Trump on top
+        trumpContainer.style.zIndex = "3"; // Above the SVG
+        interactiveOverlay.style.zIndex = "2"; // Below Trump
       }
     }
-    
-    // Schedule next grab (used by developer controls)
-    scheduleNextGrab() {
-      if (typeof window.scheduleNextGrab === "function") {
-        // Check current animation state before scheduling
-        if (this.animationManager) {
-          const currentState = this.animationManager.currentState;
-          // Only schedule if not in the middle of a grab or victory
-          if (!currentState.startsWith("grab") && currentState !== "victory") {
-            window.scheduleNextGrab();
-          } else {
-            logger.debug('debug', `Not scheduling next grab - animation ${currentState} in progress`);
-          }
-        } else {
-          window.scheduleNextGrab();
-        }
-      }
-    }
-    
-    // Clean up all debugging resources
-    cleanup() {
-      // Reset any layers
-      this.setEditModeLayering(false);
-    
-      // Remove any drag points
-      document.querySelectorAll(".drag-point").forEach((point) => point.remove());
-    
-      // Remove any done editing button
-      if (this.doneEditingBtn) {
-        this.doneEditingBtn.remove();
-        this.doneEditingBtn = null;
-      }
-    
-      // End any calibration
-      if (this.calibration.isCalibrating) {
-        this.endCalibration();
-      }
-    
-      // Stop animation info updates
-      this.stopAnimationInfoUpdates();
-    }
-    
-    // Set layer ordering for editing mode
-    setEditModeLayering(isEditMode) {
-      const trumpContainer = document.getElementById("trump-sprite-container");
-      const interactiveOverlay = document.getElementById("interactive-overlay");
-    
-      if (trumpContainer && interactiveOverlay) {
-        if (isEditMode) {
-          // When editing countries or drag points, SVG overlay should be on top
-          trumpContainer.style.zIndex = "1"; // Below the SVG
-          interactiveOverlay.style.zIndex = "5"; // Above Trump
-        } else {
-          // Default game state - Trump on top
-          trumpContainer.style.zIndex = "3"; // Above the SVG
-          interactiveOverlay.style.zIndex = "2"; // Below Trump
-        }
-      }
-    }
-    }
-    
-    // Make the class available globally
-    window.DebugManager = DebugManager;
-    
-    // Only set these if they're defined
-    if (typeof trumpAnimations !== 'undefined') {
-      window.trumpAnimations = trumpAnimations;
-    }
-    
-    if (typeof updateHUD === 'function') {
-      window.updateHUD = updateHUD;
-    }
-    
-    if (typeof updateCountdown === 'function') {
-      window.updateCountdown = updateCountdown;
-    }
-    
-    if (typeof scheduleNextGrab === 'function') {
-      window.scheduleNextGrab = scheduleNextGrab;
-    }
-    
-    if (typeof grabSuccess === 'function') {
-      window.grabSuccess = grabSuccess;
-    }
+  }
+}
+
+// Make the class available globally
+window.DebugManager = DebugManager;
