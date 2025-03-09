@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
     <title>Presidential Grab</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@700&family=Alfa+Slab+One&display=swap" rel="stylesheet" />
+
     <style>
       * {
         margin: 0;
@@ -12,10 +17,24 @@
       }
 
       body {
-        font-family: "Arial", sans-serif;
+        font-family: "Oswald", sans-serif;
         overflow: hidden;
         touch-action: manipulation;
         user-select: none;
+      }
+      .intro-content h1,
+      .game-over-content h1 {
+        font-family: "Alfa Slab One", cursive;
+        letter-spacing: 3px;
+        color: #3c3b6e;
+        margin-bottom: 10px;
+      }
+
+      .intro-content h2,
+      .game-over-content h2 {
+        font-family: "Bebas Neue", sans-serif;
+        color: #b22234;
+        margin-bottom: 20px;
       }
 
       .screen {
@@ -25,8 +44,40 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        background: linear-gradient(to bottom, #87ceeb, #1e90ff);
+        background: linear-gradient(to bottom, #0c0e24, #0a0a1a);
+
         z-index: 10;
+      }
+
+      .star {
+        position: absolute;
+        background-color: white;
+        border-radius: 50%;
+        opacity: 0;
+        z-index: -2;
+        animation: twinkle var(--duration) ease-in-out infinite;
+        animation-delay: var(--delay);
+      }
+
+      @keyframes twinkle {
+        0% {
+          opacity: 0;
+        }
+        50% {
+          opacity: var(--brightness);
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      .content {
+        color: white;
+        font-family: Arial, sans-serif;
+        font-size: 2em;
+        text-align: center;
+        z-index: 20;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
       }
 
       .hidden {
@@ -58,6 +109,8 @@
       }
 
       button {
+        font-family: "Bebas Neue", sans-serif;
+
         background-color: #3c3b6e;
         color: white;
         border: none;
@@ -74,10 +127,12 @@
 
       /* Game Screen */
       #game-screen {
-        background: linear-gradient(to bottom, #87ceeb, #1e90ff);
+        background: linear-gradient(to bottom, #0c0e24, #0a0a1a);
       }
 
       #game-hud {
+        font-family: "Bebas Neue", sans-serif;
+
         position: absolute;
         top: 10px;
         left: 0;
@@ -85,7 +140,7 @@
         display: flex;
         justify-content: space-between;
         padding: 10px 20px;
-        font-size: 1.2em;
+        font-size: 1.5em;
         color: white;
         z-index: 15;
         pointer-events: none;
@@ -98,6 +153,7 @@
         height: 100vh;
         position: relative;
         overflow: hidden;
+        z-index: 5;
       }
 
       /* Map background */
@@ -182,15 +238,18 @@
 
       /* Country meters in HUD */
       #country-status {
+        display: none;
         position: absolute;
-        top: 50px;
-        left: 0;
+        top: -30rem;
+        left: -30rem;
+        /* top: 50px; */
+        /* left: 0; */
         width: 100%;
         display: flex;
         justify-content: center;
         gap: 20px;
         padding: 10px;
-        z-index: 15;
+        z-index: 1;
         pointer-events: none;
       }
 
@@ -329,6 +388,8 @@
         }
 
         #country-status {
+          display: none;
+
           flex-direction: column;
           align-items: center;
           gap: 5px;
@@ -391,13 +452,14 @@
       }
 
       .control-button {
-        background-color: rgba(60, 59, 110, 0.7);
-        color: white;
-        margin-top: 5rem;
+        background-color: rgba(60, 59, 10, 0.1);
+        color: rgba(255, 255, 255, 0.144);
+        margin-top: 2rem;
         border: none;
         border-radius: 50%;
-        width: 40px;
-        height: 40px;
+        width: 10px;
+        min-width: 5px;
+        min-height: 5px;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -407,7 +469,7 @@
       }
 
       .control-button:hover {
-        background-color: rgba(178, 34, 52, 0.8);
+        background-color: rgba(178, 34, 51, 0.069);
         transform: scale(1.1);
       }
 
@@ -464,8 +526,8 @@
     <!-- Intro Screen -->
     <div id="intro-screen" class="screen">
       <div class="intro-content">
-        <h1>Presidential Grab</h1>
-        <p>Protect neighboring countries from annexation! Tap/click on Trump's hand when he reaches out to grab them.</p>
+        <h1>OH NO</h1>
+        <p>Trump is trying to take your country. <br>Give his hand a tiny smack (or kiss).</p>
         <button id="start-button">Start Game</button>
       </div>
     </div>
@@ -559,7 +621,8 @@
 
     <script src="debug-manager.js"></script>
     <script src="effects-manager.js"></script>
-    <!-- <script src="touch-input-manager.js"></script> -->
+    <script src="ufo-manager.js"></script>
+
 
     <script>
       // Main game script
@@ -697,15 +760,7 @@
           if (isMobile) {
             logger.info("device", "Mobile device detected, adding special audio handling");
 
-            // Add an explicit note in the intro
-            const introContent = document.querySelector(".intro-content");
-            if (introContent) {
-              const audioNote = document.createElement("p");
-              audioNote.textContent = "Tap 'Start Game' to enable audio.";
-              audioNote.style.fontWeight = "bold";
-              audioNote.style.color = "#b22234";
-              introContent.insertBefore(audioNote, elements.buttons.start);
-            }
+            
           }
 
           // Initialize AudioManager
@@ -727,9 +782,9 @@
           audioManager.logAudioState();
 
           // Setup audio status indicator for mobile
-          if (isMobile || DEBUG_MODE) {
-            setupAudioStatusIndicator();
-          }
+          // if (isMobile || DEBUG_MODE) {
+          //   setupAudioStatusIndicator();
+          // }
 
           // Setup game controls
           setupGameControls();
@@ -798,9 +853,6 @@
           // Keep only audio logging enabled by default
           logger.disableAllCategories();
           logger.toggleCategory("audio", true);
-
-
-          
         }
 
         // Improved function that creates the Trump sprite but doesn't add event listeners
@@ -933,108 +985,110 @@
             }
 
             // Add mobile guidance
-            showMobileGuidance();
+            // showMobileGuidance();
           }
         }
 
-        function showMobileGuidance() {
-          const gameScreen = document.getElementById("game-screen");
-          if (!gameScreen) return;
+        // function showMobileGuidance() {
+        //   const gameScreen = document.getElementById("game-screen");
+        //   if (!gameScreen) return;
 
-          // Create guidance message
-          const guidance = document.createElement("div");
-          guidance.id = "mobile-guidance";
-          guidance.style.position = "absolute";
-          guidance.style.top = "100px";
-          guidance.style.left = "50%";
-          guidance.style.transform = "translateX(-50%)";
-          guidance.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
-          guidance.style.color = "white";
-          guidance.style.padding = "10px 15px";
-          guidance.style.borderRadius = "20px";
-          guidance.style.fontSize = "14px";
-          guidance.style.zIndex = "1000";
-          guidance.style.textAlign = "center";
-          guidance.style.transition = "opacity 1s";
-          guidance.innerHTML = "Tap Trump's hand when he reaches for countries!";
+        //   // Create guidance message
+        //   const guidance = document.createElement("div");
+        //   guidance.id = "mobile-guidance";
+        //   guidance.style.position = "absolute";
+        //   guidance.style.top = "100px";
+        //   guidance.style.left = "50%";
+        //   guidance.style.transform = "translateX(-50%)";
+        //   guidance.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+        //   guidance.style.color = "white";
+        //   guidance.style.padding = "10px 15px";
+        //   guidance.style.borderRadius = "20px";
+        //   guidance.style.fontSize = "14px";
+        //   guidance.style.zIndex = "1000";
+        //   guidance.style.textAlign = "center";
+        //   guidance.style.transition = "opacity 1s";
+        //   guidance.innerHTML = "Tap Trump's hand when he reaches for countries!";
 
-          gameScreen.appendChild(guidance);
+        //   gameScreen.appendChild(guidance);
 
-          // Fade out after a few seconds
-          setTimeout(() => {
-            guidance.style.opacity = "0";
-            setTimeout(() => guidance.remove(), 1000);
-          }, 5000);
+        //   // Fade out after a few seconds
+        //   setTimeout(() => {
+        //     guidance.style.opacity = "0";
+        //     setTimeout(() => guidance.remove(), 1000);
+        //   }, 5000);
 
-          logger.debug("input", "Added mobile guidance message");
-        }
+        //   logger.debug("input", "Added mobile guidance message");
+        // }
 
-        function setupAudioStatusIndicator() {
-          const audioStatus = document.createElement("div");
-          audioStatus.id = "audio-status-indicator";
-          audioStatus.style.position = "absolute";
-          audioStatus.style.bottom = "10px";
-          audioStatus.style.left = "10px";
-          audioStatus.style.width = "auto";
-          audioStatus.style.height = "auto";
-          audioStatus.style.backgroundColor = "rgba(255, 0, 0, 0.6)";
-          audioStatus.style.color = "white";
-          audioStatus.style.padding = "5px 10px";
-          audioStatus.style.borderRadius = "4px";
-          audioStatus.style.fontSize = "12px";
-          audioStatus.style.zIndex = "3000";
-          audioStatus.style.display = "block";
-          audioStatus.textContent = "Audio: Waiting for interaction";
-          document.body.appendChild(audioStatus);
-        }
+        // function setupAudioStatusIndicator() {
+        //   const audioStatus = document.createElement("div");
+        //   audioStatus.id = "audio-status-indicator";
+        //   audioStatus.style.position = "absolute";
+        //   audioStatus.style.bottom = "10px";
+        //   audioStatus.style.left = "10px";
+        //   audioStatus.style.width = "auto";
+        //   audioStatus.style.height = "auto";
+        //   audioStatus.style.backgroundColor = "rgba(255, 0, 0, 0.6)";
+        //   audioStatus.style.color = "white";
+        //   audioStatus.style.padding = "5px 10px";
+        //   audioStatus.style.borderRadius = "4px";
+        //   audioStatus.style.fontSize = "12px";
+        //   audioStatus.style.zIndex = "3000";
+        //   audioStatus.style.display = "block";
+        //   audioStatus.textContent = "Audio: Waiting for interaction";
+        //   document.body.appendChild(audioStatus);
+        // }
 
         // Helper to set up event listeners
         function setupEventListeners() {
           // Start button click handler with audio initialization
           elements.buttons.start.addEventListener("click", function () {
-  console.log("Start button clicked, initializing audio for the first time...");
-  
-  // NOW initialize audio system (first user interaction)
-  audioManager.init();
-  
-  // Use a silent sound technique first to unlock audio
-  const unlockAudio = () => {
-    // Create a silent audio source
-    const audioContext = audioManager.audioContext;
-    if (audioContext) {
-      const buffer = audioContext.createBuffer(1, 1, 22050);
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContext.destination);
-      source.start(0);
-      console.log("Silent audio played to unlock audio system");
-    }
-  };
-  
-  // Unlock audio first
-  unlockAudio();
-  
-  // Now resume audio context
-  audioManager.resumeAudioContext().then(() => {
-    console.log("AudioContext resumed, now loading critical sounds");
-    
-    // NOW preload only critical sounds
-    audioManager.loadSound("ui", "click");
-    
-    // Try to play the click sound
-    setTimeout(() => {
-      console.log("Playing first sound...");
-      audioManager.play("ui", "click").then(sound => {
-        console.log("First sound played successfully:", !!sound);
-        startGame();
-      }).catch(error => {
-        console.error("Error playing first sound:", error);
-        startGame();
-      });
-    }, 100);
-  });
-});
-          
+            console.log("Start button clicked, initializing audio for the first time...");
+
+            // NOW initialize audio system (first user interaction)
+            audioManager.init();
+
+            // Use a silent sound technique first to unlock audio
+            const unlockAudio = () => {
+              // Create a silent audio source
+              const audioContext = audioManager.audioContext;
+              if (audioContext) {
+                const buffer = audioContext.createBuffer(1, 1, 22050);
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+                console.log("Silent audio played to unlock audio system");
+              }
+            };
+
+            // Unlock audio first
+            unlockAudio();
+
+            // Now resume audio context
+            audioManager.resumeAudioContext().then(() => {
+              console.log("AudioContext resumed, now loading critical sounds");
+
+              // NOW preload only critical sounds
+              audioManager.loadSound("ui", "click");
+
+              // Try to play the click sound
+              setTimeout(() => {
+                console.log("Playing first sound...");
+                audioManager
+                  .play("ui", "click")
+                  .then((sound) => {
+                    console.log("First sound played successfully:", !!sound);
+                    startGame();
+                  })
+                  .catch((error) => {
+                    console.error("Error playing first sound:", error);
+                    startGame();
+                  });
+              }, 100);
+            });
+          });
 
           // Other button event listeners
           elements.buttons.restart.addEventListener("click", restartGame);
@@ -1082,7 +1136,7 @@
             borderRadius: "5px",
             zIndex: "1000",
             fontSize: "12px",
-            display: "block",
+            display: "none",
             boxShadow: "0 0 10px rgba(0,0,0,0.5)",
           });
 
@@ -1095,22 +1149,22 @@
             position: "fixed",
             bottom: "10px",
             right: "10px",
-            width: "40px",
-            height: "40px",
+            width: "20px",
+            height: "20px",
             borderRadius: "50%",
-            backgroundColor: "rgba(0, 128, 0, 0.9)",
+            backgroundColor: "rgba(0, 0, 0.28, 0.01)",
             color: "white",
             textAlign: "center",
             lineHeight: "40px",
-            fontSize: "24px",
+            fontSize: "14px",
             cursor: "pointer",
             zIndex: "9999",
             boxShadow: "0 0 10px rgba(0,0,0,0.5)",
             userSelect: "none",
-            border: "2px solid white",
+            // border: ".2px solid white",
           });
 
-          debugToggle.textContent = "🛠️";
+          debugToggle.textContent = " ";
           debugToggle.title = "Toggle Debug Panel";
 
           // Add to document
@@ -1120,7 +1174,7 @@
           debugToggle.addEventListener("click", () => {
             const isVisible = debugPanel.style.display === "block";
             debugPanel.style.display = isVisible ? "none" : "block";
-            debugToggle.style.backgroundColor = isVisible ? "rgba(255, 0, 0, 0.9)" : "rgba(0, 128, 0, 0.9)";
+            debugToggle.style.backgroundColor = isVisible ? "rgba(255, 0, 0, 0.1)" : "rgba(0, 128, 0, 0.9)";
 
             // Force show hitbox on mobile when toggling debug
             if (!isVisible) {
@@ -1240,6 +1294,19 @@
           });
         }
 
+        function addStarsToGameScreen() {
+          const gameScreen = document.getElementById("game-screen");
+          if (!gameScreen) return;
+
+          // Use the same number of stars as the intro screen
+          const numStars = 200;
+
+          // Create stars using your existing function
+          for (let i = 0; i < numStars; i++) {
+            createStar(gameScreen);
+          }
+        }
+
         function startGame() {
           console.log(`[MOBILE-DEBUG] startGame called at ${performance.now()}ms`);
 
@@ -1305,6 +1372,7 @@
               scheduleNextGrab();
             };
           }
+          addStarsToGameScreen();
         }
 
         function resetGameState() {
@@ -1409,7 +1477,7 @@
             pauseOverlay.style.justifyContent = "center";
             pauseOverlay.style.alignItems = "center";
             pauseOverlay.innerHTML =
-              '<div style="color: white; font-size: 24px; background: rgba(0, 0, 0, 0.7); padding: 20px; border-radius: 10px;">Game Paused</div>';
+              '<div style="color: white; font-size: 24px; background: rgba(0, 0, 0, 0.2); padding: 20px; border-radius: 10px;">Game Paused</div>';
             elements.screens.game.appendChild(pauseOverlay);
             logger.debug("rendering", "Pause overlay added");
 
@@ -2095,6 +2163,48 @@
         // Initialize game when page loads
         init();
       });
+    </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const screen = document.getElementById("intro-screen");
+        const numStars = 200;
+
+        // Create stars
+        for (let i = 0; i < numStars; i++) {
+          createStar(screen);
+        }
+      });
+
+      function createStar(container) {
+        const star = document.createElement("div");
+        star.className = "star";
+
+        // Random position
+        const x = Math.random() * 100;
+        const y = Math.random() * 100;
+
+        // Random size (smaller stars are more common)
+        const size = Math.random() < 0.8 ? Math.random() * 2 + 1 : Math.random() * 3 + 2;
+
+        // Random animation duration and delay
+        const duration = 3 + Math.random() * 7 + "s";
+        const delay = Math.random() * 10 + "s";
+
+        // Random brightness (some stars are brighter than others)
+        const brightness = 0.5 + Math.random() * 0.5;
+
+        // Apply styles
+        star.style.left = `${x}%`;
+        star.style.top = `${y}%`;
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+        star.style.setProperty("--duration", duration);
+        star.style.setProperty("--delay", delay);
+        star.style.setProperty("--brightness", brightness);
+
+        container.appendChild(star);
+      }
     </script>
   </body>
 </html>
