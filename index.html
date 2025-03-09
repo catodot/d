@@ -559,1811 +559,1514 @@
 
     <script src="debug-manager.js"></script>
     <script src="effects-manager.js"></script>
-    <script src="touch-input-manager.js"></script>
+    <!-- <script src="touch-input-manager.js"></script> -->
 
-    <script>
-      // Main game script
-      document.addEventListener("DOMContentLoaded", function () {
-        // Debug mode - set to true during development, false for production
-        const DEBUG_MODE = true;
+ <script>
+  // Main game script
+document.addEventListener("DOMContentLoaded", function () {
+  // Debug mode - set to true during development, false for production
+  const DEBUG_MODE = true;
 
-        const audioManager = new AudioManager();
-        let animationManager;
-        let debugManager;
+  const audioManager = new AudioManager();
+  let animationManager;
+  let debugManager;
 
-        // Game State
-        const gameState = {
-          isPlaying: false,
-          isPaused: false,
-          score: 0,
-          timeRemaining: 60,
-          baseGrabInterval: 2000, // Time between grabs at normal speed (ms)
-          gameSpeedMultiplier: 1.0, // Base speed multiplier (1.0 = normal)
-          minSpeedMultiplier: 0.5, // Slowest game speed (0.5x)
-          maxSpeedMultiplier: 2.0, // Fastest game speed (2.0x)
+  // Game State
+  const gameState = {
+    isPlaying: false,
+    isPaused: false,
+    score: 0,
+    timeRemaining: 60,
+    baseGrabInterval: 2000, // Time between grabs at normal speed (ms)
+    gameSpeedMultiplier: 1.0, // Base speed multiplier (1.0 = normal)
+    minSpeedMultiplier: 0.5, // Slowest game speed (0.5x)
+    maxSpeedMultiplier: 2.0, // Fastest game speed (2.0x)
 
-          grabTimer: null,
-          countdownTimer: null,
-          currentTarget: null,
-          trumpGrowth: 1.0,
-          consecutiveHits: 0,
-          stats: {
-            successfulBlocks: 0,
-            countriesDefended: 0,
-          },
-          mapScale: 1.0,
-          mapOffsetX: 0,
-          mapOffsetY: 0,
+    grabTimer: null,
+    countdownTimer: null,
+    currentTarget: null,
+    trumpGrowth: 1.0,
+    consecutiveHits: 0,
+    stats: {
+      successfulBlocks: 0,
+      countriesDefended: 0,
+    },
+    mapScale: 1.0,
+    mapOffsetX: 0,
+    mapOffsetY: 0,
 
-          countries: {
-            canada: {
-              claims: 0,
-              maxClaims: 3,
-              resilience: 0,
-              maxResilience: 5,
-              freedom: 100,
-            },
-            mexico: {
-              claims: 0,
-              maxClaims: 3,
-              resilience: 0,
-              maxResilience: 5,
-              freedom: 100,
-            },
-            greenland: {
-              claims: 0,
-              maxClaims: 3,
-              resilience: 0,
-              maxResilience: 5,
-              freedom: 100,
-            },
-          },
-        };
+    countries: {
+      canada: {
+        claims: 0,
+        maxClaims: 3,
+        resilience: 0,
+        maxResilience: 5,
+        freedom: 100,
+      },
+      mexico: {
+        claims: 0,
+        maxClaims: 3,
+        resilience: 0,
+        maxResilience: 5,
+        freedom: 100,
+      },
+      greenland: {
+        claims: 0,
+        maxClaims: 3,
+        resilience: 0,
+        maxResilience: 5,
+        freedom: 100,
+      },
+    },
+  };
 
-        // Game Elements
-        const elements = {
-          screens: {
-            intro: document.getElementById("intro-screen"),
-            game: document.getElementById("game-screen"),
-            gameOver: document.getElementById("game-over-screen"),
-          },
-          buttons: {
-            start: document.getElementById("start-button"),
-            restart: document.getElementById("restart-button"),
-            share: document.getElementById("share-button"),
-          },
-          hud: {
-            time: document.getElementById("time-value"),
-            score: document.getElementById("score-value"),
-            finalScore: document.getElementById("final-score"),
-            result: document.getElementById("game-result"),
-            message: document.getElementById("game-message"),
-            stats: {
-              blocks: document.getElementById("blocks-stat"),
-              defended: document.getElementById("defended-stat"),
-              time: document.getElementById("time-stat"),
-            },
-          },
-          game: {
-            container: document.getElementById("game-container"),
-            map: document.getElementById("map-background"),
-          },
-          countries: {
-            usa: document.getElementById("usa"),
-            canada: document.getElementById("canada"),
-            mexico: document.getElementById("mexico"),
-            greenland: document.getElementById("greenland"),
-          },
-          meters: {
-            canada: {
-              container: document.getElementById("canada-meter"),
-              freedom: document.getElementById("canada-freedom"),
-              resilience: document.getElementById("canada-resilience"),
-            },
-            mexico: {
-              container: document.getElementById("mexico-meter"),
-              freedom: document.getElementById("mexico-freedom"),
-              resilience: document.getElementById("mexico-resilience"),
-            },
-            greenland: {
-              container: document.getElementById("greenland-meter"),
-              freedom: document.getElementById("greenland-freedom"),
-              resilience: document.getElementById("greenland-resilience"),
-            },
-          },
+  // Game Elements
+  const elements = {
+    screens: {
+      intro: document.getElementById("intro-screen"),
+      game: document.getElementById("game-screen"),
+      gameOver: document.getElementById("game-over-screen"),
+    },
+    buttons: {
+      start: document.getElementById("start-button"),
+      restart: document.getElementById("restart-button"),
+      share: document.getElementById("share-button"),
+    },
+    hud: {
+      time: document.getElementById("time-value"),
+      score: document.getElementById("score-value"),
+      finalScore: document.getElementById("final-score"),
+      result: document.getElementById("game-result"),
+      message: document.getElementById("game-message"),
+      stats: {
+        blocks: document.getElementById("blocks-stat"),
+        defended: document.getElementById("defended-stat"),
+        time: document.getElementById("time-stat"),
+      },
+    },
+    game: {
+      container: document.getElementById("game-container"),
+      map: document.getElementById("map-background"),
+    },
+    countries: {
+      usa: document.getElementById("usa"),
+      canada: document.getElementById("canada"),
+      mexico: document.getElementById("mexico"),
+      greenland: document.getElementById("greenland"),
+    },
+    meters: {
+      canada: {
+        container: document.getElementById("canada-meter"),
+        freedom: document.getElementById("canada-freedom"),
+        resilience: document.getElementById("canada-resilience"),
+      },
+      mexico: {
+        container: document.getElementById("mexico-meter"),
+        freedom: document.getElementById("mexico-freedom"),
+        resilience: document.getElementById("mexico-resilience"),
+      },
+      greenland: {
+        container: document.getElementById("greenland-meter"),
+        freedom: document.getElementById("greenland-freedom"),
+        resilience: document.getElementById("greenland-resilience"),
+      },
+    },
 
-          debug: {
-            panel: document.getElementById("debug-panel"),
-            toggleHitbox: document.getElementById("toggle-hitbox"),
-            calibrateButton: document.getElementById("calibrate-button"),
-            testAnimation: document.getElementById("test-animation"),
-          },
-        };
-        // This complex initial configuration can be simplified
-        const logger = new GameLogger();
+    debug: {
+      panel: document.getElementById("debug-panel"),
+      toggleHitbox: document.getElementById("toggle-hitbox"),
+      calibrateButton: document.getElementById("calibrate-button"),
+      testAnimation: document.getElementById("test-animation"),
+    },
+  };
+  // Create logger
+  const logger = new GameLogger();
+  window.logger = logger;
 
-        window.logger = logger;
+  if (DEBUG_MODE) {
+    document.addEventListener("DOMContentLoaded", () => {
+      logger.createDebugUI();
+    });
+  }
 
-        if (DEBUG_MODE) {
-          document.addEventListener("DOMContentLoaded", () => {
-            logger.createDebugUI();
-          });
+  function init() {
+    logger.info("gameState", "Initializing game");
+
+    // Special handling for mobile devices
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      logger.info("device", "Mobile device detected, adding special audio handling");
+
+      // Add an explicit note in the intro
+      const introContent = document.querySelector(".intro-content");
+      if (introContent) {
+        const audioNote = document.createElement("p");
+        audioNote.textContent = "Tap 'Start Game' to enable audio.";
+        audioNote.style.fontWeight = "bold";
+        audioNote.style.color = "#b22234";
+        introContent.insertBefore(audioNote, elements.buttons.start);
+      }
+    }
+
+    // Initialize AudioManager
+    audioManager.init();
+    audioManager.setLogger(logger);
+
+    // Enable detailed audio logging in debug mode
+    if (DEBUG_MODE) {
+      logger.toggleCategory("audio", true);
+      logger.toggleLevel("info", true);
+      logger.toggleLevel("debug", true);
+      logger.toggleLevel("trace", true);
+    }
+
+    // Preload important sounds
+    audioManager.preloadGameSounds();
+
+    // Log initial audio state
+    audioManager.logAudioState();
+
+    // Setup audio status indicator for mobile
+    if (isMobile || DEBUG_MODE) {
+      setupAudioStatusIndicator();
+    }
+
+    // Setup game controls
+    setupGameControls();
+
+    // Initialize Animation Manager
+    if (typeof AnimationManager === "function") {
+      logger.debug("animation", "Creating AnimationManager instance");
+
+      animationManager = new AnimationManager();
+
+      // Set debug mode if needed
+      if (DEBUG_MODE) {
+        animationManager.setDebugMode(true);
+      }
+
+      animationManager.init();
+
+      // Initialize Smack Manager
+      if (typeof SmackManager === "function") {
+        logger.debug("animation", "Creating SmackManager instance");
+        window.smackManager = new SmackManager(animationManager);
+      } else {
+        logger.error("animation", "SmackManager not found!");
+      }
+    } else {
+      logger.error("animation", "AnimationManager not found!");
+      return; // Exit if AnimationManager is not available
+    }
+
+    // Create Trump sprite elements
+    const trumpElements = createTrumpSprite();
+
+    // Fix mobile touch handling (improved version that fully replaces event handlers)
+    fixMobileTouchHandling();
+
+    // Position country flags when map loads
+    elements.game.map.onload = function () {
+      positionCountryFlagOverlays();
+    };
+
+    // Store reference to trump elements
+    elements.trump = trumpElements;
+
+    // Add event listeners
+    setupEventListeners();
+
+    // Initialize Debug Manager if in debug mode
+    let audioDebugCleanup = null;
+    if (DEBUG_MODE && typeof DebugManager === "function") {
+      logger.debug("debug", "Initializing DebugManager");
+      debugManager = new DebugManager(elements, gameState, animationManager);
+      debugManager.init();
+
+      // Set up debug panel and debug controls
+      enhanceDebugPanel();
+
+      // Fix audio debug controls
+      audioDebugCleanup = fixDebugAudio();
+    }
+
+    // Initialize resize handling
+    setupResponsiveHandling();
+
+    logger.info("gameState", "Game initialization complete");
+
+    // Keep only audio logging enabled by default
+    logger.disableAllCategories();
+    logger.toggleCategory("audio", true);
+  }
+
+  // Improved function that creates the Trump sprite but doesn't add event listeners
+  function createTrumpSprite() {
+    // Get existing container
+    const trumpContainer = document.getElementById("trump-sprite-container");
+    const trumpSprite = document.getElementById("trump-sprite");
+    const handHitbox = document.getElementById("hand-hitbox");
+
+    // Basic setup of dimensions and position
+    if (handHitbox) {
+      handHitbox.style.position = "absolute";
+      handHitbox.style.zIndex = "2000";
+      handHitbox.style.cursor = "pointer";
+      handHitbox.style.pointerEvents = "all";
+
+      // Make hitbox more visible for debugging
+      if (DEBUG_MODE) {
+        handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
+        handHitbox.style.border = "2px solid red";
+      }
+
+      // We'll add event listeners in fixMobileTouchHandling instead
+      logger.info("input", "Trump sprite created - event handlers will be added separately");
+    }
+
+    return {
+      container: trumpContainer,
+      sprite: trumpSprite,
+      hand: handHitbox,
+    };
+  }
+
+  // Improved function to fix mobile touch handling
+  function fixMobileTouchHandling() {
+    const handHitbox = document.getElementById("hand-hitbox");
+    if (!handHitbox) {
+      logger.error("input", "Hand hitbox not found for touch handling setup");
+      return;
+    }
+
+    // Log what we're doing
+    logger.info("input", "Setting up improved touch handling for mobile");
+
+    // Make hitbox larger on mobile
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      handHitbox.style.width = "80px";
+      handHitbox.style.height = "80px";
+      
+      logger.debug("input", "Increased hitbox size for mobile");
+    }
+
+    // Clone the element to remove all existing event listeners
+    const newHitbox = handHitbox.cloneNode(true);
+    handHitbox.parentNode.replaceChild(newHitbox, handHitbox);
+    
+    // Add click handler for desktop
+    newHitbox.addEventListener("click", function(event) {
+      // Prevent default behaviors
+      event.preventDefault();
+      event.stopPropagation();
+      
+      logger.debug("input", "Hand click detected");
+      
+      // Only process if we have a valid target
+      if (gameState.currentTarget && gameState.isPlaying && !gameState.isPaused) {
+        logger.info("input", `Click defense against ${gameState.currentTarget}`);
+        stopGrab(event);
+      } else {
+        logger.debug("input", "Click ignored - no valid target");
+      }
+    });
+    
+    // Add touch handler for mobile with proper options
+    newHitbox.addEventListener("touchstart", function(event) {
+      // Always prevent default first to avoid scrolling/zooming
+      event.preventDefault();
+      event.stopPropagation();
+      
+      logger.debug("input", "Hand touch detected");
+      
+      // Provide haptic feedback
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      
+      // Add visual feedback
+      const ripple = document.createElement("div");
+      ripple.className = "touch-ripple";
+      this.appendChild(ripple);
+      
+      // Remove ripple after animation completes
+      setTimeout(() => {
+        if (ripple.parentNode === this) {
+          this.removeChild(ripple);
         }
-
-        function createTrumpSprite() {
-          // Get existing container
-          const trumpContainer = document.getElementById("trump-sprite-container");
-          const trumpSprite = document.getElementById("trump-sprite");
-          const handHitbox = document.getElementById("hand-hitbox");
-
-          // Basic setup of dimensions and position
-          if (handHitbox) {
-            handHitbox.style.position = "absolute";
-            handHitbox.style.zIndex = "2000";
-            handHitbox.style.cursor = "pointer";
-
-            handHitbox.style.pointerEvents = "all";
-
-            // Make hitbox more visible for debugging on mobile
-            if (DEBUG_MODE) {
-              handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
-              handHitbox.style.border = "2px solid red";
-            }
-
-            // Force remove and re-add event listeners to ensure they work
-            handHitbox.removeEventListener("click", handleHandClick);
-            handHitbox.removeEventListener("touchstart", handleHandTouch);
-
-            // Add touch events with proper options
-            handHitbox.addEventListener("touchstart", handleHandTouch, { passive: false });
-            handHitbox.addEventListener("click", handleHandClick);
-
-            logger.info("input", "Event listeners attached to hand hitbox");
+      }, 500);
+      
+      // Only process if we have a valid target
+      if (gameState.currentTarget && gameState.isPlaying && !gameState.isPaused) {
+        logger.info("input", `Touch defense against ${gameState.currentTarget}`);
+        stopGrab(event);
+      } else {
+        logger.debug("input", "Touch ignored - no valid target");
+      }
+    }, {passive: false}); // passive: false is crucial for preventing scrolling on iOS
+    
+    logger.info("input", "Touch and click handlers set up successfully");
+    
+    // Also prevent scrolling on the game container for mobile
+    if (isMobile) {
+      const gameContainer = document.getElementById("game-container");
+      if (gameContainer) {
+        gameContainer.addEventListener("touchmove", function(e) {
+          if (gameState.isPlaying) {
+            e.preventDefault();
           }
-
-          return {
-            container: trumpContainer,
-            sprite: trumpSprite,
-            hand: handHitbox,
-          };
-        }
-
-        function init() {
-          logger.info("gameState", "Initializing game");
-
-          // Apply mobile optimizations early
-          const isMobileDevice = optimizeForMobile();
-
-          // Special handling for mobile devices
-          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          if (isMobile) {
-            logger.info("device", "Mobile device detected, adding special audio handling");
-
-            // Add an explicit note in the intro
-            const introContent = document.querySelector(".intro-content");
-            if (introContent) {
-              const audioNote = document.createElement("p");
-              audioNote.textContent = "Tap 'Start Game' to enable audio.";
-              audioNote.style.fontWeight = "bold";
-              audioNote.style.color = "#b22234";
-              introContent.insertBefore(audioNote, elements.buttons.start);
-            }
-          }
-
-          // Initialize AudioManager
-          audioManager.init();
-          audioManager.setLogger(logger);
-
-          // Enable detailed audio logging in debug mode
-          if (DEBUG_MODE) {
-            logger.toggleCategory("audio", true);
-            logger.toggleLevel("info", true);
-            logger.toggleLevel("debug", true);
-            logger.toggleLevel("trace", true);
-          }
-
-          // Preload important sounds
-          audioManager.preloadGameSounds();
-
-          // Log initial audio state
-          audioManager.logAudioState();
-
-          // Setup audio status indicator for mobile
-          if (isMobile || DEBUG_MODE) {
-            setupAudioStatusIndicator();
-          }
-
-          // Setup game controls
-          setupGameControls();
-
-          // Initialize Animation Manager
-          if (typeof AnimationManager === "function") {
-            logger.debug("animation", "Creating AnimationManager instance");
-
-            animationManager = new AnimationManager();
-
-            // Set debug mode if needed
-            if (DEBUG_MODE) {
-              animationManager.setDebugMode(true);
-            }
-
-            animationManager.init();
-
-            // Initialize Smack Manager
-            if (typeof SmackManager === "function") {
-              logger.debug("animation", "Creating SmackManager instance");
-              window.smackManager = new SmackManager(animationManager);
-            } else {
-              logger.error("animation", "SmackManager not found!");
-            }
-          } else {
-            logger.error("animation", "AnimationManager not found!");
-            return; // Exit if AnimationManager is not available
-          }
-
-          // Initialize Touch Input Manager
-          const touchInputManager = new TouchInputManager(gameState, logger);
-          touchInputManager.init();
-
-          // Set the callback to your existing logic
-          touchInputManager.setHandInteractionCallback(function (event) {
-            // This is where you call your existing logic for handling hand interactions
-            if (gameState.currentTarget && gameState.isPlaying && !gameState.isPaused) {
-              // Call your existing stopGrab function directly
-              stopGrab(event);
-            }
-          });
-
-          // Debug mode visual
-          if (DEBUG_MODE) {
-            touchInputManager.showHitbox(true);
-          }
-
-          // Create Trump sprite elements
-          const trumpElements = createTrumpSprite();
-
-          // Position country flags when map loads
-          elements.game.map.onload = function () {
-            positionCountryFlagOverlays();
-          };
-
-          // Store reference to trump elements
-          elements.trump = trumpElements;
-
-          // Add event listeners
-          setupEventListeners();
-
-          // Initialize Debug Manager if in debug mode
-          let audioDebugCleanup = null;
-          if (DEBUG_MODE && typeof DebugManager === "function") {
-            logger.debug("debug", "Initializing DebugManager");
-            debugManager = new DebugManager(elements, gameState, animationManager);
-            debugManager.init();
-
-            // Set up debug panel and debug controls
-            enhanceDebugPanel();
-
-            // Fix audio debug controls
-            audioDebugCleanup = fixDebugAudio();
-          }
-
-          // Initialize resize handling
-          setupResponsiveHandling();
-
-          logger.info("gameState", "Game initialization complete");
-
-          // Keep only audio logging enabled by default
-          logger.disableAllCategories();
-          logger.toggleCategory("audio", true);
-        }
-
-        function optimizeForMobile() {
-          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-          if (isMobile) {
-            logger.info("device", "Mobile device detected, applying optimizations");
-
-            // 1. Ensure buttons are large enough to tap
-            document.querySelectorAll("button").forEach((btn) => {
-              if (!btn.classList.contains("control-button")) {
-                btn.style.minHeight = "44px";
-                btn.style.minWidth = "44px";
-                btn.style.padding = "12px 24px";
-              }
-            });
-
-            // 2. Add touch-action manipulation to game container
-            document.getElementById("game-container").style.touchAction = "manipulation";
-
-            // 3. Add touch-specific helpers
-            document.addEventListener(
-              "touchmove",
-              function (e) {
-                // Prevent scrolling when touching the game area
-                if (e.target.closest("#game-container")) {
-                  e.preventDefault();
-                }
-              },
-              { passive: false }
-            );
-
-            // 4. Make hitbox larger on mobile
-            const handHitbox = document.getElementById("hand-hitbox");
-            if (handHitbox) {
-              handHitbox.style.width = "60px";
-              handHitbox.style.height = "60px";
-            }
-
-            // 5. Add a touch indicator to help users
-            const touchIndicator = document.createElement("div");
-            touchIndicator.id = "touch-indicator";
-            touchIndicator.style.position = "absolute";
-            touchIndicator.style.top = "70px";
-            touchIndicator.style.left = "50%";
-            touchIndicator.style.transform = "translateX(-50%)";
-            touchIndicator.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
-            touchIndicator.style.color = "black";
-            touchIndicator.style.padding = "8px 16px";
-            touchIndicator.style.borderRadius = "20px";
-            touchIndicator.style.fontSize = "14px";
-            touchIndicator.style.zIndex = "1000";
-            touchIndicator.style.opacity = "1";
-            touchIndicator.style.transition = "opacity 1s";
-            touchIndicator.textContent = "Tap Trump's hand when it moves!";
-
-            document.getElementById("game-screen").appendChild(touchIndicator);
-
-            // Fade out the indicator after 5 seconds
-            setTimeout(() => {
-              touchIndicator.style.opacity = "0";
-            }, 5000);
-
-            return true;
-          }
-
-          return false;
-        }
-
-        function setupAudioStatusIndicator() {
-          const audioStatus = document.createElement("div");
-          audioStatus.id = "audio-status-indicator";
-          audioStatus.style.position = "absolute";
-          audioStatus.style.bottom = "10px";
-          audioStatus.style.left = "10px";
-          audioStatus.style.width = "auto"; // Changed from fixed 100px
-          audioStatus.style.height = "auto"; // Changed from fixed 100px
-          audioStatus.style.backgroundColor = "rgba(255, 0, 0, 0.6)";
-          audioStatus.style.color = "white";
-          audioStatus.style.padding = "5px 10px";
-          audioStatus.style.borderRadius = "4px";
-          audioStatus.style.fontSize = "12px";
-          audioStatus.style.zIndex = "3000";
-          audioStatus.style.display = "block";
-          audioStatus.textContent = "Audio: Waiting for interaction";
-          document.body.appendChild(audioStatus);
-        }
-
-        // Helper to set up event listeners
-        function setupEventListeners() {
-          // Start button click handler with audio initialization
-          elements.buttons.start.addEventListener("click", function () {
-            // Ensure audio is initialized
-            if (!audioManager.initialized) {
-              audioManager.init();
-            }
-
-            // Resume the AudioContext (crucial for mobile)
-            audioManager.resumeAudioContext().then(() => {
-              // Play UI click sound
-              audioManager.play("ui", "click");
-
-              // Update status indicator if present
-              const audioStatus = document.getElementById("audio-status-indicator");
-              if (audioStatus) {
-                audioStatus.textContent = "Audio: Ready";
-                audioStatus.style.backgroundColor = "rgba(0, 128, 0, 0.6)";
-                setTimeout(() => {
-                  audioStatus.style.opacity = "0";
-                  audioStatus.style.transition = "opacity 0.5s";
-                }, 3000);
-              }
-
-              // Start the game
-              startGame();
-            });
-          });
-
-          // Other button event listeners
-          elements.buttons.restart.addEventListener("click", restartGame);
-          elements.buttons.share.addEventListener("click", shareResults);
-        }
-
-        // Helper to set up responsive handling
-        function setupResponsiveHandling() {
-          // Resize handler
-          window.addEventListener("resize", () => {
-            if (gameState.isPlaying) {
-              logger.debug("rendering", "Window resize detected, repositioning elements");
-              setTimeout(positionElements, 100);
-            }
-            positionCountryFlagOverlays();
-          });
-
-          // Orientation change handler for mobile
-          window.addEventListener("orientationchange", () => {
-            if (gameState.isPlaying) {
-              logger.debug("rendering", "Orientation change detected, repositioning elements");
-              setTimeout(positionElements, 300);
-            }
-            positionCountryFlagOverlays();
-          });
-        }
-
-        // Enhance debug panel with better styling and functionality
-        function enhanceDebugPanel() {
-          // Find the debug panel
-          const debugPanel = document.getElementById("debug-panel");
-          if (!debugPanel) return;
-
-          // Apply improved styling
-          Object.assign(debugPanel.style, {
-            position: "fixed",
-            bottom: "50px",
-            left: "10px",
-            maxWidth: "350px",
-            maxHeight: "60vh",
-            overflowY: "auto",
-            background: "rgba(0, 0, 0, 0.85)",
-            color: "white",
-            padding: "10px",
-            borderRadius: "5px",
-            zIndex: "1000",
-            fontSize: "12px",
-            display: "block",
-            boxShadow: "0 0 10px rgba(0,0,0,0.5)",
-          });
-
-          // Create toggle button
-          const debugToggle = document.createElement("div");
-          debugToggle.id = "debug-toggle";
-
-          // Style toggle button
-          Object.assign(debugToggle.style, {
-            position: "fixed",
-            bottom: "10px",
-            right: "10px",
-            width: "40px",
-            height: "40px",
-            borderRadius: "50%",
-            backgroundColor: "rgba(0, 128, 0, 0.9)",
-            color: "white",
-            textAlign: "center",
-            lineHeight: "40px",
-            fontSize: "24px",
-            cursor: "pointer",
-            zIndex: "9999",
-            boxShadow: "0 0 10px rgba(0,0,0,0.5)",
-            userSelect: "none",
-            border: "2px solid white",
-          });
-
-          debugToggle.textContent = "🛠️";
-          debugToggle.title = "Toggle Debug Panel";
-
-          // Add to document
-          document.body.appendChild(debugToggle);
-
-          // Toggle functionality
-          debugToggle.addEventListener("click", () => {
-            const isVisible = debugPanel.style.display === "block";
-            debugPanel.style.display = isVisible ? "none" : "block";
-            debugToggle.style.backgroundColor = isVisible ? "rgba(255, 0, 0, 0.9)" : "rgba(0, 128, 0, 0.9)";
-          });
-
-          // Add keyboard shortcut
-          document.addEventListener("keydown", (e) => {
-            if (e.ctrlKey && e.key === "d") {
-              e.preventDefault();
-              debugToggle.click();
-            }
-          });
-
-          // Add close button
-          const closeButton = document.createElement("button");
-          closeButton.textContent = "X";
-          closeButton.title = "Close Debug Panel";
-
-          Object.assign(closeButton.style, {
-            position: "absolute",
-            top: "5px",
-            right: "5px",
-            background: "red",
-            color: "white",
-            border: "none",
-            borderRadius: "50%",
-            width: "20px",
-            height: "20px",
-            lineHeight: "18px",
-            textAlign: "center",
-            fontSize: "12px",
-            cursor: "pointer",
-            padding: "0",
-          });
-
-          closeButton.addEventListener("click", () => {
-            debugPanel.style.display = "none";
-            debugToggle.style.backgroundColor = "rgba(255, 0, 0, 0.9)";
-          });
-
-          // Add title to panel
-          const title = document.createElement("div");
-          title.textContent = "DEBUG PANEL";
-          title.style.fontWeight = "bold";
-          title.style.marginBottom = "10px";
-          title.style.fontSize = "14px";
-          title.style.borderBottom = "1px solid white";
-          title.style.paddingBottom = "5px";
-
-          // Insert close button and title
-          debugPanel.insertBefore(closeButton, debugPanel.firstChild);
-          debugPanel.insertBefore(title, debugPanel.firstChild);
-
-          // Improve styling of inputs and buttons
-          debugPanel.querySelectorAll("input").forEach((input) => {
-            input.style.color = "black";
-            input.style.padding = "2px";
-          });
-
-          debugPanel.querySelectorAll("button").forEach((button) => {
-            if (button !== closeButton) {
-              Object.assign(button.style, {
-                backgroundColor: "#4CAF50",
-                border: "none",
-                color: "white",
-                minHeight: "10px",
-                padding: "1px 1px",
-                textAlign: "center",
-                textDecoration: "none",
-                display: "inline-block",
-                fontSize: "12px",
-                margin: "2px",
-                cursor: "pointer",
-                borderRadius: "3px",
-              });
-            }
-          });
-        }
-
-        function fixDebugAudio() {
-          // Only apply if we're in DEBUG_MODE and have both managers
-          if (!DEBUG_MODE || !debugManager || !audioManager) return;
-
-          // 1. Directly connect the audioManager to debugManager
-          debugManager.audioManager = audioManager;
-
-          // 2. Add a simple test function to window for console testing
-          window.testAudio = function (category, name) {
-            if (!audioManager) return "AudioManager not available";
-
-            console.log(`Testing audio: ${category}.${name}`);
-            if (name === "grab") {
-              return audioManager.playGrabAttempt("canada");
-            } else {
-              return audioManager.play(category, name);
-            }
-          };
-
-          // 3. Update the status display
-          const updateStatus = function () {
-            const statusElement = document.getElementById("audio-status");
-            if (!statusElement) return;
-
-            let status = "";
-            if (!audioManager.initialized) {
-              status = "Not initialized";
-            } else {
-              status = `AudioContext: ${audioManager.audioContext ? audioManager.audioContext.state : "None"}<br>`;
-              status += `Muted: ${audioManager.muted}<br>`;
-              status += `Volume: ${audioManager.volume.toFixed(2)}<br>`;
-              status += `Music Playing: ${audioManager.backgroundMusicPlaying}<br>`;
-              status += `Music Intensity: ${audioManager.musicIntensity}<br>`;
-              status += `Active Sounds: ${audioManager.currentlyPlaying.length}<br>`;
-              status += `Loaded Sounds: ${audioManager.loadedSounds ? audioManager.loadedSounds.size : "Unknown"}`;
-            }
-            statusElement.innerHTML = status;
-          };
-
-          // 4. Manually fix button listeners in the debug panel
-          const fixButtons = function () {
-            // Get the debug panel
-            const debugPanel = document.getElementById("debug-panel");
-            if (!debugPanel) return;
-
-            // Fix audio test buttons
-            debugPanel.querySelectorAll(".audio-test-btn").forEach((btn) => {
-              // Remove existing listeners
-              const btnClone = btn.cloneNode(true);
-              btn.parentNode.replaceChild(btnClone, btn);
-
-              // Add new listener with proper error handling
-              btnClone.addEventListener("click", () => {
-                try {
-                  const category = btnClone.getAttribute("data-category");
-                  const name = btnClone.getAttribute("data-name");
-
-                  console.log(`Testing ${category}.${name} sound`);
-
-                  if (category && name) {
-                    if (name === "grab") {
-                      audioManager.playGrabAttempt("canada");
-                    } else {
-                      audioManager.play(category, name);
-                    }
-
-                    // Show visual feedback
-                    btnClone.style.backgroundColor = "#ff7700";
-                    setTimeout(() => {
-                      btnClone.style.backgroundColor = "";
-                    }, 300);
-                  }
-                } catch (error) {
-                  console.error("Error playing test sound:", error);
-                }
-              });
-            });
-
-            // Fix music control buttons
-            const fixButton = (id, action) => {
-              const btn = debugPanel.querySelector(`#${id}`);
-              if (btn) {
-                const btnClone = btn.cloneNode(true);
-                btn.parentNode.replaceChild(btnClone, btn);
-                btnClone.addEventListener("click", action);
-              }
-            };
-
-            fixButton("start-music-btn", () => audioManager.startBackgroundMusic());
-            fixButton("stop-music-btn", () => audioManager.stopBackgroundMusic());
-            fixButton("toggle-mute-btn", () => {
-              const muted = audioManager.toggleMute();
-              document.getElementById("toggle-mute-btn").textContent = muted ? "Unmute" : "Mute";
-            });
-            fixButton("unlock-audio-btn", () => {
-              // Silent sound to unlock audio
-              const silentSound = new Audio();
-              silentSound.src =
-                "data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
-              silentSound.load();
-              silentSound.play().catch((e) => console.log("Silent sound error (expected)", e));
-
-              // Resume AudioContext
-              if (audioManager.audioContext) {
-                audioManager.audioContext.resume().then(() => {
-                  console.log("AudioContext resumed:", audioManager.audioContext.state);
-                  updateStatus();
-                });
-              }
-
-              // Visual feedback
-              const btn = document.getElementById("unlock-audio-btn");
-              if (btn) {
-                btn.textContent = "✅ Unlocked";
-                setTimeout(() => {
-                  btn.textContent = "🔓 Unlock Audio";
-                }, 2000);
-              }
-            });
-
-            // Fix music intensity selector
-            const intensitySelect = debugPanel.querySelector("#music-intensity");
-            if (intensitySelect) {
-              intensitySelect.addEventListener("change", (e) => {
-                const intensity = parseInt(e.target.value);
-                audioManager.updateMusicIntensity(intensity);
-              });
-            }
-
-            // Fix volume control
-            const volumeControl = debugPanel.querySelector("#volume-control");
-            if (volumeControl) {
-              volumeControl.addEventListener("input", (e) => {
-                const volume = parseInt(e.target.value) / 100;
-                audioManager.setVolume(volume);
-              });
-            }
-          };
-
-          // 5. Start periodic updates
-          const statusInterval = setInterval(updateStatus, 1000);
-
-          // 6. Fix buttons after a short delay to ensure DOM is ready
-          setTimeout(fixButtons, 500);
-
-          // 7. Return cleanup function
-          return function cleanup() {
-            clearInterval(statusInterval);
-          };
-        }
-
-        // Create a better debug menu toggle system
-        // function setupDebugControls() {
-        //   if (!DEBUG_MODE) return;
-
-        //   // Find the debug panel
-        //   const debugPanel = document.getElementById("debug-panel");
-        //   if (!debugPanel) {
-        //     console.error("Debug panel not found");
-        //     return;
-        //   }
-
-        //   // Apply improved styling to make it scrollable and better sized
-        //   Object.assign(debugPanel.style, {
-        //     position: "fixed",
-        //     bottom: "50px",
-        //     left: "10px",
-        //     maxWidth: "350px",
-        //     maxHeight: "60vh", // Use percentage of viewport height
-        //     overflowY: "auto", // Make it scrollable
-        //     background: "rgba(0, 0, 0, 0.85)",
-        //     color: "white",
-        //     padding: "10px",
-        //     borderRadius: "5px",
-        //     zIndex: "1000",
-        //     fontSize: "12px",
-        //     display: "block", // Show by default in debug mode
-        //     boxShadow: "0 0 10px rgba(0,0,0,0.5)",
-        //   });
-
-        //   // Create a larger, more visible toggle button
-        //   const debugToggle = document.createElement("div");
-        //   debugToggle.id = "debug-toggle";
-
-        //   // Style the button to be much more visible
-        //   Object.assign(debugToggle.style, {
-        //     position: "fixed",
-        //     bottom: "10px",
-        //     right: "10px",
-        //     width: "40px",
-        //     height: "40px",
-        //     borderRadius: "50%",
-        //     backgroundColor: "rgba(0, 128, 0, 0.9)", // Bright green
-        //     color: "white",
-        //     textAlign: "center",
-        //     lineHeight: "40px",
-        //     fontSize: "24px",
-        //     cursor: "pointer",
-        //     zIndex: "9999",
-        //     boxShadow: "0 0 10px rgba(0,0,0,0.5)",
-        //     userSelect: "none",
-        //     border: "2px solid white", // Add white border for visibility
-        //   });
-
-        //   debugToggle.textContent = "🛠️";
-        //   debugToggle.title = "Toggle Debug Panel";
-
-        //   // Add to document
-        //   document.body.appendChild(debugToggle);
-
-        //   // Toggle functionality
-        //   debugToggle.addEventListener("click", () => {
-        //     const isVisible = debugPanel.style.display === "block";
-        //     debugPanel.style.display = isVisible ? "none" : "block";
-        //     debugToggle.style.backgroundColor = isVisible ? "rgba(255, 0, 0, 0.9)" : "rgba(0, 128, 0, 0.9)";
-        //   });
-
-        //   // Add keyboard shortcut (Ctrl+D)
-        //   document.addEventListener("keydown", (e) => {
-        //     if (e.ctrlKey && e.key === "d") {
-        //       e.preventDefault();
-        //       debugToggle.click();
-        //     }
-        //   });
-
-        //   // Add a close button to the debug panel
-        //   const closeButton = document.createElement("button");
-        //   closeButton.textContent = "X";
-        //   closeButton.title = "Close Debug Panel";
-
-        //   Object.assign(closeButton.style, {
-        //     position: "absolute",
-        //     top: "5px",
-        //     right: "5px",
-        //     background: "red",
-        //     color: "white",
-        //     border: "none",
-        //     borderRadius: "50%",
-        //     width: "20px",
-        //     height: "20px",
-        //     lineHeight: "18px",
-        //     textAlign: "center",
-        //     fontSize: "12px",
-        //     cursor: "pointer",
-        //     padding: "0",
-        //   });
-
-        //   closeButton.addEventListener("click", () => {
-        //     debugPanel.style.display = "none";
-        //     debugToggle.style.backgroundColor = "rgba(255, 0, 0, 0.9)";
-        //   });
-
-        //   // Add title to the panel
-        //   const title = document.createElement("div");
-        //   title.textContent = "DEBUG PANEL";
-        //   title.style.fontWeight = "bold";
-        //   title.style.marginBottom = "10px";
-        //   title.style.fontSize = "14px";
-        //   title.style.borderBottom = "1px solid white";
-        //   title.style.paddingBottom = "5px";
-
-        //   // Insert the close button and title at the beginning of the panel
-        //   debugPanel.insertBefore(closeButton, debugPanel.firstChild);
-        //   debugPanel.insertBefore(title, debugPanel.firstChild);
-
-        //   // Ensure any input fields have white text
-        //   debugPanel.querySelectorAll("input").forEach((input) => {
-        //     input.style.color = "black";
-        //     input.style.padding = "2px";
-        //   });
-
-        //   // Improve button styling within the panel
-        //   debugPanel.querySelectorAll("button").forEach((button) => {
-        //     if (button !== closeButton) {
-        //       Object.assign(button.style, {
-        //         backgroundColor: "#4CAF50",
-        //         border: "none",
-        //         color: "white",
-        //         padding: "3px 8px",
-        //         textAlign: "center",
-        //         textDecoration: "none",
-        //         display: "inline-block",
-        //         fontSize: "12px",
-        //         margin: "2px",
-        //         cursor: "pointer",
-        //         borderRadius: "3px",
-        //       });
-        //     }
-        //   });
-
-        //   // Log success
-        //   console.log("Debug panel enhanced with scrolling and improved visibility");
-        // }
-
-        function setupAudio() {
-          // Create audio controls for the game
-          const audioControls = document.createElement("div");
-          audioControls.id = "audio-controls";
-          audioControls.classList.add("game-controls");
-          audioControls.innerHTML = `
-    <button id="toggle-audio" class="control-button">
-      <span class="icon">🔊</span>
-    </button>
-  `;
-
-          // Add to game screen
-          elements.screens.game.appendChild(audioControls);
-
-          // Add event listeners for both click and touch
-          const toggleAudioBtn = document.getElementById("toggle-audio");
-
-          // Handle both click and touch events
-          const handleToggleAudio = function () {
-            const muted = audioManager.toggleMute();
-            this.querySelector(".icon").textContent = muted ? "🔇" : "🔊";
-
-            // Always try to resume AudioContext on user interaction
-            audioManager.resumeAudioContext();
-          };
-
-          toggleAudioBtn.addEventListener("click", handleToggleAudio);
-          toggleAudioBtn.addEventListener("touchend", function (e) {
-            e.preventDefault(); // Prevent double events on touch devices
-            handleToggleAudio.call(this);
-          });
-        }
-        function startGame() {
-          // Always try to resume AudioContext on game start (user interaction)
-          if (audioManager) {
-            audioManager.resumeAudioContext().then(() => {
-              // Log audio state for debugging
-              audioManager.logAudioState();
-
-              // Play start game sound
-              audioManager.play("ui", "start");
-
-              // Start background music after a short delay
-              setTimeout(() => {
-                audioManager.startBackgroundMusic();
-              }, 1000);
-            });
-          }
-
-          logger.info("gameState", "Starting game");
-
-          // If debug manager is active, reset any edit mode
-          if (debugManager) {
-            // Remove any editing UI elements
-            if (debugManager.doneEditingBtn) {
-              debugManager.doneEditingBtn.remove();
-              debugManager.doneEditingBtn = null;
-            }
-          }
-
-          // Hide intro screen, show game screen
-          elements.screens.intro.classList.add("hidden");
-          elements.screens.game.classList.remove("hidden");
-          logger.debug("rendering", "Switched from intro to game screen");
-
-          // Make sure the map is loaded before positioning
-          if (elements.game.map.complete) {
-            resetGameState();
-            gameState.isPlaying = true;
-
-            // Add progressive difficulty
-            setupProgressiveDifficulty();
-
-            // Position elements now that game is visible
-            positionElements();
-            logger.debug("rendering", "Map already loaded, game elements positioned");
-
-            // Start timers after positioning is done
-            gameState.countdownTimer = setInterval(updateCountdown, 1000);
-            scheduleNextGrab();
-          } else {
-            // Wait for the map to load
-            logger.debug("rendering", "Waiting for map to load");
-            elements.game.map.onload = function () {
-              resetGameState();
-              gameState.isPlaying = true;
-
-              // Position elements when map loads
-              positionElements();
-              logger.debug("rendering", "Map loaded, game elements positioned");
-
-              // Start timers after positioning is done
-              gameState.countdownTimer = setInterval(updateCountdown, 1000);
-              scheduleNextGrab();
-            };
-          }
-        }
-
-        function resetGameState() {
-          logger.info("gameState", "Resetting game state");
-
-          gameState.score = 0;
-          gameState.timeRemaining = 240; // Updated to 4 minutes = 240 seconds
-          gameState.trumpGrowth = 1.0;
-          gameState.consecutiveHits = 0;
-
-          // KEEP ONLY THIS SPEED SYSTEM:
-          gameState.gameSpeedMultiplier = 1.0;
-          if (animationManager) {
-            animationManager.setGameSpeed(gameState.gameSpeedMultiplier);
-          }
-
-          // Add this map to track which animation to use for each country
-          gameState.countryAnimations = {
-            canada: ["grabEastCanada", "grabWestCanada"], // Randomly select one of these
-            mexico: ["grabMexico"],
-            greenland: ["grabGreenland"],
-          };
-
-          // Reset stats
-          gameState.stats.successfulBlocks = 0;
-          gameState.stats.countriesDefended = 0;
-
-          // Reset Trump animation
-          animationManager.changeState("idle");
-
-          // Play start game sound
-          audioManager.play("ui", "start");
-
-          // Start background music after a short delay
+        }, {passive: false});
+        
+        logger.debug("input", "Added touchmove prevention to game container");
+      }
+      
+      // Add mobile guidance
+      showMobileGuidance();
+    }
+  }
+
+  function showMobileGuidance() {
+    const gameScreen = document.getElementById("game-screen");
+    if (!gameScreen) return;
+    
+    // Create guidance message
+    const guidance = document.createElement("div");
+    guidance.id = "mobile-guidance";
+    guidance.style.position = "absolute";
+    guidance.style.top = "100px";
+    guidance.style.left = "50%";
+    guidance.style.transform = "translateX(-50%)";
+    guidance.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+    guidance.style.color = "white";
+    guidance.style.padding = "10px 15px";
+    guidance.style.borderRadius = "20px";
+    guidance.style.fontSize = "14px";
+    guidance.style.zIndex = "1000";
+    guidance.style.textAlign = "center";
+    guidance.style.transition = "opacity 1s";
+    guidance.innerHTML = "Tap Trump's hand when he reaches for countries!";
+    
+    gameScreen.appendChild(guidance);
+    
+    // Fade out after a few seconds
+    setTimeout(() => {
+      guidance.style.opacity = "0";
+      setTimeout(() => guidance.remove(), 1000);
+    }, 5000);
+    
+    logger.debug("input", "Added mobile guidance message");
+  }
+
+  function setupAudioStatusIndicator() {
+    const audioStatus = document.createElement("div");
+    audioStatus.id = "audio-status-indicator";
+    audioStatus.style.position = "absolute";
+    audioStatus.style.bottom = "10px";
+    audioStatus.style.left = "10px";
+    audioStatus.style.width = "auto";
+    audioStatus.style.height = "auto";
+    audioStatus.style.backgroundColor = "rgba(255, 0, 0, 0.6)";
+    audioStatus.style.color = "white";
+    audioStatus.style.padding = "5px 10px";
+    audioStatus.style.borderRadius = "4px";
+    audioStatus.style.fontSize = "12px";
+    audioStatus.style.zIndex = "3000";
+    audioStatus.style.display = "block";
+    audioStatus.textContent = "Audio: Waiting for interaction";
+    document.body.appendChild(audioStatus);
+  }
+
+  // Helper to set up event listeners
+  function setupEventListeners() {
+    // Start button click handler with audio initialization
+    elements.buttons.start.addEventListener("click", function () {
+      // Ensure audio is initialized
+      if (!audioManager.initialized) {
+        audioManager.init();
+      }
+
+      // Resume the AudioContext (crucial for mobile)
+      audioManager.resumeAudioContext().then(() => {
+        // Play UI click sound
+        audioManager.play("ui", "click");
+
+        // Update status indicator if present
+        const audioStatus = document.getElementById("audio-status-indicator");
+        if (audioStatus) {
+          audioStatus.textContent = "Audio: Ready";
+          audioStatus.style.backgroundColor = "rgba(0, 128, 0, 0.6)";
           setTimeout(() => {
-            audioManager.startBackgroundMusic();
-          }, 1000);
-
-          // Reset countries
-          for (let country in gameState.countries) {
-            gameState.countries[country].claims = 0;
-            gameState.countries[country].resilience = 0;
-            gameState.countries[country].freedom = 100;
-
-            // Reset meters
-            updateCountryMeters(country);
-            logger.debug("gameState", `Reset country: ${country}`);
-          }
-
-          // Update HUD
-          updateHUD();
-          logger.debug("gameState", "Game state reset complete");
+            audioStatus.style.opacity = "0";
+            audioStatus.style.transition = "opacity 0.5s";
+          }, 3000);
         }
 
-        function setupGameControls() {
-          const gameControls = document.querySelector(".game-controls") || document.createElement("div");
-
-          if (!gameControls.id) {
-            gameControls.id = "game-controls";
-            gameControls.classList.add("game-controls");
-            elements.screens.game.appendChild(gameControls);
-          }
-
-          // Add pause button if it doesn't exist
-          if (!document.getElementById("pause-button")) {
-            const pauseButton = document.createElement("button");
-            pauseButton.id = "pause-button";
-            pauseButton.classList.add("control-button");
-            pauseButton.innerHTML = '<span class="icon">⏸️</span>';
-            pauseButton.addEventListener("click", togglePause);
-            gameControls.appendChild(pauseButton);
-          }
-        }
-
-        function togglePause() {
-          gameState.isPaused = !gameState.isPaused;
-          logger.info("gameState", `Game ${gameState.isPaused ? "paused" : "resumed"}`);
-
-          const pauseButton = document.getElementById("pause-button");
-          pauseButton.querySelector(".icon").textContent = gameState.isPaused ? "▶️" : "⏸️";
-
-          if (gameState.isPaused) {
-            // Stop timers when paused
-            clearInterval(gameState.countdownTimer);
-            clearTimeout(gameState.grabTimer);
-            logger.debug("gameState", "Game timers cleared");
-
-            // Pause animations
-            animationManager.pause();
-
-            // Show pause overlay
-            const pauseOverlay = document.createElement("div");
-            pauseOverlay.id = "pause-overlay";
-            pauseOverlay.style.position = "absolute";
-            pauseOverlay.style.top = "0";
-            pauseOverlay.style.left = "0";
-            pauseOverlay.style.width = "100%";
-            pauseOverlay.style.height = "100%";
-            pauseOverlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-            pauseOverlay.style.zIndex = "50";
-            pauseOverlay.style.display = "flex";
-            pauseOverlay.style.justifyContent = "center";
-            pauseOverlay.style.alignItems = "center";
-            pauseOverlay.innerHTML =
-              '<div style="color: white; font-size: 24px; background: rgba(0, 0, 0, 0.7); padding: 20px; border-radius: 10px;">Game Paused</div>';
-            elements.screens.game.appendChild(pauseOverlay);
-            logger.debug("rendering", "Pause overlay added");
-
-            // Pause any audio
-            if (audioManager && typeof audioManager.pauseAll === "function") {
-              audioManager.pauseAll();
-            }
-          } else {
-            // Remove pause overlay
-            const pauseOverlay = document.getElementById("pause-overlay");
-            if (pauseOverlay) {
-              pauseOverlay.remove();
-              logger.debug("rendering", "Pause overlay removed");
-            }
-
-            // Resume timers
-            gameState.countdownTimer = setInterval(updateCountdown, 1000);
-            scheduleNextGrab();
-            logger.debug("gameState", "Game timers restored");
-
-            // Resume animations
-            animationManager.resume();
-
-            // Resume audio
-            if (audioManager && typeof audioManager.resumeAll === "function") {
-              audioManager.resumeAll();
-            }
-          }
-        }
-
-        function updateHUD() {
-          elements.hud.time.textContent = gameState.timeRemaining;
-          elements.hud.score.textContent = gameState.score;
-        }
-
-        function updateCountdown() {
-          if (gameState.isPaused) return;
-
-          gameState.timeRemaining--;
-          updateHUD();
-
-          if (gameState.timeRemaining <= 0) {
-            endGame(true); // Win by surviving the time limit
-          }
-        }
-
-        function positionElements() {
-          // console.log("Positioning game elements");
-
-          // Get map dimensions and position
-          const mapRect = elements.game.map.getBoundingClientRect();
-
-          // Make sure the map has dimensions before calculating
-          if (mapRect.width === 0 || mapRect.height === 0) {
-            console.warn("Map dimensions are zero, retrying in 100ms");
-            setTimeout(positionElements, 100);
-            return;
-          }
-
-          gameState.mapScale = mapRect.width / elements.game.map.naturalWidth;
-          gameState.mapOffsetX = mapRect.left;
-          gameState.mapOffsetY = mapRect.top;
-
-          positionCountryFlagOverlays();
-
-          // Position Trump character
-          positionTrumpCharacter();
-        }
-
-        function positionCountryFlagOverlays() {
-          const mapBackground = elements.game.map;
-
-          if (!mapBackground) {
-            console.error("Map background element not found");
-            return;
-          }
-
-          // Get the map's current dimensions and position
-          const mapRect = mapBackground.getBoundingClientRect();
-
-          const countryFlags = ["canada", "mexico", "greenland"];
-
-          countryFlags.forEach((country) => {
-            const flagOverlay = document.getElementById(`${country}-flag-overlay`);
-
-            if (!flagOverlay) return;
-
-            // Set flag overlay to exactly match the map background position and dimensions
-            flagOverlay.style.position = "absolute";
-            flagOverlay.style.width = mapRect.width + "px";
-            flagOverlay.style.height = mapRect.height + "px";
-            flagOverlay.style.top = mapRect.top + "px";
-            flagOverlay.style.left = mapRect.left + "px";
-            flagOverlay.style.backgroundImage = `url('images/${country}-flag.png')`;
-            flagOverlay.style.backgroundSize = "100% 100%"; // Cover the entire area
-            flagOverlay.style.backgroundPosition = "center";
-            flagOverlay.style.zIndex = "1"; // Just above the map, below interactive elements
-          });
-        }
-
-        function positionTrumpCharacter() {
-          const trumpContainer = document.getElementById("trump-sprite-container");
-          const trumpSprite = document.getElementById("trump-sprite");
-
-          if (!trumpContainer || !trumpSprite) return;
-
-          const mapRect = elements.game.map.getBoundingClientRect();
-
-          // Set Trump container to match the map's size and position
-          trumpContainer.style.width = mapRect.width + "px";
-          trumpContainer.style.height = mapRect.height + "px";
-          trumpContainer.style.left = mapRect.left + "px";
-          trumpContainer.style.top = mapRect.top + "px";
-
-          // Set transform origin to center top to prevent downward drift
-          trumpContainer.style.transformOrigin = "center top";
-
-          // Ensure the Trump sprite fills the container properly
-          trumpSprite.style.width = "100%";
-          trumpSprite.style.height = "100%";
-          trumpSprite.style.backgroundSize = "auto 100%"; // Keep aspect ratio, fill height
-          trumpSprite.style.position = "absolute";
-          trumpSprite.style.top = "0"; // Reset position to top
-        }
-
-        function scheduleNextGrab() {
-          // Clear any existing timer
-          if (gameState.grabTimer) {
-            clearTimeout(gameState.grabTimer);
-            gameState.grabTimer = null;
-            logger.debug("animation", "Cleared existing grab timer");
-          }
-
-          // Calculate grab interval based on game speed
-          // const grabInterval = gameState.baseGrabInterval / gameState.gameSpeedMultiplier;
-
-          // when this isn't set to zero there's a pause before grabbing
-          const grabInterval = 0;
-
-          logger.debug("gameState", `Scheduling next grab in ${grabInterval.toFixed(0)}ms at ${gameState.gameSpeedMultiplier.toFixed(2)}x speed`);
-
-          // Set the timer for the next grab sequence
-          gameState.grabTimer = setTimeout(() => {
-            if (gameState.isPlaying && !gameState.isPaused) {
-              // Check current animation state
-              const currentState = animationManager ? animationManager.currentState : null;
-
-              // Don't interrupt a victory or grab animation
-              if (currentState === "victory" || (currentState && currentState.startsWith("grab"))) {
-                logger.debug("animation", `${currentState} animation in progress, delaying grab`);
-                // Reschedule after a short delay
-                setTimeout(() => scheduleNextGrab(), 500);
-                return;
-              }
-
-              // Now safe to start the grab sequence
-              playIdleThenGrab();
-            }
-          }, grabInterval);
-        }
-
-        function playIdleThenGrab() {
-          if (!animationManager) {
-            logger.error("animation", "Animation manager not found, attempting direct grab");
-            initiateGrab();
-            return;
-          }
-
-          // Check if we're in a grab or victory animation
-          const currentState = animationManager.currentState;
-          const isGrabAnimation = currentState && currentState.startsWith("grab");
-          const isVictoryAnimation = currentState === "victory";
-
-          // Always transition through idle if coming from a grab or victory animation
-          if (isGrabAnimation || isVictoryAnimation) {
-            logger.debug("animation", `Transitioning from ${currentState} to idle before next grab`);
-            animationManager.changeState("idle", () => {
-              if (gameState.isPlaying && !gameState.isPaused) {
-                logger.debug("animation", "Idle animation completed, initiating grab");
-                initiateGrab();
-              }
-            });
-          }
-          // If already in idle, we need to handle both cases:
-          // 1. Idle is in the middle of its animation
-          // 2. Idle just completed its animation (at loop max)
-          else if (currentState === "idle") {
-            logger.debug("animation", "Already in idle state");
-
-            // If this is immediately after a reaction, initiate grab right away
-            if (gameState.idleAfterReaction) {
-              logger.debug("animation", "Transitioning directly from reaction idle to grab");
-              initiateGrab();
-              return;
-            }
-
-            // Get idle animation details
-            const idleAnim = animationManager.animations.idle;
-            const maxLoops = idleAnim.maxLoops;
-            const currentLoop = animationManager.loopCount;
-
-            // Check if idle has JUST completed its full cycle
-            if (currentLoop >= maxLoops) {
-              logger.debug("animation", "Idle animation already completed its cycles, initiating grab immediately");
-              // Don't start a new idle animation - just grab
-              initiateGrab();
-            }
-            // Otherwise, idle is still in progress
-            else {
-              logger.debug("animation", "Waiting for idle to complete before grab");
-
-              // Replace the completion function to initiate grab after idle completes
-              animationManager.onAnimationEnd = () => {
-                logger.debug("animation", "Idle animation completed naturally, initiating grab");
-
-                // Initiate the grab after idle completes
-                if (gameState.isPlaying && !gameState.isPaused) {
-                  initiateGrab();
-                }
-              };
-            }
-          }
-          // For any other state, transition to idle first
-          else {
-            logger.debug("animation", `Transitioning from ${currentState} to idle before grab`);
-            animationManager.changeState("idle", () => {
-              if (gameState.isPlaying && !gameState.isPaused) {
-                logger.debug("animation", "Idle animation completed, initiating grab");
-                initiateGrab();
-              }
-            });
-          }
-        }
-
-        function initiateGrab() {
-          // Check game state
-          if (!gameState.isPlaying || gameState.isPaused) {
-            logger.debug("gameState", "Grab attempt canceled - game not playing or paused");
-            return;
-          }
-
-          audioManager.playGrabWarning();
-
-          // Select a random country that's not fully claimed
-          const availableCountries = Object.keys(gameState.countries).filter((country) => {
-            return gameState.countries[country].claims < gameState.countries[country].maxClaims;
-          });
-
-          if (availableCountries.length === 0) {
-            logger.debug("gameState", "No available countries to grab, scheduling next attempt");
-            scheduleNextGrab();
-            return;
-          }
-
-          // Select random country
-          const targetIndex = Math.floor(Math.random() * availableCountries.length);
-          const targetCountry = availableCountries[targetIndex];
-          gameState.currentTarget = targetCountry;
-
-          logger.info("gameState", `Initiating grab on ${targetCountry}`);
-
-          // Choose an animation for this country
-          const possibleAnimations = gameState.countryAnimations[targetCountry];
-          const animIndex = Math.floor(Math.random() * possibleAnimations.length);
-          const animationName = possibleAnimations[animIndex]; // Define it before logging it!
-
-          // Store the specific animation we're using
-          gameState.currentAnimation = animationName;
-
-          // Additional tracking for East/West Canada
-          gameState.isEastCanadaGrab = animationName === "grabEastCanada";
-          gameState.isWestCanadaGrab = animationName === "grabWestCanada";
-
-          // Now it's safe to log the animation name
-          logger.debug(
-            "animation",
-            `Starting grab animation: ${animationName}, frameCount: ${animationManager.animations[animationName]?.frameCount}, maxLoops: ${animationManager.animations[animationName]?.maxLoops}`
-          );
-
-          // Make sure we can play this animation
-          if (!animationManager.animations[animationName]) {
-            logger.error("animation", `Animation "${animationName}" not found, falling back to idle`);
-            // Still schedule next grab to avoid game getting stuck
-            setTimeout(() => scheduleNextGrab(), 1000);
-            return;
-          }
-
-          // Log when we're setting up the callback
-          logger.debug("animation", `Setting up completion callback for ${animationName}`);
-
-          // Play the grab animation with better logging
-          animationManager.changeState(animationName, () => {
-            // Log the exact state when callback is triggered
-            logger.debug(
-              "animation",
-              `Grab animation "${animationName}" completion callback triggered. Current target: ${gameState.currentTarget}, Original target: ${targetCountry}`
-            );
-
-            // If animation completed without being stopped (player didn't block)
-            if (gameState.currentTarget === targetCountry && gameState.isPlaying && !gameState.isPaused) {
-              logger.debug("animation", `Animation "${animationName}" completed without being blocked, processing grab success`);
-              grabSuccess(targetCountry);
-            } else {
-              logger.debug(
-                "animation",
-                `Animation "${animationName}" completed but conditions changed, not processing grab. isPlaying: ${gameState.isPlaying}, isPaused: ${gameState.isPaused}`
-              );
-              // If something interrupted the grab, still schedule the next one
-              if (gameState.isPlaying && !gameState.isPaused) {
-                scheduleNextGrab();
-              }
-            }
-          });
-
-          // Play grab sound
-          audioManager.playGrabAttempt(targetCountry);
-        }
-
-        function stopGrab(event) {
-          audioManager.logAudioState();
-
-          const targetCountry = gameState.currentTarget;
-          if (!targetCountry) {
-            logger.debug("input", "stopGrab called but no current target");
-            return;
-          }
-
-          logger.debug(
-            "animation",
-            `stopGrab called for ${targetCountry}. Current animation: ${animationManager.currentState}, frame: ${animationManager.currentFrame}/${
-              animationManager.animations[animationManager.currentState]?.frameCount
-            }, loop: ${animationManager.loopCount}/${animationManager.maxLoops}`
-          );
-
-          // Reset current target immediately to prevent any other handlers from triggering
-          const smackCountry =
-            targetCountry === "canada"
-              ? gameState.isEastCanadaGrab
-                ? "eastCanada"
-                : gameState.isWestCanadaGrab
-                ? "westCanada"
-                : targetCountry
-              : targetCountry; // Keep the original country name for non-Canada targets
-
-          audioManager.playSuccessfulBlock(smackCountry);
-
-          gameState.currentTarget = null;
-          gameState.isEastCanadaGrab = false;
-          gameState.isWestCanadaGrab = false;
-
-          // Increase score
-          gameState.score += 10;
-          logger.debug("gameState", `Score increased to ${gameState.score}`);
-
-          // Track consecutive hits and stats
-          gameState.consecutiveHits++;
-          gameState.stats.successfulBlocks++;
-
-          // Increase country resilience
-          const country = gameState.countries[targetCountry];
-          country.resilience++;
-          logger.debug("gameState", `${targetCountry} resilience increased to ${country.resilience}/${country.maxResilience}`);
-
-          // Play resilience sound based on new level
-          audioManager.playResilienceSound(country.resilience);
-
-          // Update resilience meter
-          updateCountryMeters(targetCountry);
-
-          // Check for immunity
-          if (country.resilience >= country.maxResilience) {
-            gameState.stats.countriesDefended++;
-          }
-
-          // Update HUD
-          updateHUD();
-
-          // Handle animation sequence with clear transitions
-          if (window.smackManager) {
-            logger.debug("animation", `Playing smack animation for ${smackCountry}`);
-
-            smackManager.playSmackAnimation(smackCountry, () => {
-              // Small gap between smack and reaction
-              logger.debug("animation", "Smack impact triggered, changing to slapped animation shortly");
-
-              setTimeout(() => {
-                // Slapped animation -> idle animation -> schedule next grab
-                logger.debug("animation", "Transitioning to slapped animation");
-
-                animationManager.changeState("slapped", () => {
-                  // Transition to idle animation
-                  logger.debug("animation", "Slapped animation completed, transitioning to idle");
-
-                  // Set a flag to indicate this idle should immediately chain to next grab
-                  gameState.idleAfterReaction = true;
-
-                  animationManager.changeState("idle", () => {
-                    // Schedule next grab only after idle animation fully completes
-                    logger.debug("animation", "Idle animation completed, scheduling next grab");
-                    gameState.idleAfterReaction = false;
-                    scheduleNextGrab();
-                  });
-                });
-              }, 200);
-            });
-          } else {
-            // Fallback path
-            logger.warn("animation", "SmackManager not found, using fallback animation transition");
-
-            animationManager.changeState("slapped", () => {
-              animationManager.changeState("idle", () => {
-                scheduleNextGrab();
-              });
-            });
-          }
-        }
-
-        function grabSuccess(country) {
-          audioManager.logAudioState();
-
-          logger.debug("gameState", `grabSuccess called for ${country} from: ${new Error().stack.split("\n")[2]}`);
-
-          // Reset consecutive hits
-          gameState.consecutiveHits = 0;
-
-          // Speed up the game slightly with each successful grab
-          updateGameSpeed(gameState.gameSpeedMultiplier + 0.05);
-
-          logger.info("gameState", `Grab succeeded on ${country}`);
-
-          // Reset current target
-          gameState.currentTarget = null;
-
-          // Handle East/West Canada special case
-          if (country === "eastCanada" || country === "westCanada") {
-            // Increment claim on the shared Canada entity
-            gameState.countries.canada.claims++;
-
-            // Get current claim count from the shared Canada entity
-            const claimCount = gameState.countries.canada.claims;
-            logger.debug("gameState", `Canada claim count: ${claimCount}/${gameState.countries.canada.maxClaims}`);
-
-            // Play appropriate sounds based on grab count
-            if (claimCount < gameState.countries.canada.maxClaims) {
-              // First and second grabs - success sound
-              audioManager.playSuccessfulGrab("canada");
-            } else {
-              // Final grab (complete annexation) - annexation sound
-              audioManager.playCountryAnnexed("canada");
-              logger.info("gameState", `Canada fully annexed`);
-            }
-
-            // Decrease freedom based on claim count
-            const freedomPercentages = [66, 33, 0]; // Freedom percentages after 1, 2, 3 claims
-            gameState.countries.canada.freedom = freedomPercentages[claimCount - 1];
-            logger.debug("gameState", `Canada freedom reduced to ${gameState.countries.canada.freedom}%`);
-
-            // Update flag overlay opacity
-            const flagOverlay = document.getElementById(`canada-flag-overlay`);
-            if (flagOverlay) {
-              const opacityLevels = [0.33, 0.66, 1.0];
-              flagOverlay.style.opacity = opacityLevels[claimCount - 1] || 0;
-            }
-
-            // Update meters
-            updateCountryMeters("canada");
-          } else {
-            // Normal processing for other countries
-            gameState.countries[country].claims++;
-
-            // Get current claim count
-            const claimCount = gameState.countries[country].claims;
-            logger.debug("gameState", `${country} claim count: ${claimCount}/${gameState.countries[country].maxClaims}`);
-
-            // Play appropriate sounds based on grab count
-            if (claimCount < gameState.countries[country].maxClaims) {
-              // First and second grabs - success sound
-              audioManager.playSuccessfulGrab(country);
-            } else {
-              // Final grab (complete annexation) - annexation sound
-              audioManager.playCountryAnnexed(country);
-            }
-
-            // Decrease freedom based on claim count
-            const freedomPercentages = [66, 33, 0]; // Freedom percentages after 1, 2, 3 claims
-            gameState.countries[country].freedom = freedomPercentages[claimCount - 1];
-            logger.debug("gameState", `${country} freedom reduced to ${gameState.countries[country].freedom}%`);
-
-            // Update flag overlay opacity
-            const flagOverlay = document.getElementById(`${country}-flag-overlay`);
-            if (flagOverlay) {
-              const opacityLevels = [0.33, 0.66, 1.0];
-              flagOverlay.style.opacity = opacityLevels[claimCount - 1] || 0;
-            }
-
-            // Update meters
-            updateCountryMeters(country);
-          }
-
-          // Check if country is fully claimed
-          let checkCountry = country;
-          if (country === "eastCanada" || country === "westCanada") {
-            checkCountry = "canada";
-          }
-
-          const claimCount = gameState.countries[checkCountry].claims;
-          if (claimCount >= gameState.countries[checkCountry].maxClaims) {
-            // Count total annexed countries
-            const annexedCount = Object.keys(gameState.countries).filter(
-              (c) => gameState.countries[c].claims >= gameState.countries[c].maxClaims
-            ).length;
-
-            // Update music intensity
-            audioManager.updateMusicIntensity(annexedCount);
-
-            // Check if all countries are claimed (lose condition)
-            const countriesToCheck = ["canada", "mexico", "greenland"];
-            const claimedCountries = countriesToCheck.filter((c) => gameState.countries[c].claims >= gameState.countries[c].maxClaims);
-
-            logger.debug("gameState", `${claimedCountries.length}/${countriesToCheck.length} countries fully claimed`);
-
-            if (claimedCountries.length >= countriesToCheck.length) {
-              logger.info("gameState", "All countries claimed - ending game (lose)");
-              endGame(false); // Game over, player lost
-              return;
-            }
-          }
-          // The grab timer will handle scheduling the next grab
-          logger.debug("animation", "Playing victory animation after successful grab");
-
-          animationManager.changeState("victory", () => {
-            logger.debug("animation", "Victory animation completed, transitioning to idle");
-
-            // Explicitly change to idle when victory completes
-            animationManager.changeState("idle");
-
-            // After victory is done and we're in idle, schedule the next grab
-            scheduleNextGrab();
-          });
-        }
-
-        function handleHandClick(event) {
-          logger.debug("input", "Hand clicked");
-
-          // Make sure we have proper event propagation
-          if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-
-          if (!gameState.currentTarget || !gameState.isPlaying || gameState.isPaused) {
-            logger.debug("input", "Hand click ignored - no current target, game not playing, or game paused");
-            return;
-          }
-
-          logger.info("input", `Defending against grab on ${gameState.currentTarget}`);
-
-          // Stop the grab
-          stopGrab(event);
-        }
-
-        function handleHandTouch(event) {
-          logger.info("input", "Hand touched");
-
-          // Always prevent default to avoid scrolling/zooming
-          if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-
-          if (!gameState.currentTarget || !gameState.isPlaying || gameState.isPaused) {
-            logger.debug("input", "Hand touch ignored - conditions not met");
-            return;
-          }
-
-          logger.info("input", `Defending against grab on ${gameState.currentTarget} via touch`);
-
-          // Play a haptic feedback if available
-          if (navigator.vibrate) {
-            navigator.vibrate(50);
-          }
-
-          // Stop the grab
-          stopGrab(event);
-        }
-
-        function setupProgressiveDifficulty() {
-          // Start at normal speed
-          gameState.gameSpeedMultiplier = 3.0;
-
-          // Increase speed every 20 seconds
-          const difficultyInterval = setInterval(() => {
-            if (!gameState.isPlaying || gameState.isPaused) return;
-
-            // Increase speed by 10%
-            const newSpeed = gameState.gameSpeedMultiplier * 1.1;
-
-            // Cap at maximum speed (2.5x)
-            if (newSpeed <= 2.5) {
-              updateGameSpeed(newSpeed);
-              logger.info("gameState", `Increasing game speed to ${gameState.gameSpeedMultiplier.toFixed(2)}x`);
-            }
-          }, 20000); // 20 seconds
-
-          // Store the interval so it can be cleared when the game ends
-          gameState.difficultyInterval = difficultyInterval;
-        }
-
-        function updateCountryMeters(countryId) {
-          const country = gameState.countries[countryId];
-          const meter = elements.meters[countryId];
-
-          // Update freedom meter (decreases as claims increase)
-          meter.freedom.style.width = `${country.freedom}%`;
-
-          // Update resilience meter (increases as player successfully defends)
-          const resiliencePercent = (country.resilience / country.maxResilience) * 100;
-          meter.resilience.style.width = `${resiliencePercent}%`;
-        }
-
-        function updateGameSpeed(newMultiplier) {
-          // Make sure we're using the same variable names
-          gameState.gameSpeedMultiplier = Math.max(gameState.minSpeedMultiplier, Math.min(gameState.maxSpeedMultiplier, newMultiplier));
-
-          // Update animation manager
-          if (animationManager) {
-            animationManager.setGameSpeed(gameState.gameSpeedMultiplier);
-          }
-
-          logger.debug("gameState", `Game speed set to ${gameState.gameSpeedMultiplier.toFixed(2)}x`);
-
-          // If a grab is scheduled, reschedule with new timing
-          if (gameState.grabTimer) {
-            clearTimeout(gameState.grabTimer);
-            scheduleNextGrab();
-          }
-        }
-
-        function endGame(playerWon) {
-          audioManager.logAudioState();
-
-          if (debugManager) {
-            debugManager.cleanup();
-          }
-
-          audioManager.stopAll();
-          audioManager.stopBackgroundMusic();
-
-          gameState.isPlaying = false;
-
-          // Clear all timers
-          clearInterval(gameState.countdownTimer);
-          clearTimeout(gameState.grabTimer);
-          if (gameState.difficultyInterval) {
-            clearInterval(gameState.difficultyInterval);
-            gameState.difficultyInterval = null;
-          }
-
-          // Stop any ongoing animations
-          animationManager.stop();
-
-          // Hide game screen, show game over screen
-          elements.screens.game.classList.add("hidden");
-          elements.screens.gameOver.classList.remove("hidden");
-
-          // Update game over screen
-          elements.hud.finalScore.textContent = gameState.score;
-          elements.hud.stats.blocks.textContent = gameState.stats.successfulBlocks;
-          elements.hud.stats.defended.textContent = gameState.stats.countriesDefended;
-          elements.hud.stats.time.textContent = 60 - gameState.timeRemaining;
-
-          if (playerWon) {
-            elements.hud.result.textContent = "Victory!";
-            elements.hud.message.textContent = "You successfully defended the neighboring countries from annexation! Your resistance was effective.";
-            audioManager.play("ui", "win");
-
-            // Trump looks defeated
-            animationManager.changeState("slapped");
-          } else {
-            elements.hud.result.textContent = "Game Over";
-            elements.hud.message.textContent =
-              "The neighboring countries have been claimed. Don't give up - resistance can still work if we keep trying!";
-            audioManager.play("ui", "lose");
-
-            // Trump looks victorious
-            animationManager.changeState("victory");
-          }
-        }
-
-        function restartGame() {
-          // Play UI click sound
-          audioManager.play("ui", "click");
-
-          elements.screens.gameOver.classList.add("hidden");
-          elements.screens.game.classList.remove("hidden");
-
-          resetGameState();
-
-          gameState.countdownTimer = setInterval(updateCountdown, 1000);
-          scheduleNextGrab();
-
-          gameState.isPlaying = true;
-
-          // Make sure everything is positioned correctly
-          setTimeout(positionElements, 100);
-
-          setTimeout(() => {
-            audioManager.startBackgroundMusic();
-          }, 1000);
-        }
-
-        function shareResults() {
-          const text = `I scored ${
-            gameState.score
-          } points in Presidential Grab, a satirical resistance game! I defended countries from annexation for ${
-            60 - gameState.timeRemaining
-          } seconds. Can you do better?`;
-
-          if (navigator.share) {
-            navigator
-              .share({
-                title: "Presidential Grab Game",
-                text: text,
-                url: window.location.href,
-              })
-              .catch(console.error);
-          } else {
-            // Fallback for browsers that don't support Web Share API
-            alert("Share this message:\n\n" + text);
-          }
-        }
-
-        // Initialize game when page loads
-        init();
+        // Start the game
+        startGame();
       });
-    </script>
+    });
+
+    // Other button event listeners
+    elements.buttons.restart.addEventListener("click", restartGame);
+    elements.buttons.share.addEventListener("click", shareResults);
+  }
+
+  // Helper to set up responsive handling
+  function setupResponsiveHandling() {
+    // Resize handler
+    window.addEventListener("resize", () => {
+      if (gameState.isPlaying) {
+        logger.debug("rendering", "Window resize detected, repositioning elements");
+        setTimeout(positionElements, 100);
+      }
+      positionCountryFlagOverlays();
+    });
+
+    // Orientation change handler for mobile
+    window.addEventListener("orientationchange", () => {
+      if (gameState.isPlaying) {
+        logger.debug("rendering", "Orientation change detected, repositioning elements");
+        setTimeout(positionElements, 300);
+      }
+      positionCountryFlagOverlays();
+    });
+  }
+
+  // Simplified debug panel enhancement
+  function enhanceDebugPanel() {
+    // Find the debug panel
+    const debugPanel = document.getElementById("debug-panel");
+    if (!debugPanel) return;
+
+    // Apply improved styling
+    Object.assign(debugPanel.style, {
+      position: "fixed",
+      bottom: "50px",
+      left: "10px",
+      maxWidth: "350px",
+      maxHeight: "60vh",
+      overflowY: "auto",
+      background: "rgba(0, 0, 0, 0.85)",
+      color: "white",
+      padding: "10px",
+      borderRadius: "5px",
+      zIndex: "1000",
+      fontSize: "12px",
+      display: "block",
+      boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+    });
+
+    // Create toggle button
+    const debugToggle = document.createElement("div");
+    debugToggle.id = "debug-toggle";
+
+    // Style toggle button
+    Object.assign(debugToggle.style, {
+      position: "fixed",
+      bottom: "10px",
+      right: "10px",
+      width: "40px",
+      height: "40px",
+      borderRadius: "50%",
+      backgroundColor: "rgba(0, 128, 0, 0.9)",
+      color: "white",
+      textAlign: "center",
+      lineHeight: "40px",
+      fontSize: "24px",
+      cursor: "pointer",
+      zIndex: "9999",
+      boxShadow: "0 0 10px rgba(0,0,0,0.5)",
+      userSelect: "none",
+      border: "2px solid white",
+    });
+
+    debugToggle.textContent = "🛠️";
+    debugToggle.title = "Toggle Debug Panel";
+
+    // Add to document
+    document.body.appendChild(debugToggle);
+
+    // Toggle functionality
+    debugToggle.addEventListener("click", () => {
+      const isVisible = debugPanel.style.display === "block";
+      debugPanel.style.display = isVisible ? "none" : "block";
+      debugToggle.style.backgroundColor = isVisible ? "rgba(255, 0, 0, 0.9)" : "rgba(0, 128, 0, 0.9)";
+      
+      // Force show hitbox on mobile when toggling debug
+      if (!isVisible) {
+        forceShowHitboxOnMobile();
+      }
+    });
+
+    // Add close button
+    const closeButton = document.createElement("button");
+    closeButton.textContent = "X";
+    closeButton.title = "Close Debug Panel";
+
+    Object.assign(closeButton.style, {
+      position: "absolute",
+      top: "5px",
+      right: "5px",
+      background: "red",
+      color: "white",
+      border: "none",
+      borderRadius: "50%",
+      width: "20px",
+      height: "20px",
+      lineHeight: "18px",
+      textAlign: "center",
+      fontSize: "12px",
+      cursor: "pointer",
+      padding: "0",
+    });
+
+    closeButton.addEventListener("click", () => {
+      debugPanel.style.display = "none";
+      debugToggle.style.backgroundColor = "rgba(255, 0, 0, 0.9)";
+    });
+
+    // Add title
+    const title = document.createElement("div");
+    title.textContent = "DEBUG PANEL";
+    title.style.fontWeight = "bold";
+    title.style.marginBottom = "10px";
+    title.style.fontSize = "14px";
+    title.style.borderBottom = "1px solid white";
+    title.style.paddingBottom = "5px";
+
+    // Insert close button and title
+    debugPanel.insertBefore(closeButton, debugPanel.firstChild);
+    debugPanel.insertBefore(title, debugPanel.firstChild);
+  }
+
+  // Function to ensure hitbox is visible on mobile in debug mode
+  function forceShowHitboxOnMobile() {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (!isMobile) return;
+    
+    const handHitbox = document.getElementById("hand-hitbox");
+    if (handHitbox) {
+      handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.5)";
+      handHitbox.style.border = "3px solid red";
+      
+      // Make it extra large on mobile for easier tapping
+      handHitbox.style.width = "100px";
+      handHitbox.style.height = "100px";
+      
+      logger.info("debug", "Hitbox visibility enhanced for mobile");
+    }
+  }
+
+  function fixDebugAudio() {
+    // Simplified version
+    if (!DEBUG_MODE || !debugManager || !audioManager) return;
+
+    // Connect the audioManager to debugManager
+    debugManager.audioManager = audioManager;
+    
+    // Add a test function for console
+    window.testAudio = function (category, name) {
+      if (audioManager) {
+        console.log(`Testing audio: ${category}.${name}`);
+        return audioManager.play(category, name);
+      }
+      return "AudioManager not available";
+    };
+    
+    logger.info("debug", "Audio debug functions initialized");
+  }
+
+  function setupAudio() {
+    // Create audio controls for the game
+    const audioControls = document.createElement("div");
+    audioControls.id = "audio-controls";
+    audioControls.classList.add("game-controls");
+    audioControls.innerHTML = `
+      <button id="toggle-audio" class="control-button">
+        <span class="icon">🔊</span>
+      </button>
+    `;
+
+    // Add to game screen
+    elements.screens.game.appendChild(audioControls);
+
+    // Get audio button
+    const toggleAudioBtn = document.getElementById("toggle-audio");
+    if (!toggleAudioBtn) return;
+
+    // Handle both click and touch events
+    const handleToggleAudio = function () {
+      const muted = audioManager.toggleMute();
+      this.querySelector(".icon").textContent = muted ? "🔇" : "🔊";
+
+      // Always try to resume AudioContext on user interaction
+      audioManager.resumeAudioContext();
+    };
+
+    toggleAudioBtn.addEventListener("click", handleToggleAudio);
+    toggleAudioBtn.addEventListener("touchend", function (e) {
+      e.preventDefault(); // Prevent double events on touch devices
+      handleToggleAudio.call(this);
+    });
+  }
+  
+  function startGame() {
+    // Always try to resume AudioContext on game start (user interaction)
+    if (audioManager) {
+      audioManager.resumeAudioContext().then(() => {
+        // Log audio state for debugging
+        audioManager.logAudioState();
+
+        // Play start game sound
+        audioManager.play("ui", "start");
+
+        // Start background music after a short delay
+        setTimeout(() => {
+          audioManager.startBackgroundMusic();
+        }, 1000);
+      });
+    }
+
+    logger.info("gameState", "Starting game");
+
+    // If debug manager is active, reset any edit mode
+    if (debugManager) {
+      // Remove any editing UI elements
+      if (debugManager.doneEditingBtn) {
+        debugManager.doneEditingBtn.remove();
+        debugManager.doneEditingBtn = null;
+      }
+    }
+
+    // Hide intro screen, show game screen
+    elements.screens.intro.classList.add("hidden");
+    elements.screens.game.classList.remove("hidden");
+    logger.debug("rendering", "Switched from intro to game screen");
+
+    // Make sure the map is loaded before positioning
+    if (elements.game.map.complete) {
+      resetGameState();
+      gameState.isPlaying = true;
+
+      // Add progressive difficulty
+      setupProgressiveDifficulty();
+
+      // Position elements now that game is visible
+      positionElements();
+      logger.debug("rendering", "Map already loaded, game elements positioned");
+
+      // Start timers after positioning is done
+      gameState.countdownTimer = setInterval(updateCountdown, 1000);
+      scheduleNextGrab();
+    } else {
+      // Wait for the map to load
+      logger.debug("rendering", "Waiting for map to load");
+      elements.game.map.onload = function () {
+        resetGameState();
+        gameState.isPlaying = true;
+
+        // Position elements when map loads
+        positionElements();
+        logger.debug("rendering", "Map loaded, game elements positioned");
+
+        // Start timers after positioning is done
+        gameState.countdownTimer = setInterval(updateCountdown, 1000);
+        scheduleNextGrab();
+      };
+    }
+  }
+
+  function resetGameState() {
+    logger.info("gameState", "Resetting game state");
+
+    gameState.score = 0;
+    gameState.timeRemaining = 240; // Updated to 4 minutes = 240 seconds
+    gameState.trumpGrowth = 1.0;
+    gameState.consecutiveHits = 0;
+
+    // KEEP ONLY THIS SPEED SYSTEM:
+    gameState.gameSpeedMultiplier = 1.0;
+    if (animationManager) {
+      animationManager.setGameSpeed(gameState.gameSpeedMultiplier);
+    }
+
+    // Add this map to track which animation to use for each country
+    gameState.countryAnimations = {
+      canada: ["grabEastCanada", "grabWestCanada"], // Randomly select one of these
+      mexico: ["grabMexico"],
+      greenland: ["grabGreenland"],
+    };
+
+    // Reset stats
+    gameState.stats.successfulBlocks = 0;
+    gameState.stats.countriesDefended = 0;
+
+    // Reset Trump animation
+    animationManager.changeState("idle");
+
+    // Play start game sound
+    audioManager.play("ui", "start");
+
+    // Start background music after a short delay
+    setTimeout(() => {
+      audioManager.startBackgroundMusic();
+    }, 1000);
+
+    // Reset countries
+    for (let country in gameState.countries) {
+      gameState.countries[country].claims = 0;
+      gameState.countries[country].resilience = 0;
+      gameState.countries[country].freedom = 100;
+
+      // Reset meters
+      updateCountryMeters(country);
+      logger.debug("gameState", `Reset country: ${country}`);
+    }
+
+    // Update HUD
+    updateHUD();
+    logger.debug("gameState", "Game state reset complete");
+  }
+
+  function setupGameControls() {
+    const gameControls = document.querySelector(".game-controls") || document.createElement("div");
+
+    if (!gameControls.id) {
+      gameControls.id = "game-controls";
+      gameControls.classList.add("game-controls");
+      elements.screens.game.appendChild(gameControls);
+    }
+
+    // Add pause button if it doesn't exist
+    if (!document.getElementById("pause-button")) {
+      const pauseButton = document.createElement("button");
+      pauseButton.id = "pause-button";
+      pauseButton.classList.add("control-button");
+      pauseButton.innerHTML = '<span class="icon">⏸️</span>';
+      pauseButton.addEventListener("click", togglePause);
+      gameControls.appendChild(pauseButton);
+    }
+  }
+
+  function togglePause() {
+    gameState.isPaused = !gameState.isPaused;
+    logger.info("gameState", `Game ${gameState.isPaused ? "paused" : "resumed"}`);
+
+    const pauseButton = document.getElementById("pause-button");
+    pauseButton.querySelector(".icon").textContent = gameState.isPaused ? "▶️" : "⏸️";
+
+    if (gameState.isPaused) {
+      // Stop timers when paused
+      clearInterval(gameState.countdownTimer);
+      clearTimeout(gameState.grabTimer);
+      logger.debug("gameState", "Game timers cleared");
+
+      // Pause animations
+      animationManager.pause();
+
+      // Show pause overlay
+      const pauseOverlay = document.createElement("div");
+      pauseOverlay.id = "pause-overlay";
+      pauseOverlay.style.position = "absolute";
+      pauseOverlay.style.top = "0";
+      pauseOverlay.style.left = "0";
+      pauseOverlay.style.width = "100%";
+      pauseOverlay.style.height = "100%";
+      pauseOverlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+      pauseOverlay.style.zIndex = "50";
+      pauseOverlay.style.display = "flex";
+      pauseOverlay.style.justifyContent = "center";
+      pauseOverlay.style.alignItems = "center";
+      pauseOverlay.innerHTML =
+        '<div style="color: white; font-size: 24px; background: rgba(0, 0, 0, 0.7); padding: 20px; border-radius: 10px;">Game Paused</div>';
+      elements.screens.game.appendChild(pauseOverlay);
+      logger.debug("rendering", "Pause overlay added");
+
+      // Pause any audio
+      if (audioManager && typeof audioManager.pauseAll === "function") {
+        audioManager.pauseAll();
+      }
+    } else {
+      // Remove pause overlay
+      const pauseOverlay = document.getElementById("pause-overlay");
+      if (pauseOverlay) {
+        pauseOverlay.remove();
+        logger.debug("rendering", "Pause overlay removed");
+      }
+
+      // Resume timers
+      gameState.countdownTimer = setInterval(updateCountdown, 1000);
+      scheduleNextGrab();
+      logger.debug("gameState", "Game timers restored");
+
+      // Resume animations
+      animationManager.resume();
+
+      // Resume audio
+      if (audioManager && typeof audioManager.resumeAll === "function") {
+        audioManager.resumeAll();
+      }
+    }
+  }
+
+  function updateHUD() {
+    elements.hud.time.textContent = gameState.timeRemaining;
+    elements.hud.score.textContent = gameState.score;
+  }
+
+  function updateCountdown() {
+    if (gameState.isPaused) return;
+
+    gameState.timeRemaining--;
+    updateHUD();
+
+    if (gameState.timeRemaining <= 0) {
+      endGame(true); // Win by surviving the time limit
+    }
+  }
+
+  function positionElements() {
+    // Get map dimensions and position
+    const mapRect = elements.game.map.getBoundingClientRect();
+
+    // Make sure the map has dimensions before calculating
+    if (mapRect.width === 0 || mapRect.height === 0) {
+      console.warn("Map dimensions are zero, retrying in 100ms");
+      setTimeout(positionElements, 100);
+      return;
+    }
+
+    gameState.mapScale = mapRect.width / elements.game.map.naturalWidth;
+    gameState.mapOffsetX = mapRect.left;
+    gameState.mapOffsetY = mapRect.top;
+
+    positionCountryFlagOverlays();
+
+    // Position Trump character
+    positionTrumpCharacter();
+  }
+
+  function positionCountryFlagOverlays() {
+    const mapBackground = elements.game.map;
+
+    if (!mapBackground) {
+      console.error("Map background element not found");
+      return;
+    }
+
+    // Get the map's current dimensions and position
+    const mapRect = mapBackground.getBoundingClientRect();
+
+    const countryFlags = ["canada", "mexico", "greenland"];
+
+    countryFlags.forEach((country) => {
+      const flagOverlay = document.getElementById(`${country}-flag-overlay`);
+
+      if (!flagOverlay) return;
+
+      // Set flag overlay to exactly match the map background position and dimensions
+      flagOverlay.style.position = "absolute";
+      flagOverlay.style.width = mapRect.width + "px";
+      flagOverlay.style.height = mapRect.height + "px";
+      flagOverlay.style.top = mapRect.top + "px";
+      flagOverlay.style.left = mapRect.left + "px";
+      flagOverlay.style.backgroundImage = `url('images/${country}-flag.png')`;
+      flagOverlay.style.backgroundSize = "100% 100%"; // Cover the entire area
+      flagOverlay.style.backgroundPosition = "center";
+      flagOverlay.style.zIndex = "1"; // Just above the map, below interactive elements
+    });
+  }
+
+  function positionTrumpCharacter() {
+    const trumpContainer = document.getElementById("trump-sprite-container");
+    const trumpSprite = document.getElementById("trump-sprite");
+
+    if (!trumpContainer || !trumpSprite) return;
+
+    const mapRect = elements.game.map.getBoundingClientRect();
+
+    // Set Trump container to match the map's size and position
+    trumpContainer.style.width = mapRect.width + "px";
+    trumpContainer.style.height = mapRect.height + "px";
+    trumpContainer.style.left = mapRect.left + "px";
+    trumpContainer.style.top = mapRect.top + "px";
+
+    // Set transform origin to center top to prevent downward drift
+    trumpContainer.style.transformOrigin = "center top";
+
+    // Ensure the Trump sprite fills the container properly
+    trumpSprite.style.width = "100%";
+    trumpSprite.style.height = "100%";
+    trumpSprite.style.backgroundSize = "auto 100%"; // Keep aspect ratio, fill height
+    trumpSprite.style.position = "absolute";
+    trumpSprite.style.top = "0"; // Reset position to top
+  }
+
+  function scheduleNextGrab() {
+    // Clear any existing timer
+    if (gameState.grabTimer) {
+      clearTimeout(gameState.grabTimer);
+      gameState.grabTimer = null;
+      logger.debug("animation", "Cleared existing grab timer");
+    }
+
+    // when this isn't set to zero there's a pause before grabbing
+    const grabInterval = 0;
+
+    logger.debug("gameState", `Scheduling next grab in ${grabInterval.toFixed(0)}ms at ${gameState.gameSpeedMultiplier.toFixed(2)}x speed`);
+
+    // Set the timer for the next grab sequence
+    gameState.grabTimer = setTimeout(() => {
+      if (gameState.isPlaying && !gameState.isPaused) {
+        // Check current animation state
+        const currentState = animationManager ? animationManager.currentState : null;
+
+        // Don't interrupt a victory or grab animation
+        if (currentState === "victory" || (currentState && currentState.startsWith("grab"))) {
+          logger.debug("animation", `${currentState} animation in progress, delaying grab`);
+          // Reschedule after a short delay
+          setTimeout(() => scheduleNextGrab(), 500);
+          return;
+        }
+
+        // Now safe to start the grab sequence
+        playIdleThenGrab();
+      }
+    }, grabInterval);
+  }
+
+  function playIdleThenGrab() {
+    if (!animationManager) {
+      logger.error("animation", "Animation manager not found, attempting direct grab");
+      initiateGrab();
+      return;
+    }
+
+    // Check if we're in a grab or victory animation
+    const currentState = animationManager.currentState;
+    const isGrabAnimation = currentState && currentState.startsWith("grab");
+    const isVictoryAnimation = currentState === "victory";
+
+    // Always transition through idle if coming from a grab or victory animation
+    if (isGrabAnimation || isVictoryAnimation) {
+      logger.debug("animation", `Transitioning from ${currentState} to idle before next grab`);
+      animationManager.changeState("idle", () => {
+        if (gameState.isPlaying && !gameState.isPaused) {
+          logger.debug("animation", "Idle animation completed, initiating grab");
+          initiateGrab();
+        }
+      });
+    }
+    // If already in idle, we need to handle both cases:
+    // 1. Idle is in the middle of its animation
+    // 2. Idle just completed its animation (at loop max)
+    else if (currentState === "idle") {
+      logger.debug("animation", "Already in idle state");
+
+      // If this is immediately after a reaction, initiate grab right away
+      if (gameState.idleAfterReaction) {
+        logger.debug("animation", "Transitioning directly from reaction idle to grab");
+        initiateGrab();
+        return;
+      }
+
+      // Get idle animation details
+      const idleAnim = animationManager.animations.idle;
+      const maxLoops = idleAnim.maxLoops;
+      const currentLoop = animationManager.loopCount;
+
+      // Check if idle has JUST completed its full cycle
+      if (currentLoop >= maxLoops) {
+        logger.debug("animation", "Idle animation already completed its cycles, initiating grab immediately");
+        // Don't start a new idle animation - just grab
+        initiateGrab();
+      }
+      // Otherwise, idle is still in progress
+      else {
+        logger.debug("animation", "Waiting for idle to complete before grab");
+
+        // Replace the completion function to initiate grab after idle completes
+        animationManager.onAnimationEnd = () => {
+          logger.debug("animation", "Idle animation completed naturally, initiating grab");
+
+          // Initiate the grab after idle completes
+          if (gameState.isPlaying && !gameState.isPaused) {
+            initiateGrab();
+          }
+        };
+      }
+    }
+    // For any other state, transition to idle first
+    else {
+      logger.debug("animation", `Transitioning from ${currentState} to idle before grab`);
+      animationManager.changeState("idle", () => {
+        if (gameState.isPlaying && !gameState.isPaused) {
+          logger.debug("animation", "Idle animation completed, initiating grab");
+          initiateGrab();
+        }
+      });
+    }
+  }
+
+  function initiateGrab() {
+    // Check game state
+    if (!gameState.isPlaying || gameState.isPaused) {
+      logger.debug("gameState", "Grab attempt canceled - game not playing or paused");
+      return;
+    }
+
+    audioManager.playGrabWarning();
+
+    // Select a random country that's not fully claimed
+    const availableCountries = Object.keys(gameState.countries).filter((country) => {
+      return gameState.countries[country].claims < gameState.countries[country].maxClaims;
+    });
+
+    if (availableCountries.length === 0) {
+      logger.debug("gameState", "No available countries to grab, scheduling next attempt");
+      scheduleNextGrab();
+      return;
+    }
+
+    // Select random country
+    const targetIndex = Math.floor(Math.random() * availableCountries.length);
+    const targetCountry = availableCountries[targetIndex];
+    gameState.currentTarget = targetCountry;
+
+    logger.info("gameState", `Initiating grab on ${targetCountry}`);
+
+    // Choose an animation for this country
+    const possibleAnimations = gameState.countryAnimations[targetCountry];
+    const animIndex = Math.floor(Math.random() * possibleAnimations.length);
+    const animationName = possibleAnimations[animIndex]; // Define it before logging it!
+
+    // Store the specific animation we're using
+    gameState.currentAnimation = animationName;
+
+    // Additional tracking for East/West Canada
+    gameState.isEastCanadaGrab = animationName === "grabEastCanada";
+    gameState.isWestCanadaGrab = animationName === "grabWestCanada";
+
+    // Now it's safe to log the animation name
+    logger.debug(
+      "animation",
+      `Starting grab animation: ${animationName}, frameCount: ${animationManager.animations[animationName]?.frameCount}, maxLoops: ${animationManager.animations[animationName]?.maxLoops}`
+    );
+
+    // Make sure we can play this animation
+    if (!animationManager.animations[animationName]) {
+      logger.error("animation", `Animation "${animationName}" not found, falling back to idle`);
+      // Still schedule next grab to avoid game getting stuck
+      setTimeout(() => scheduleNextGrab(), 1000);
+      return;
+    }
+
+    // Log when we're setting up the callback
+    logger.debug("animation", `Setting up completion callback for ${animationName}`);
+
+    // Play the grab animation with better logging
+    animationManager.changeState(animationName, () => {
+      // Log the exact state when callback is triggered
+      logger.debug(
+        "animation",
+        `Grab animation "${animationName}" completion callback triggered. Current target: ${gameState.currentTarget}, Original target: ${targetCountry}`
+      );
+
+      // If animation completed without being stopped (player didn't block)
+      if (gameState.currentTarget === targetCountry && gameState.isPlaying && !gameState.isPaused) {
+        logger.debug("animation", `Animation "${animationName}" completed without being blocked, processing grab success`);
+        grabSuccess(targetCountry);
+      } else {
+        logger.debug(
+          "animation",
+          `Animation "${animationName}" completed but conditions changed, not processing grab. isPlaying: ${gameState.isPlaying}, isPaused: ${gameState.isPaused}`
+        );
+        // If something interrupted the grab, still schedule the next one
+        if (gameState.isPlaying && !gameState.isPaused) {
+          scheduleNextGrab();
+        }
+      }
+    });
+
+    // Play grab sound
+    audioManager.playGrabAttempt(targetCountry);
+  }
+
+  function stopGrab(event) {
+    audioManager.logAudioState();
+
+    const targetCountry = gameState.currentTarget;
+    if (!targetCountry) {
+      logger.debug("input", "stopGrab called but no current target");
+      return;
+    }
+
+    logger.debug(
+      "animation",
+      `stopGrab called for ${targetCountry}. Current animation: ${animationManager.currentState}, frame: ${animationManager.currentFrame}/${
+        animationManager.animations[animationManager.currentState]?.frameCount
+      }, loop: ${animationManager.loopCount}/${animationManager.maxLoops}`
+    );
+
+    // Reset current target immediately to prevent any other handlers from triggering
+    const smackCountry =
+      targetCountry === "canada"
+        ? gameState.isEastCanadaGrab
+          ? "eastCanada"
+          : gameState.isWestCanadaGrab
+          ? "westCanada"
+          : targetCountry
+        : targetCountry; // Keep the original country name for non-Canada targets
+
+    audioManager.playSuccessfulBlock(smackCountry);
+
+    gameState.currentTarget = null;
+    gameState.isEastCanadaGrab = false;
+    gameState.isWestCanadaGrab = false;
+
+    // Increase score
+    gameState.score += 10;
+    logger.debug("gameState", `Score increased to ${gameState.score}`);
+
+    // Track consecutive hits and stats
+    gameState.consecutiveHits++;
+    gameState.stats.successfulBlocks++;
+
+    // Increase country resilience
+    const country = gameState.countries[targetCountry];
+    country.resilience++;
+    logger.debug("gameState", `${targetCountry} resilience increased to ${country.resilience}/${country.maxResilience}`);
+
+    // Play resilience sound based on new level
+    audioManager.playResilienceSound(country.resilience);
+
+    // Update resilience meter
+    updateCountryMeters(targetCountry);
+
+    // Check for immunity
+    if (country.resilience >= country.maxResilience) {
+      gameState.stats.countriesDefended++;
+    }
+
+    // Update HUD
+    updateHUD();
+
+    // Handle animation sequence with clear transitions
+    if (window.smackManager) {
+      logger.debug("animation", `Playing smack animation for ${smackCountry}`);
+
+      smackManager.playSmackAnimation(smackCountry, () => {
+        // Small gap between smack and reaction
+        logger.debug("animation", "Smack impact triggered, changing to slapped animation shortly");
+
+        setTimeout(() => {
+          // Slapped animation -> idle animation -> schedule next grab
+          logger.debug("animation", "Transitioning to slapped animation");
+
+          animationManager.changeState("slapped", () => {
+            // Transition to idle animation
+            logger.debug("animation", "Slapped animation completed, transitioning to idle");
+
+            // Set a flag to indicate this idle should immediately chain to next grab
+            gameState.idleAfterReaction = true;
+
+            animationManager.changeState("idle", () => {
+              // Schedule next grab only after idle animation fully completes
+              logger.debug("animation", "Idle animation completed, scheduling next grab");
+              gameState.idleAfterReaction = false;
+              scheduleNextGrab();
+            });
+          });
+        }, 200);
+      });
+    } else {
+      // Fallback path
+      logger.warn("animation", "SmackManager not found, using fallback animation transition");
+
+      animationManager.changeState("slapped", () => {
+        animationManager.changeState("idle", () => {
+          scheduleNextGrab();
+        });
+      });
+    }
+  }
+
+  function grabSuccess(country) {
+    audioManager.logAudioState();
+
+    logger.debug("gameState", `grabSuccess called for ${country} from: ${new Error().stack.split("\n")[2]}`);
+
+    // Reset consecutive hits
+    gameState.consecutiveHits = 0;
+
+    // Speed up the game slightly with each successful grab
+    updateGameSpeed(gameState.gameSpeedMultiplier + 0.05);
+
+    logger.info("gameState", `Grab succeeded on ${country}`);
+
+    // Reset current target
+    gameState.currentTarget = null;
+
+    // Handle East/West Canada special case
+    if (country === "eastCanada" || country === "westCanada") {
+      // Increment claim on the shared Canada entity
+      gameState.countries.canada.claims++;
+
+      // Get current claim count from the shared Canada entity
+      const claimCount = gameState.countries.canada.claims;
+      logger.debug("gameState", `Canada claim count: ${claimCount}/${gameState.countries.canada.maxClaims}`);
+
+      // Play appropriate sounds based on grab count
+      if (claimCount < gameState.countries.canada.maxClaims) {
+        // First and second grabs - success sound
+        audioManager.playSuccessfulGrab("canada");
+      } else {
+        // Final grab (complete annexation) - annexation sound
+        audioManager.playCountryAnnexed("canada");
+        logger.info("gameState", `Canada fully annexed`);
+      }
+
+      // Decrease freedom based on claim count
+      const freedomPercentages = [66, 33, 0]; // Freedom percentages after 1, 2, 3 claims
+      gameState.countries.canada.freedom = freedomPercentages[claimCount - 1];
+      logger.debug("gameState", `Canada freedom reduced to ${gameState.countries.canada.freedom}%`);
+
+      // Update flag overlay opacity
+      const flagOverlay = document.getElementById(`canada-flag-overlay`);
+      if (flagOverlay) {
+        const opacityLevels = [0.33, 0.66, 1.0];
+        flagOverlay.style.opacity = opacityLevels[claimCount - 1] || 0;
+      }
+
+      // Update meters
+      updateCountryMeters("canada");
+    } else {
+      // Normal processing for other countries
+      gameState.countries[country].claims++;
+
+      // Get current claim count
+      const claimCount = gameState.countries[country].claims;
+      logger.debug("gameState", `${country} claim count: ${claimCount}/${gameState.countries[country].maxClaims}`);
+
+      // Play appropriate sounds based on grab count
+      if (claimCount < gameState.countries[country].maxClaims) {
+        // First and second grabs - success sound
+        audioManager.playSuccessfulGrab(country);
+      } else {
+        // Final grab (complete annexation) - annexation sound
+        audioManager.playCountryAnnexed(country);
+      }
+
+      // Decrease freedom based on claim count
+      const freedomPercentages = [66, 33, 0]; // Freedom percentages after 1, 2, 3 claims
+      gameState.countries[country].freedom = freedomPercentages[claimCount - 1];
+      logger.debug("gameState", `${country} freedom reduced to ${gameState.countries[country].freedom}%`);
+
+      // Update flag overlay opacity
+      const flagOverlay = document.getElementById(`${country}-flag-overlay`);
+      if (flagOverlay) {
+        const opacityLevels = [0.33, 0.66, 1.0];
+        flagOverlay.style.opacity = opacityLevels[claimCount - 1] || 0;
+      }
+
+      // Update meters
+      updateCountryMeters(country);
+    }
+
+    // Check if country is fully claimed
+    let checkCountry = country;
+    if (country === "eastCanada" || country === "westCanada") {
+      checkCountry = "canada";
+    }
+
+    const claimCount = gameState.countries[checkCountry].claims;
+    if (claimCount >= gameState.countries[checkCountry].maxClaims) {
+      // Count total annexed countries
+      const annexedCount = Object.keys(gameState.countries).filter(
+        (c) => gameState.countries[c].claims >= gameState.countries[c].maxClaims
+      ).length;
+
+      // Update music intensity
+      audioManager.updateMusicIntensity(annexedCount);
+
+      // Check if all countries are claimed (lose condition)
+      const countriesToCheck = ["canada", "mexico", "greenland"];
+      const claimedCountries = countriesToCheck.filter((c) => gameState.countries[c].claims >= gameState.countries[c].maxClaims);
+
+      logger.debug("gameState", `${claimedCountries.length}/${countriesToCheck.length} countries fully claimed`);
+
+      if (claimedCountries.length >= countriesToCheck.length) {
+        logger.info("gameState", "All countries claimed - ending game (lose)");
+        endGame(false); // Game over, player lost
+        return;
+      }
+    }
+    // The grab timer will handle scheduling the next grab
+    logger.debug("animation", "Playing victory animation after successful grab");
+
+    animationManager.changeState("victory", () => {
+      logger.debug("animation", "Victory animation completed, transitioning to idle");
+
+      // Explicitly change to idle when victory completes
+      animationManager.changeState("idle");
+
+      // After victory is done and we're in idle, schedule the next grab
+      scheduleNextGrab();
+    });
+  }
+
+  function setupProgressiveDifficulty() {
+    // Start at normal speed
+    gameState.gameSpeedMultiplier = 3.0;
+
+    // Increase speed every 20 seconds
+    const difficultyInterval = setInterval(() => {
+      if (!gameState.isPlaying || gameState.isPaused) return;
+
+      // Increase speed by 10%
+      const newSpeed = gameState.gameSpeedMultiplier * 1.1;
+
+      // Cap at maximum speed (2.5x)
+      if (newSpeed <= 2.5) {
+        updateGameSpeed(newSpeed);
+        logger.info("gameState", `Increasing game speed to ${gameState.gameSpeedMultiplier.toFixed(2)}x`);
+      }
+    }, 20000); // 20 seconds
+
+    // Store the interval so it can be cleared when the game ends
+    gameState.difficultyInterval = difficultyInterval;
+  }
+
+  function updateCountryMeters(countryId) {
+    const country = gameState.countries[countryId];
+    const meter = elements.meters[countryId];
+
+    // Update freedom meter (decreases as claims increase)
+    meter.freedom.style.width = `${country.freedom}%`;
+
+    // Update resilience meter (increases as player successfully defends)
+    const resiliencePercent = (country.resilience / country.maxResilience) * 100;
+    meter.resilience.style.width = `${resiliencePercent}%`;
+  }
+
+  function updateGameSpeed(newMultiplier) {
+    // Make sure we're using the same variable names
+    gameState.gameSpeedMultiplier = Math.max(gameState.minSpeedMultiplier, Math.min(gameState.maxSpeedMultiplier, newMultiplier));
+
+    // Update animation manager
+    if (animationManager) {
+      animationManager.setGameSpeed(gameState.gameSpeedMultiplier);
+    }
+
+    logger.debug("gameState", `Game speed set to ${gameState.gameSpeedMultiplier.toFixed(2)}x`);
+
+    // If a grab is scheduled, reschedule with new timing
+    if (gameState.grabTimer) {
+      clearTimeout(gameState.grabTimer);
+      scheduleNextGrab();
+    }
+  }
+
+  function endGame(playerWon) {
+    audioManager.logAudioState();
+
+    if (debugManager) {
+      debugManager.cleanup();
+    }
+
+    audioManager.stopAll();
+    audioManager.stopBackgroundMusic();
+
+    gameState.isPlaying = false;
+
+    // Clear all timers
+    clearInterval(gameState.countdownTimer);
+    clearTimeout(gameState.grabTimer);
+    if (gameState.difficultyInterval) {
+      clearInterval(gameState.difficultyInterval);
+      gameState.difficultyInterval = null;
+    }
+
+    // Stop any ongoing animations
+    animationManager.stop();
+
+    // Hide game screen, show game over screen
+    elements.screens.game.classList.add("hidden");
+    elements.screens.gameOver.classList.remove("hidden");
+
+    // Update game over screen
+    elements.hud.finalScore.textContent = gameState.score;
+    elements.hud.stats.blocks.textContent = gameState.stats.successfulBlocks;
+    elements.hud.stats.defended.textContent = gameState.stats.countriesDefended;
+    elements.hud.stats.time.textContent = 60 - gameState.timeRemaining;
+
+    if (playerWon) {
+      elements.hud.result.textContent = "Victory!";
+      elements.hud.message.textContent = "You successfully defended the neighboring countries from annexation! Your resistance was effective.";
+      audioManager.play("ui", "win");
+
+      // Trump looks defeated
+      animationManager.changeState("slapped");
+    } else {
+      elements.hud.result.textContent = "Game Over";
+      elements.hud.message.textContent =
+        "The neighboring countries have been claimed. Don't give up - resistance can still work if we keep trying!";
+      audioManager.play("ui", "lose");
+
+      // Trump looks victorious
+      animationManager.changeState("victory");
+    }
+  }
+
+  function restartGame() {
+    // Play UI click sound
+    audioManager.play("ui", "click");
+
+    elements.screens.gameOver.classList.add("hidden");
+    elements.screens.game.classList.remove("hidden");
+
+    resetGameState();
+
+    gameState.countdownTimer = setInterval(updateCountdown, 1000);
+    scheduleNextGrab();
+
+    gameState.isPlaying = true;
+
+    // Make sure everything is positioned correctly
+    setTimeout(positionElements, 100);
+
+    setTimeout(() => {
+      audioManager.startBackgroundMusic();
+    }, 1000);
+  }
+
+  function shareResults() {
+    const text = `I scored ${
+      gameState.score
+    } points in Presidential Grab, a satirical resistance game! I defended countries from annexation for ${
+      60 - gameState.timeRemaining
+    } seconds. Can you do better?`;
+
+    if (navigator.share) {
+      navigator
+        .share({
+          title: "Presidential Grab Game",
+          text: text,
+          url: window.location.href,
+        })
+        .catch(console.error);
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      alert("Share this message:\n\n" + text);
+    }
+  }
+
+  // Initialize game when page loads
+  init();
+});
+      
+
+ </script>
   </body>
 </html>
