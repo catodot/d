@@ -509,6 +509,195 @@ class DebugManager {
     document.body.appendChild(dialog);
   }
 
+
+  setupAudioControls() {
+    // Add a heading for audio controls
+    const audioHeading = document.createElement("h3");
+    audioHeading.textContent = "Audio Debug";
+    audioHeading.style.marginTop = "15px";
+    this.panel.appendChild(audioHeading);
+  
+    // Create container for audio controls
+    const audioControls = document.createElement("div");
+    audioControls.id = "audio-debug-controls";
+    audioControls.style.marginBottom = "10px";
+    this.panel.appendChild(audioControls);
+  
+    // Add audio test buttons
+    audioControls.innerHTML = `
+      <div style="margin-bottom: 5px;">Test Sounds:</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;">
+        <button class="audio-test-btn" data-category="ui" data-name="click">UI Click</button>
+        <button class="audio-test-btn" data-category="ui" data-name="start">Game Start</button>
+        <button class="audio-test-btn" data-category="ui" data-name="win">Win</button>
+        <button class="audio-test-btn" data-category="ui" data-name="lose">Lose</button>
+      </div>
+      <div style="margin-bottom: 5px;">Test Effects:</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;">
+        <button class="audio-test-btn" data-category="trump" data-name="grab">Trump Grab</button>
+        <button class="audio-test-btn" data-category="trump" data-name="success">Trump Success</button>
+        <button class="audio-test-btn" data-category="trump" data-name="annex">Trump Annex</button>
+        <button class="audio-test-btn" data-category="defense" data-name="slap">Defense Slap</button>
+      </div>
+      <div style="margin-bottom: 5px;">Music Control:</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+        <button id="start-music-btn">Start Music</button>
+        <button id="stop-music-btn">Stop Music</button>
+        <button id="toggle-mute-btn">Toggle Mute</button>
+        <select id="music-intensity">
+          <option value="0">Normal</option>
+          <option value="1">Intensity 1</option>
+          <option value="2">Intensity 2</option>
+          <option value="3">Max Intensity</option>
+        </select>
+      </div>
+      <div style="margin: 10px 0;">
+        <label>Volume: <input type="range" id="volume-control" min="0" max="100" value="100" style="width: 100%;"></label>
+        <button id="unlock-audio-btn">🔓 Unlock Audio</button>
+      </div>
+      <div style="margin: 10px 0;">
+        <div>Audio Status:</div>
+        <div id="audio-status" style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 5px; margin-top: 5px;">
+          Not initialized
+        </div>
+      </div>
+    `;
+  
+    // Get audio manager reference
+    const audioManager = window.audioManager;
+    if (!audioManager) {
+      logger.error('debug', 'AudioManager not found for debug controls');
+      return;
+    }
+  
+    // Add event listeners for all audio test buttons
+    const audioTestButtons = document.querySelectorAll('.audio-test-btn');
+    audioTestButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const category = btn.getAttribute('data-category');
+        const name = btn.getAttribute('data-name');
+        if (category && name) {
+          if (name === 'grab') {
+            // Special case for grab sound
+            audioManager.playGrabAttempt('canada');
+          } else {
+            // Normal sound
+            audioManager.play(category, name);
+          }
+          logger.debug('audio', `Test playing ${category}.${name}`);
+        }
+      });
+    });
+  
+    // Add listeners for music controls
+    document.getElementById('start-music-btn').addEventListener('click', () => {
+      audioManager.startBackgroundMusic();
+      logger.debug('audio', 'Manually started background music');
+    });
+  
+    document.getElementById('stop-music-btn').addEventListener('click', () => {
+      audioManager.stopBackgroundMusic();
+      logger.debug('audio', 'Manually stopped background music');
+    });
+  
+    document.getElementById('toggle-mute-btn').addEventListener('click', () => {
+      const muted = audioManager.toggleMute();
+      document.getElementById('toggle-mute-btn').textContent = muted ? 'Unmute' : 'Mute';
+      logger.debug('audio', `Audio ${muted ? 'muted' : 'unmuted'}`);
+    });
+  
+    document.getElementById('music-intensity').addEventListener('change', (e) => {
+      const intensity = parseInt(e.target.value);
+      audioManager.updateMusicIntensity(intensity);
+      logger.debug('audio', `Set music intensity to ${intensity}`);
+    });
+  
+    document.getElementById('volume-control').addEventListener('input', (e) => {
+      const volume = parseInt(e.target.value) / 100;
+      audioManager.setVolume(volume);
+      logger.debug('audio', `Set volume to ${volume.toFixed(2)}`);
+    });
+  
+    document.getElementById('unlock-audio-btn').addEventListener('click', () => {
+      // Create and play a silent sound to unlock audio on mobile
+      this.unlockAudio();
+      
+      // Also explicitly resume the AudioContext
+      if (audioManager.audioContext && audioManager.audioContext.state === 'suspended') {
+        audioManager.audioContext.resume().then(() => {
+          logger.debug('audio', `AudioContext resumed: ${audioManager.audioContext.state}`);
+          this.updateAudioStatus();
+        });
+      }
+      
+      logger.debug('audio', 'Manual audio unlock attempted');
+    });
+  
+    // Start periodic audio status updates
+    this.startAudioStatusUpdates();
+  }
+  
+  // Add this helper method for audio unlock
+  unlockAudio() {
+    // Create a silent sound
+    const silentSound = new Audio();
+    silentSound.src = "data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
+    silentSound.load();
+    silentSound.play().catch(e => {
+      logger.debug('audio', 'Silent sound playback prevented (expected): ' + e);
+    });
+    
+    // Also try to restart AudioContext
+    const audioManager = window.audioManager;
+    if (audioManager && audioManager.audioContext) {
+      audioManager.audioContext.resume();
+    }
+  }
+  
+  // Add method to update audio status display
+  updateAudioStatus() {
+    const audioManager = window.audioManager;
+    const statusElement = document.getElementById('audio-status');
+    
+    if (!audioManager || !statusElement) return;
+    
+    let status = '';
+    
+    if (!audioManager.initialized) {
+      status = 'Not initialized';
+    } else {
+      status = `AudioContext: ${audioManager.audioContext ? audioManager.audioContext.state : 'None'}<br>`;
+      status += `Muted: ${audioManager.muted}<br>`;
+      status += `Volume: ${audioManager.volume.toFixed(2)}<br>`;
+      status += `Music Playing: ${audioManager.backgroundMusicPlaying}<br>`;
+      status += `Music Intensity: ${audioManager.musicIntensity}<br>`;
+      status += `Active Sounds: ${audioManager.currentlyPlaying.length}<br>`;
+      status += `Loaded Sounds: ${audioManager.loadedSounds ? audioManager.loadedSounds.size : 'Unknown'}`;
+    }
+    
+    statusElement.innerHTML = status;
+  }
+  
+  // Add method to start periodic audio status updates
+  startAudioStatusUpdates() {
+    this.audioStatusInterval = setInterval(() => {
+      this.updateAudioStatus();
+    }, 1000);
+  }
+  
+  // Add to stopAnimationInfoUpdates method to stop audio updates too
+  stopAnimationInfoUpdates() {
+    if (this.animInfoInterval) {
+      clearInterval(this.animInfoInterval);
+      this.animInfoInterval = null;
+    }
+    
+    if (this.audioStatusInterval) {
+      clearInterval(this.audioStatusInterval);
+      this.audioStatusInterval = null;
+    }
+  }
+
   testCountryGrab(country) {
     if (!this.gameState.isPlaying) {
       logger.warn('debug', 'Cannot test grab: game not started');
