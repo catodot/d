@@ -221,6 +221,15 @@ class AudioManager {
     this.loadSound("trump", "grab", 0); // Load first grab sound
     this.loadSound("trump", "success", 0); // Load first success sound
   
+    // Start preloading catchphrases early
+    ["canada", "mexico", "greenland", "generic"].forEach(country => {
+      if (this.catchphraseFiles[country]) {
+        for (let i = 0; i < this.catchphraseFiles[country].length; i++) {
+          this.loadCatchphrase(country, i);
+        }
+      }
+    });
+    
     if (this.logger) {
       this.logger.info("audio", "Audio system initialized");
     }
@@ -323,6 +332,9 @@ class AudioManager {
       }
     }
 
+    this.preloadAllCatchphrases();
+
+
     // Load remaining defense sounds with error handling
     try {
       for (let i = 1; i < this.soundFiles.defense.slap.length; i++) {
@@ -372,7 +384,6 @@ class AudioManager {
     }
   }
 
-  // Call this function during game start or on first user interaction
   loadRemainingSounds() {
     if (!this.shouldLoadRemainingSounds) return;
     this.shouldLoadRemainingSounds = false;
@@ -563,44 +574,7 @@ class AudioManager {
     return audio;
   }
 
-  // Load a catchphrase
-  loadCatchphrase(country, index) {
-    const soundKey = `catchphrase.${country}.${index}`;
-
-    if (this.loadedSounds.has(soundKey)) {
-      if (this.logger) {
-        this.logger.trace("audio", `Catchphrase already loaded: ${soundKey}`);
-      }
-      return;
-    }
-
-    // Ensure the country array exists
-    if (!this.catchphrases[country]) {
-      this.catchphrases[country] = [];
-    }
-
-    const soundPath = this.soundPath + this.catchphraseFiles[country][index];
-    const audio = new Audio();
-    audio.preload = "auto";
-    audio.src = soundPath;
-
-    audio.oncanplaythrough = () => {
-      if (this.logger) {
-        this.logger.trace("audio", `Loaded catchphrase: ${soundPath}`);
-      }
-      this.catchphrases[country].push(audio);
-      this.loadedSounds.add(soundKey);
-    };
-
-    audio.onerror = (e) => {
-      if (this.logger) {
-        this.logger.error("audio", `Error loading catchphrase ${soundPath}:`, e);
-      }
-    };
-
-    audio.load();
-    return audio;
-  }
+ 
 
 
 // Modify your play method with better error handling
@@ -925,52 +899,154 @@ playSound(sound) {
     }
   }
 
-  playCatchphrase(country) {
-    if (!this.initialized || this.muted) return null;
+
   
-    // Check if the specified country's catchphrases are loaded
-    if (!this.catchphrases[country] || this.catchphrases[country].length === 0) {
-      // If not loaded or empty, explicitly log this event
-      if (this.logger) {
-        this.logger.warn("audio", `No catchphrases loaded for ${country}, attempting to load one now`);
-      }
-      
-      // Try to load the catchphrase if files exist for this country
-      if (this.catchphraseFiles[country]) {
-        this.loadCatchphrase(country, 0);
-      }
-      
-      // Fall back to generic only if needed
-      if (this.catchphrases.generic && this.catchphrases.generic.length > 0) {
-        if (this.logger) {
-          this.logger.info("audio", `Falling back to generic catchphrase due to missing ${country} catchphrases`);
-        }
-        return this.playCatchphraseForCountry("generic");
-      }
-      
-      return null;
-    }
-    
-    // Country has catchphrases available, use them
+
+
+  // Simplified loadCatchphrase function that doesn't use dataset
+loadCatchphrase(country, index) {
+  const soundKey = `catchphrase.${country}.${index}`;
+
+  if (this.loadedSounds.has(soundKey)) {
     if (this.logger) {
-      this.logger.info("audio", `Playing ${country} catchphrase - ${this.catchphrases[country].length} available`);
+      this.logger.trace("audio", `Catchphrase already loaded: ${soundKey}`);
     }
-    return this.playCatchphraseForCountry(country);
+    return;
+  }
+
+  // Ensure the country array exists
+  if (!this.catchphrases[country]) {
+    this.catchphrases[country] = [];
+  }
+
+  const soundPath = this.soundPath + this.catchphraseFiles[country][index];
+  const audio = new Audio();
+  audio.preload = "auto";
+  audio.src = soundPath;
+  
+  // No dataset properties - we'll use the queue system instead
+
+  audio.oncanplaythrough = () => {
+    if (this.logger) {
+      this.logger.trace("audio", `Loaded catchphrase: ${soundPath}`);
+    }
+    this.catchphrases[country].push(audio);
+    this.loadedSounds.add(soundKey);
+  };
+
+  audio.onerror = (e) => {
+    if (this.logger) {
+      this.logger.error("audio", `Error loading catchphrase ${soundPath}:`, e);
+    }
+  };
+
+  audio.load();
+  return audio;
+}
+
+
+
+playCatchphrase(country) {
+  if (!this.initialized || this.muted) return null;
+  
+  // Log current state for debugging
+  console.log(`Playing catchphrase for ${country}`, {
+    canadaCatchphrases: this.catchphrases.canada.length,
+    mexicoCatchphrases: this.catchphrases.mexico.length,
+    greenlandCatchphrases: this.catchphrases.greenland.length,
+    genericCatchphrases: this.catchphrases.generic.length
+  });
+  
+  // Handle eastCanada and westCanada
+  const actualCountry = country === "eastCanada" || country === "westCanada" ? "canada" : country;
+  
+  // Simple fallback logic
+  const useCountry = (this.catchphrases[actualCountry] && this.catchphrases[actualCountry].length > 0) 
+    ? actualCountry 
+    : "generic";
+  
+  console.log(`Selected ${useCountry} catchphrases`);
+  
+  // Get catchphrase array
+  const catchphrases = this.catchphrases[useCountry];
+  
+  // If none loaded, try loading one
+  if (!catchphrases || catchphrases.length === 0) {
+    console.log(`No catchphrases for ${useCountry}, loading now`);
+    if (this.catchphraseFiles[useCountry]) {
+      this.loadCatchphrase(useCountry, 0);
+    }
+    return null;
   }
   
-  // Helper function to play catchphrase for a specific country
+  // Use a simple rotation through the array instead of queueing
+  if (!this.catchphraseIndex) this.catchphraseIndex = {};
+  if (!this.catchphraseIndex[useCountry]) this.catchphraseIndex[useCountry] = 0;
+  
+  // Get next sound and increment index
+  const soundIndex = this.catchphraseIndex[useCountry];
+  const sound = catchphrases[soundIndex];
+  
+  // Update index for next time (loop back to start if needed)
+  this.catchphraseIndex[useCountry] = (soundIndex + 1) % catchphrases.length;
+  
+  console.log(`Playing ${useCountry} catchphrase #${soundIndex}`);
+  
+  // Play the sound
+  if (sound) {
+    sound.currentTime = 0;
+    sound.volume = this.volume;
+    sound.play().catch(e => console.error("Error playing catchphrase:", e));
+    return sound;
+  }
+  
+  return null;
+}
+
+
+// A simpler preload function that just loads all catchphrases
+preloadAllCatchphrases() {
+  console.log("Starting catchphrase preloading");
+  
+  ["canada", "mexico", "greenland", "generic"].forEach(country => {
+    if (this.catchphraseFiles[country]) {
+      console.log(`Preloading catchphrases for ${country}`);
+      for (let i = 0; i < this.catchphraseFiles[country].length; i++) {
+        this.loadCatchphrase(country, i);
+      }
+    }
+  });
+  
+  // Check loading status after a delay
+  setTimeout(() => {
+    console.log("Catchphrases loaded status:", {
+      canada: this.catchphrases.canada.length,
+      mexico: this.catchphrases.mexico.length,
+      greenland: this.catchphrases.greenland.length,
+      generic: this.catchphrases.generic.length
+    });
+  }, 2000); // Check after 2 seconds
+}
+  
+  // Helper function to play catchphrase with better queue management
   playCatchphraseForCountry(country) {
     // Initialize playback queue for this country's catchphrases if needed
     const queueKey = `catchphrase.${country}`;
-    this.initPlaybackQueue(queueKey, this.catchphrases[country]);
+    
+    // If the queue doesn't exist yet, force creating it
+    if (!this.playbackQueues || !this.playbackQueues[queueKey]) {
+      if (this.logger) {
+        this.logger.debug("audio", `Creating new queue for ${country} catchphrases`);
+      }
+      this.initPlaybackQueue(queueKey, this.catchphrases[country]);
+    }
     
     // Get the next catchphrase from the queue
     const sound = this.getNextSoundFromQueue(queueKey);
     
     if (this.logger) {
-      const queuePosition = this.playbackQueues[queueKey].position - 1;
-      const queueLength = this.playbackQueues[queueKey].currentQueue.length;
-      this.logger.debug("audio", `Selected catchphrase for ${country} (position: ${queuePosition}/${queueLength})`);
+      const queue = this.playbackQueues[queueKey];
+      this.logger.debug("audio", `Catchphrase queue for ${country}: position ${queue.position-1}/${queue.currentQueue.length}`);
     }
     
     // Make sure it's a valid audio element
@@ -979,6 +1055,11 @@ playSound(sound) {
         this.logger.warn("audio", `Invalid catchphrase from queue ${queueKey}`);
       }
       return null;
+    }
+    
+    // Log which catchphrase is being played
+    if (sound.dataset && sound.dataset.index && this.logger) {
+      this.logger.info("audio", `Playing ${country} catchphrase #${sound.dataset.index}`);
     }
     
     // Play the catchphrase
@@ -1012,87 +1093,10 @@ playSound(sound) {
       return null;
     }
   }
+  
+ 
 
-  // playCatchphrase(country) {
-  //   if (!this.initialized || this.muted) return null;
 
-  //   // Determine which country to use
-  //   const useCountry = this.catchphrases[country] && this.catchphrases[country].length > 0 ? country : "generic";
-
-  //   if (this.logger) {
-  //     this.logger.info("audio", `Playing catchphrase for ${country}, using ${useCountry} sounds`);
-  //   }
-
-  //   // Get the catchphrase array
-  //   const catchphraseArray = this.catchphrases[useCountry];
-  //   const filesArray = this.catchphraseFiles[useCountry];
-
-  //   // If no catchphrases loaded yet, load the first one
-  //   if (!catchphraseArray || catchphraseArray.length === 0) {
-  //     this.loadCatchphrase(useCountry, 0);
-  //     if (this.logger) {
-  //       this.logger.debug("audio", `No catchphrases loaded for ${useCountry}, loading now...`);
-  //     }
-  //     return null;
-  //   }
-
-  //   // Initialize playback queue for this country's catchphrases
-  //   const queueKey = `catchphrase.${useCountry}`;
-  //   this.initPlaybackQueue(queueKey, catchphraseArray);
-
-  //   // Get the next catchphrase from the queue
-  //   const sound = this.getNextSoundFromQueue(queueKey);
-
-  //   if (this.logger) {
-  //     const queuePosition = this.playbackQueues[queueKey].position - 1;
-  //     const queueLength = this.playbackQueues[queueKey].currentQueue.length;
-  //     this.logger.debug("audio", `Selected catchphrase for ${useCountry} (position: ${queuePosition}/${queueLength})`);
-  //   }
-
-  //   // If not all catchphrases in this category are loaded, load the next one
-  //   if (catchphraseArray.length < filesArray.length) {
-  //     this.loadCatchphrase(useCountry, catchphraseArray.length);
-  //   }
-
-  //   // Make sure it's a valid audio element
-  //   if (!sound || typeof sound.play !== "function") {
-  //     if (this.logger) {
-  //       this.logger.warn("audio", `Invalid catchphrase from queue ${queueKey}`);
-  //     }
-  //     return null;
-  //   }
-
-  //   // Play the catchphrase
-  //   sound.currentTime = 0;
-  //   sound.volume = this.volume;
-
-  //   try {
-  //     const playPromise = sound.play();
-  //     if (playPromise !== undefined) {
-  //       playPromise.catch((error) => {
-  //         if (this.logger) {
-  //           this.logger.warn("audio", `Catchphrase playback prevented: ${error}`);
-  //         }
-  //       });
-  //     }
-
-  //     // Add end event listener for better tracking
-  //     const originalOnEnded = sound.onended;
-  //     sound.onended = (e) => {
-  //       if (this.logger) {
-  //         this.logger.trace("audio", `Catchphrase for ${useCountry} finished playing`);
-  //       }
-  //       if (originalOnEnded) originalOnEnded(e);
-  //     };
-
-  //     return sound;
-  //   } catch (e) {
-  //     if (this.logger) {
-  //       this.logger.error("audio", `Error playing catchphrase:`, e);
-  //     }
-  //     return null;
-  //   }
-  // }
 
   // Start a grab attempt with looping sound and increasing volume
   playGrabAttempt(country) {
