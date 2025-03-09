@@ -1219,6 +1219,8 @@ document.addEventListener("DOMContentLoaded", function () {
       audioManager.resumeAudioContext().then(() => {
         audioManager.ensureSoundsAreLoaded();
 
+        audioManager.verifyAudioAccess();
+
   // Start background music after context is resumed
   audioManager.startBackgroundMusic();
   
