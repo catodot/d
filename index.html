@@ -1321,6 +1321,9 @@
               // Begin loading remaining sounds gradually
               setTimeout(() => {
                 audioManager.loadRemainingSounds();
+                audioManager.preloadAllCatchphrases();
+
+
               }, 2000); // Wait 2 seconds after game start before loading more sounds
             });
           }
