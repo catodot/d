@@ -28,6 +28,12 @@
         letter-spacing: 3px;
         color: #3c3b6e;
         margin-bottom: 10px;
+        text-transform:uppercase;
+      }
+
+      .intro-content>p  {
+        font-family: "Alfa Slab One", cursive;
+        text-transform: capitalize;
       }
 
       .intro-content h2,
@@ -526,8 +532,9 @@
     <!-- Intro Screen -->
     <div id="intro-screen" class="screen">
       <div class="intro-content">
-        <h1>OH NO</h1>
-        <p>Trump is trying to take your country. <br>Give his hand a tiny smack (or kiss).</p>
+        <h1>Welcome to the resistance</h1>
+        <p>STOP HIS HAND</p>
+
         <button id="start-button">Start Game</button>
       </div>
     </div>
@@ -604,7 +611,7 @@
         <h2>Your Resistance Score: <span id="final-score">0</span></h2>
         <div class="stats-container">
           <div class="stat-item">Successful Blocks: <span id="blocks-stat">0</span></div>
-          <div class="stat-item">Countries Defended: <span id="defended-stat">0</span></div>
+          <!-- <div class="stat-item">Countries Defended: <span id="defended-stat">0</span></div> -->
           <div class="stat-item">Time Survived: <span id="time-stat">0</span> seconds</div>
         </div>
         <p id="game-message"></p>
@@ -622,7 +629,6 @@
     <script src="debug-manager.js"></script>
     <script src="effects-manager.js"></script>
     <script src="ufo-manager.js"></script>
-
 
     <script>
       // Main game script
@@ -759,8 +765,6 @@
           const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
           if (isMobile) {
             logger.info("device", "Mobile device detected, adding special audio handling");
-
-            
           }
 
           // Initialize AudioManager
@@ -1322,7 +1326,7 @@
               setTimeout(() => {
                 audioManager.loadRemainingSounds();
                 audioManager.preloadAllCatchphrases();
-
+                audioManager.preloadAllProtestSounds();  // Add this line
 
               }, 2000); // Wait 2 seconds after game start before loading more sounds
             });
@@ -1375,6 +1379,8 @@
               scheduleNextGrab();
             };
           }
+
+
           addStarsToGameScreen();
         }
 
@@ -1382,7 +1388,7 @@
           logger.info("gameState", "Resetting game state");
 
           gameState.score = 0;
-          gameState.timeRemaining = 240; // Updated to 4 minutes = 240 seconds
+          gameState.timeRemaining = 168; // 2min 48sec in seconds
           gameState.trumpGrowth = 1.0;
           gameState.consecutiveHits = 0;
 
@@ -2018,24 +2024,36 @@
         }
 
         function setupProgressiveDifficulty() {
-          // Start at normal speed
-          gameState.gameSpeedMultiplier = 3.0;
+          // Set game duration to exactly 2 minutes and 48 seconds
+          gameState.timeRemaining = 168; // 2min 48sec in seconds
 
-          // Increase speed every 20 seconds
+          // Remove minSpeedMultiplier and maxSpeedMultiplier limits
+          gameState.minSpeedMultiplier = 0.5;
+          gameState.maxSpeedMultiplier = 40.0; // Allow higher maximum speed
+
+          // Force maxLoops value for grab animations to decrease over time
           const difficultyInterval = setInterval(() => {
             if (!gameState.isPlaying || gameState.isPaused) return;
 
-            // Increase speed by 10%
-            const newSpeed = gameState.gameSpeedMultiplier * 1.1;
+            // Calculate progression (0 to 1)
+            const progress = (168 - gameState.timeRemaining) / 168;
 
-            // Cap at maximum speed (2.5x)
-            if (newSpeed <= 2.5) {
-              updateGameSpeed(newSpeed);
-              logger.info("gameState", `Increasing game speed to ${gameState.gameSpeedMultiplier.toFixed(2)}x`);
+            // Decrease maxLoops for grab animations based on progress
+            // Start with 4 loops and end with 1 loop (much faster grabs)
+            const newMaxLoops = Math.max(1, Math.floor(4 - 3 * progress));
+
+            // Update all grab animations
+            if (animationManager && animationManager.animations) {
+              for (const animName in animationManager.animations) {
+                if (animName.startsWith("grab")) {
+                  animationManager.animations[animName].maxLoops = newMaxLoops;
+                }
+              }
+
+              logger.info("gameState", `Game difficulty increased: grabs now take ${newMaxLoops} loops`);
             }
-          }, 20000); // 20 seconds
+          }, 5000); // Check every 5 seconds
 
-          // Store the interval so it can be cleared when the game ends
           gameState.difficultyInterval = difficultyInterval;
         }
 
@@ -2069,6 +2087,28 @@
           }
         }
 
+        function restartGame() {
+          // Play UI click sound
+          audioManager.play("ui", "click");
+
+          elements.screens.gameOver.classList.add("hidden");
+          elements.screens.game.classList.remove("hidden");
+
+          resetGameState();
+
+          gameState.countdownTimer = setInterval(updateCountdown, 1000);
+          scheduleNextGrab();
+
+          gameState.isPlaying = true;
+
+          // Make sure everything is positioned correctly
+          setTimeout(positionElements, 100);
+
+          setTimeout(() => {
+            audioManager.startBackgroundMusic();
+          }, 1000);
+        }
+
         function endGame(playerWon) {
           audioManager.logAudioState();
 
@@ -2096,58 +2136,48 @@
           elements.screens.game.classList.add("hidden");
           elements.screens.gameOver.classList.remove("hidden");
 
-          // Update game over screen
-          elements.hud.finalScore.textContent = gameState.score;
-          elements.hud.stats.blocks.textContent = gameState.stats.successfulBlocks;
-          elements.hud.stats.defended.textContent = gameState.stats.countriesDefended;
-          elements.hud.stats.time.textContent = 60 - gameState.timeRemaining;
+          // Calculate time survived (starting time - remaining time)
+          const totalGameTime = 168; // 2min 48sec
+          const timeSurvived = totalGameTime - gameState.timeRemaining;
+
+          // Update game over screen - with null checks
+          if (elements.hud.finalScore) elements.hud.finalScore.textContent = gameState.score;
+          if (elements.hud.stats.blocks) elements.hud.stats.blocks.textContent = gameState.stats.successfulBlocks;
+
+          // Check if defended-stat exists before updating it
+          // This element might be commented out in the HTML
+          if (elements.hud.stats.defended && elements.hud.stats.defended.textContent !== undefined) {
+            elements.hud.stats.defended.textContent = gameState.stats.countriesDefended;
+          }
+
+          if (elements.hud.stats.time) elements.hud.stats.time.textContent = timeSurvived;
 
           if (playerWon) {
-            elements.hud.result.textContent = "Victory!";
-            elements.hud.message.textContent = "You successfully defended the neighboring countries from annexation! Your resistance was effective.";
+            if (elements.hud.result) elements.hud.result.textContent = "Victory!";
+            if (elements.hud.message)
+              elements.hud.message.innerHTML =
+                "You successfully defended the neighboring countries from annexation! Your resistance was effective.<br><br>You can't win this game alone<br>But we might win if we fight together.";
             audioManager.play("ui", "win");
 
             // Trump looks defeated
             animationManager.changeState("slapped");
           } else {
-            elements.hud.result.textContent = "Game Over";
-            elements.hud.message.textContent =
-              "The neighboring countries have been claimed. Don't give up - resistance can still work if we keep trying!";
+            if (elements.hud.result) elements.hud.result.textContent = "Game Over";
+            if (elements.hud.message)
+              elements.hud.message.innerHTML =
+                "The neighboring countries have been claimed.<br><br>You can't win this game alone<br>But we might win if we fight together.";
             audioManager.play("ui", "lose");
 
             // Trump looks victorious
             animationManager.changeState("victory");
           }
         }
-
-        function restartGame() {
-          // Play UI click sound
-          audioManager.play("ui", "click");
-
-          elements.screens.gameOver.classList.add("hidden");
-          elements.screens.game.classList.remove("hidden");
-
-          resetGameState();
-
-          gameState.countdownTimer = setInterval(updateCountdown, 1000);
-          scheduleNextGrab();
-
-          gameState.isPlaying = true;
-
-          // Make sure everything is positioned correctly
-          setTimeout(positionElements, 100);
-
-          setTimeout(() => {
-            audioManager.startBackgroundMusic();
-          }, 1000);
-        }
-
         function shareResults() {
-          const text = `I scored ${
-            gameState.score
-          } points in Presidential Grab, a satirical resistance game! I defended countries from annexation for ${
-            60 - gameState.timeRemaining
-          } seconds. Can you do better?`;
+          // Calculate time survived (starting time - remaining time when game ended)
+          const totalGameTime = 168; // 2min 48sec
+          const timeSurvived = totalGameTime - gameState.timeRemaining;
+
+          const text = `I scored ${gameState.score} points in Presidential Grab, a satirical resistance game! I defended countries from annexation for ${timeSurvived} seconds. Can you do better?`;
 
           if (navigator.share) {
             navigator
