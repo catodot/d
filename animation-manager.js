@@ -40,7 +40,14 @@ class AnimationManager {
         handCoordinates: [
           { x: 430, y: 385, width: 90, height: 90 }, // Frame 0
           { x: 404, y: 383, width: 90, height: 90 }  // Frame 1
-        ]
+        ],
+        // Mobile coordinates (from your calibration)
+        deviceCoordinates: {
+          mobile: [
+            { x: 232, y: 209, width: 50, height: 50 }, // Frame 0
+            { x: 218, y: 204, width: 50, height: 50 } // Frame 1
+          ]
+        }
       },
       grabWestCanada: {
         spriteSheet: "images/trump-grab-west-canada-sprite.png",
@@ -52,7 +59,14 @@ class AnimationManager {
         handCoordinates: [
           { x: 122, y: 337, width: 90, height: 90 }, // Frame 0
           { x: 110, y: 316, width: 90, height: 90 } // Frame 1
-        ]
+        ],
+        // Mobile coordinates (from your calibration)
+        deviceCoordinates: {
+          mobile: [
+            { x: 60, y: 183, width: 50, height: 50 }, // Frame 0
+            { x: 61, y: 172, width: 50, height: 50 } // Frame 1
+          ]
+        }
       },
       grabGreenland: {
         spriteSheet: "images/trump-grab-greenland-sprite.png",
@@ -64,8 +78,16 @@ class AnimationManager {
         handCoordinates: [
           { x: 559, y: 222, width: 90, height: 90 }, // Frame 0
           { x: 540, y: 220, width: 90, height: 90 } // Frame 1
-        ]
+        ],
+        // Mobile coordinates (from your calibration)
+        deviceCoordinates: {
+          mobile: [
+            { x: 313, y: 131, width: 50, height: 50 }, // Frame 0
+            { x: 292, y: 126, width: 50, height: 50 } // Frame 1
+          ]
+        }
       },
+
       grabMexico: {
         spriteSheet: "images/trump-grab-mexico-sprite.png",
         frameCount: 2,
@@ -76,7 +98,14 @@ class AnimationManager {
         handCoordinates: [
           { x: 298, y: 598, width: 90, height: 90 }, // Frame 0
           { x: 278, y: 605, width: 90, height: 90 } // Frame 1
-        ]
+        ],
+        // Mobile coordinates (from your calibration)
+        deviceCoordinates: {
+          mobile: [
+            { x: 168, y: 333, width: 50, height: 50 }, // Frame 0
+            { x: 151, y: 337, width: 50, height: 50 } // Frame 1
+          ]
+        }
       },
       slapped: {
         spriteSheet: "images/trump-slapped-sprite.png",
@@ -264,11 +293,11 @@ class AnimationManager {
       logger.error('animation', 'Hand hitbox not found in updateHandPosition');
       return;
     }
-
+  
     const grabAnimations = ["grabEastCanada", "grabWestCanada", "grabMexico", "grabGreenland"];
     const smackedAnimations = ["slapped"];
     const isDebugMode = document.body.classList.contains("debug-mode");
-
+  
     // No hitbox for idle or after being smacked
     if (this.currentState === "idle" || smackedAnimations.includes(this.currentState)) {
       handHitbox.style.display = "none";
@@ -276,14 +305,14 @@ class AnimationManager {
       logger.trace('animation', `Hiding hand hitbox for ${this.currentState} state`);
       return;
     }
-
+  
     // Only continue for grab animations
     if (!grabAnimations.includes(this.currentState)) {
       handHitbox.style.display = "none";
       handHitbox.style.pointerEvents = "none";
       return;
     }
-
+  
     const animation = this.animations[this.currentState];
     if (!animation || !animation.handCoordinates) {
       logger.error('animation', `No hand coordinates for ${this.currentState}`);
@@ -291,40 +320,60 @@ class AnimationManager {
       handHitbox.style.pointerEvents = "none";
       return;
     }
-
-    const coords = animation.handCoordinates[frameIndex];
+  
+    // Determine if we're on mobile
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // Choose the right coordinates based on device type
+    let coords;
+    if (isMobile && animation.deviceCoordinates && animation.deviceCoordinates.mobile && 
+        animation.deviceCoordinates.mobile[frameIndex]) {
+      // Use mobile-specific coordinates if available
+      coords = animation.deviceCoordinates.mobile[frameIndex];
+      logger.trace('animation', 'Using mobile-specific coordinates');
+    } else {
+      // Fall back to standard coordinates
+      coords = animation.handCoordinates[frameIndex];
+      logger.trace('animation', 'Using standard coordinates');
+    }
+  
     if (!coords) {
       logger.error('animation', `No coordinates for frame ${frameIndex} in ${this.currentState}`);
       handHitbox.style.display = "none";
       handHitbox.style.pointerEvents = "none";
       return;
     }
-
+  
     // Position the hitbox
     handHitbox.style.position = "absolute";
     handHitbox.style.left = `${coords.x}px`;
     handHitbox.style.top = `${coords.y}px`;
     handHitbox.style.width = `${coords.width}px`;
     handHitbox.style.height = `${coords.height}px`;
-
-    // Show hitbox only in debug mode AND during grab animations
+  
+    // Debug visualization
     if (isDebugMode) {
       handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
       handHitbox.style.border = "2px solid red";
-      handHitbox.style.display = "block";
+      
+      // Make debug hitbox more visible on mobile
+      if (isMobile) {
+        handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.5)";
+        handHitbox.style.border = "3px solid red";
+      }
     } else {
       handHitbox.style.backgroundColor = "transparent";
       handHitbox.style.border = "none";
-      handHitbox.style.display = "block";
     }
-
-    // Enable interaction during grab
-    handHitbox.style.zIndex = "1000";
+    
+    handHitbox.style.display = "block";
+  
+    // Enable interaction
+    handHitbox.style.zIndex = "2000";
     handHitbox.style.pointerEvents = "all";
-
+  
     logger.trace('animation', `Positioned hand hitbox at (${coords.x}, ${coords.y}) with dimensions ${coords.width}x${coords.height}`);
   }
-
  
   play() {
     // Clear any existing animation interval
