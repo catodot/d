@@ -2156,7 +2156,7 @@
             if (elements.hud.result) elements.hud.result.textContent = "Victory!";
             if (elements.hud.message)
               elements.hud.message.innerHTML =
-                "You successfully defended the neighboring countries from annexation! Your resistance was effective.<br><br>You can't win this game alone<br>But we might win if we fight together.";
+                "You successfully defended the neighboring countries from annexation! Together we will prevail.";
             audioManager.play("ui", "win");
 
             // Trump looks defeated
@@ -2165,7 +2165,7 @@
             if (elements.hud.result) elements.hud.result.textContent = "Game Over";
             if (elements.hud.message)
               elements.hud.message.innerHTML =
-                "The neighboring countries have been claimed.<br><br>You can't win this game alone<br>But we might win if we fight together.";
+                "The neighboring countries have been claimed.<br><br>Alone we fail. Together we'd be unstoppable.";
             audioManager.play("ui", "lose");
 
             // Trump looks victorious
