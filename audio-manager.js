@@ -173,10 +173,16 @@ getNextSoundFromQueue(queueKey) {
   
   init() {
     if (this.initialized) return;
-    
+
     if (this.logger) {
       this.logger.info('audio', 'Initializing audio system');
     }
+
+    const initStartTime = performance.now();
+console.log(`[MOBILE-DEBUG] AudioManager init started at ${initStartTime}ms`);
+
+    
+
     
     try {
       window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -213,6 +219,8 @@ getNextSoundFromQueue(queueKey) {
   }
 
   resumeAudioContext() {
+    console.log(`[MOBILE-DEBUG] resumeAudioContext called at ${performance.now()}ms`);
+
     if (!this.audioContext) return Promise.resolve();
     
     if (this.audioContext.state === 'suspended') {
@@ -221,6 +229,8 @@ getNextSoundFromQueue(queueKey) {
       }
       
       return this.audioContext.resume().then(() => {
+        console.log(`[MOBILE-DEBUG] AudioContext resumed at ${performance.now()}ms`);
+
         if (this.logger) {
           this.logger.info('audio', `AudioContext resumed successfully, state: ${this.audioContext.state}`);
         }
@@ -234,42 +244,71 @@ getNextSoundFromQueue(queueKey) {
     return Promise.resolve();
   }
   
-  // Add this method to preload all game sounds
-  preloadGameSounds() {
-    if (this.logger) {
-      this.logger.info('audio', 'Preloading critical game sounds');
-    }
-    
-    // Preload UI sounds
-    this.loadSound('ui', 'click');
-    this.loadSound('ui', 'start');
-    this.loadSound('ui', 'gameOver');
-    this.loadSound('ui', 'win');
-    this.loadSound('ui', 'lose');
-    
-    // Preload Trump sounds
-    for (let i = 0; i < this.soundFiles.trump.grab.length; i++) {
+// Add this method to preload all game sounds
+preloadGameSounds() {
+
+  if (this.logger) {
+    this.logger.info('audio', `TIMING: Starting sound preload at ${performance.now().toFixed(0)}ms`);
+    this.logger.info('audio', `Device: ${/iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'iOS' : /Android/i.test(navigator.userAgent) ? 'Android' : 'Desktop'}`);
+  }
+
+
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const deviceInfo = isMobile ? 'mobile' : 'desktop';
+  
+  if (this.logger) {
+    this.logger.info('audio', `Preloading game sounds on ${deviceInfo}: ${navigator.userAgent}`);
+    this.logger.info('audio', `AudioContext state: ${this.audioContext ? this.audioContext.state : 'none'}`);
+  }
+  
+  // Keep track of load attempts and successes for debugging
+  this.loadAttempts = 0;
+  this.loadSuccesses = 0;
+  
+  // Start with UI sounds and background music (highest priority)
+  this.loadSound('ui', 'click');
+  this.loadSound('ui', 'start');
+  this.loadSound('music', 'background');
+  
+  // Load grab and defense sounds (needed early)
+  this.loadSound('trump', 'grab', 0);
+  this.loadSound('defense', 'slap', 0);
+  this.loadSound('trump', 'success', 0);
+  
+  // Load remaining Trump sounds with error handling
+  try {
+    for (let i = 1; i < this.soundFiles.trump.grab.length; i++) {
       this.loadSound('trump', 'grab', i);
     }
-    for (let i = 0; i < this.soundFiles.trump.success.length; i++) {
+    
+    for (let i = 1; i < this.soundFiles.trump.success.length; i++) {
       this.loadSound('trump', 'success', i);
     }
+    
     for (let i = 0; i < this.soundFiles.trump.annex.length; i++) {
       this.loadSound('trump', 'annex', i);
     }
+    
     for (let i = 0; i < this.soundFiles.trump.victory.length; i++) {
       this.loadSound('trump', 'victory', i);
     }
+    
     for (let i = 0; i < this.soundFiles.trump.sob.length; i++) {
       this.loadSound('trump', 'sob', i);
     }
-    
-    // Preload defense sounds
-    for (let i = 0; i < this.soundFiles.defense.slap.length; i++) {
+  } catch (e) {
+    if (this.logger) {
+      this.logger.error('audio', `Error loading Trump sounds: ${e.message}`);
+    }
+  }
+  
+  // Load remaining defense sounds with error handling
+  try {
+    for (let i = 1; i < this.soundFiles.defense.slap.length; i++) {
       this.loadSound('defense', 'slap', i);
     }
     
-    // Preload protest sounds for each country
+    // Protest sounds for each country
     ['eastCanada', 'westCanada', 'canada', 'mexico', 'greenland'].forEach(country => {
       if (this.soundFiles.defense.protest[country]) {
         for (let i = 0; i < this.soundFiles.defense.protest[country].length; i++) {
@@ -277,8 +316,14 @@ getNextSoundFromQueue(queueKey) {
         }
       }
     });
-    
-    // Preload catchphrases
+  } catch (e) {
+    if (this.logger) {
+      this.logger.error('audio', `Error loading defense sounds: ${e.message}`);
+    }
+  }
+  
+  // Load catchphrases with error handling
+  try {
     ['canada', 'mexico', 'greenland', 'generic'].forEach(country => {
       if (this.catchphraseFiles[country]) {
         for (let i = 0; i < this.catchphraseFiles[country].length; i++) {
@@ -286,91 +331,184 @@ getNextSoundFromQueue(queueKey) {
         }
       }
     });
-    
-    // Preload background music
-    this.loadSound('music', 'background');
-    
+  } catch (e) {
     if (this.logger) {
-      this.logger.info('audio', 'Critical game sounds preloaded');
+      this.logger.error('audio', `Error loading catchphrases: ${e.message}`);
     }
   }
+  
+  // Log summary of load attempts - this will help diagnose the issues
+  if (this.logger) {
+    this.logger.info('audio', `Sound loading initiated: ${this.loadAttempts} attempted`);
     
-  loadSound(category, name, index = null) {
-    // Create a unique key for tracking loaded sounds
-    const soundKey = index !== null 
-      ? `${category}.${name}.${index}` 
-      : `${category}.${name}`;
-      
-    // Skip if already loaded
-    if (this.loadedSounds.has(soundKey)) {
+    // Check again in 3 seconds to see how many actually loaded
+    setTimeout(() => {
       if (this.logger) {
-        this.logger.trace('audio', `Sound already loaded: ${soundKey}`);
+        this.logger.info('audio', `Sound loading status after 3s: ${this.loadSuccesses}/${this.loadAttempts} loaded`);
+        this.logger.info('audio', `Loaded sounds: ${Array.from(this.loadedSounds).join(', ')}`);
+      }
+    }, 3000);
+  }
+}
+
+// Call this function during game start or on first user interaction
+loadRemainingSounds() {
+  if (!this.shouldLoadRemainingSounds) return;
+  this.shouldLoadRemainingSounds = false;
+  
+  if (this.logger) {
+    this.logger.info('audio', 'Starting staged loading of remaining sounds');
+  }
+  
+  // Use a queue system to load sounds gradually without blocking gameplay
+  const loadQueue = [];
+  
+  // Add Trump sounds to queue (skip the first ones we already loaded)
+  for (let i = 1; i < this.soundFiles.trump.grab.length; i++) {
+    loadQueue.push({ type: 'normal', category: 'trump', name: 'grab', index: i });
+  }
+  
+  // Add success sounds
+  for (let i = 0; i < this.soundFiles.trump.success.length; i++) {
+    loadQueue.push({ type: 'normal', category: 'trump', name: 'success', index: i });
+  }
+  
+  // Add other sound types...
+  // (Add remaining sound types to the queue with similar structure)
+  
+  // Background music (medium priority)
+  loadQueue.push({ type: 'normal', category: 'music', name: 'background' });
+  
+  // Process the queue gradually - load 1 sound every 200ms
+  let queueIndex = 0;
+  const processQueue = () => {
+    if (queueIndex >= loadQueue.length) {
+      if (this.logger) {
+        this.logger.info('audio', 'Finished loading all sounds');
       }
       return;
     }
     
-    if (this.logger) {
-      this.logger.debug('audio', `Loading sound: ${soundKey}`);
-    }
+    const item = loadQueue[queueIndex++];
     
-    let soundPath;
-    let destination;
-    
-    if (index !== null) {
-      // Array sound (like trump.grab[0])
-      soundPath = this.soundPath + this.soundFiles[category][name][index];
-      
-      // Make sure the array exists before trying to use it
-      if (!this.sounds[category][name]) {
-        this.sounds[category][name] = [];
+    try {
+      if (item.type === 'normal') {
+        this.loadSound(item.category, item.name, item.index);
+      } else if (item.type === 'protest') {
+        this.loadProtestSound(item.country, item.index);
+      } else if (item.type === 'catchphrase') {
+        this.loadCatchphrase(item.country, item.index);
       }
-      
-      destination = this.sounds[category][name];
-    } else {
-      // Named sound (like ui.click)
-      soundPath = this.soundPath + this.soundFiles[category][name];
-      destination = this.sounds[category];
+    } catch (e) {
+      if (this.logger) {
+        this.logger.error('audio', `Error loading sound from queue: ${e.message}`);
+      }
     }
     
-    // Create and load the audio
-    const audio = new Audio();
-    audio.preload = "auto";
-    audio.src = soundPath;
+    // Schedule next item with a delay to avoid blocking the main thread
+    setTimeout(processQueue, 200);
+  };
+  
+  // Start processing the queue
+  setTimeout(processQueue, 500);
+}
+    
+
+
+loadSound(category, name, index = null) {
+  
+  // Create a unique key for tracking loaded sounds
+  const soundKey = index !== null 
+    ? `${category}.${name}.${index}` 
+    : `${category}.${name}`;
+
+    const startTime = performance.now();
+
+    
+  // Skip if already loaded
+  if (this.loadedSounds.has(soundKey)) {
+    if (this.logger) {
+      this.logger.debug('audio', `TIMING: Loading ${soundKey} at ${startTime.toFixed(0)}ms`);
+    }
+    return;
+  }
+  
+  // Track load attempts for diagnostics
+  this.loadAttempts = (this.loadAttempts || 0) + 1;
+  
+  if (this.logger) {
+    this.logger.debug('audio', `Loading sound: ${soundKey} (attempt #${this.loadAttempts})`);
+  }
+  
+  let soundPath;
+  let destination;
+  
+  if (index !== null) {
+    // Array sound (like trump.grab[0])
+    soundPath = this.soundPath + this.soundFiles[category][name][index];
+    
+    // Make sure the array exists before trying to use it
+    if (!this.sounds[category][name]) {
+      this.sounds[category][name] = [];
+    }
+    
+    destination = this.sounds[category][name];
+  } else {
+    // Named sound (like ui.click)
+    soundPath = this.soundPath + this.soundFiles[category][name];
+    destination = this.sounds[category];
+  }
+  
+  // Create and load the audio
+  const audio = new Audio();
+  audio.preload = "auto";
+  
+  // Set shorter timeout for mobile devices
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    audio.timeout = 8000; // 8 second timeout on mobile
+  }
+  
+  // Track load success
+  audio.oncanplaythrough = () => {
+    const loadTime = performance.now();
+    if (this.logger) {
+      this.logger.info('audio', `TIMING: Sound ${soundKey} loaded at ${loadTime.toFixed(0)}ms (took ${(loadTime - startTime).toFixed(0)}ms)`);
+    }
+
+
+    this.loadSuccesses = (this.loadSuccesses || 0) + 1;
+    
+    if (this.logger) {
+      this.logger.trace('audio', `Loaded sound: ${soundKey} (success #${this.loadSuccesses})`);
+    }
     
     if (index !== null) {
       // Push to array when loaded
-      audio.oncanplaythrough = () => {
-        if (this.logger) {
-          this.logger.trace('audio', `Loaded array sound: ${soundPath}`);
-        }
-        destination.push(audio);
-        this.loadedSounds.add(soundKey);
-      };
+      destination.push(audio);
     } else {
       // Set named property when loaded
-      audio.oncanplaythrough = () => {
-        if (this.logger) {
-          this.logger.trace('audio', `Loaded named sound: ${soundPath}`);
-        }
-        destination[name] = audio;
-        this.loadedSounds.add(soundKey);
-      };
+      destination[name] = audio;
     }
     
+    this.loadedSounds.add(soundKey);
+  };
+  
+  // Track load error
+  audio.onerror = (e) => {
+    if (this.logger) {
+      this.logger.error('audio', `Error loading sound ${soundPath}: ${e.type}`);
+    }
+  };
+  
+  // Set source and load
+  audio.src = soundPath;
+  audio.load();
+  
+  return audio;
+}
 
-    
-    audio.onerror = (e) => {
-      if (this.logger) {
-        this.logger.error('audio', `Error loading sound ${soundPath}:`, e);
-      }
-    };
-    
-    // Start loading
-    audio.load();
-    
-    return audio;
-  }
-    
+
   // Load a country-specific protest sound
   loadProtestSound(country, index) {
     const soundKey = `defense.protest.${country}.${index}`;
@@ -1148,9 +1286,9 @@ playCountryAnnexed(country) {
 startBackgroundMusic() {
   if (!this.initialized || this.muted) return Promise.resolve(false);
   
-  if (this.logger) {
-    this.logger.info('audio', 'Starting background music');
-  }
+if (this.logger) {
+  this.logger.info('audio', `TIMING: Starting background music at ${performance.now().toFixed(0)}ms`);
+}
   
   // Resume AudioContext first (mobile requirement)
   return this.resumeAudioContext().then(() => {
