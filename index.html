@@ -559,7 +559,7 @@
 
     <script src="debug-manager.js"></script>
     <script src="effects-manager.js"></script>
-    <script src="touch-input-manager.js"></script>
+    <!-- <script src="touch-input-manager.js"></script> -->
 
  <script>
   // Main game script
@@ -1212,20 +1212,19 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   
   function startGame() {
+    console.log(`[MOBILE-DEBUG] startGame called at ${performance.now()}ms`);
+
     // Always try to resume AudioContext on game start (user interaction)
     if (audioManager) {
       audioManager.resumeAudioContext().then(() => {
-        // Log audio state for debugging
-        audioManager.logAudioState();
-
-        // Play start game sound
-        audioManager.play("ui", "start");
-
-        // Start background music after a short delay
-        setTimeout(() => {
-          audioManager.startBackgroundMusic();
-        }, 1000);
-      });
+  // Start background music after context is resumed
+  audioManager.startBackgroundMusic();
+  
+  // Begin loading remaining sounds gradually
+  setTimeout(() => {
+    audioManager.loadRemainingSounds();
+  }, 2000); // Wait 2 seconds after game start before loading more sounds
+});
     }
 
     logger.info("gameState", "Starting game");
