@@ -220,6 +220,9 @@ class AudioManager {
     this.loadSound("defense", "slap", 0); // Load first slap sound
     this.loadSound("trump", "grab", 0); // Load first grab sound
     this.loadSound("trump", "success", 0); // Load first success sound
+
+    this.preloadAllProtestSounds();  // Add this line
+
   
     // Start preloading catchphrases early
     ["canada", "mexico", "greenland", "generic"].forEach(country => {
@@ -534,42 +537,63 @@ class AudioManager {
 
     return audio;
   }
-
-  // Load a country-specific protest sound
   loadProtestSound(country, index) {
     const soundKey = `defense.protest.${country}.${index}`;
-
+  
     if (this.loadedSounds.has(soundKey)) {
       if (this.logger) {
         this.logger.trace("audio", `Protest sound already loaded: ${soundKey}`);
       }
       return;
     }
-
+  
     // Ensure the country array exists
     if (!this.sounds.defense.protest[country]) {
       this.sounds.defense.protest[country] = [];
     }
-
+  
+    if (!this.soundFiles.defense.protest[country] || !this.soundFiles.defense.protest[country][index]) {
+      if (this.logger) {
+        this.logger.error("audio", `Invalid protest sound path for ${country}[${index}]`);
+      }
+      return;
+    }
+  
     const soundPath = this.soundPath + this.soundFiles.defense.protest[country][index];
+    if (this.logger) {
+      this.logger.debug("audio", `Loading protest sound: ${soundPath}`);
+    }
+    
     const audio = new Audio();
     audio.preload = "auto";
     audio.src = soundPath;
-
+  
     audio.oncanplaythrough = () => {
       if (this.logger) {
         this.logger.trace("audio", `Loaded protest sound: ${soundPath}`);
       }
+      // Add the sound to the array
       this.sounds.defense.protest[country].push(audio);
       this.loadedSounds.add(soundKey);
+      
+      // If we already have a queue for this protest sound category, update it
+      const queueKey = `defense.protest.${country}`;
+      if (this.playbackQueues && this.playbackQueues[queueKey]) {
+        // Update the array references
+        this.playbackQueues[queueKey].originalArray = [...this.sounds.defense.protest[country]];
+        this.playbackQueues[queueKey].currentQueue = [...this.sounds.defense.protest[country]];
+        
+        // Re-shuffle the queue
+        this.shuffleQueue(queueKey);
+      }
     };
-
+  
     audio.onerror = (e) => {
       if (this.logger) {
         this.logger.error("audio", `Error loading protest sound ${soundPath}:`, e);
       }
     };
-
+  
     audio.load();
     return audio;
   }
@@ -762,18 +786,17 @@ playSound(sound) {
 
     return sound;
   }
-
   playRandom(category, subcategory, country = null) {
     if (!this.initialized || this.muted) return null;
-
+  
     const logKey = country ? `${category}.${subcategory}.${country}` : `${category}.${subcategory}`;
     if (this.logger) {
       this.logger.debug("audio", `Attempting to play random sound from ${logKey}`);
     }
-
+  
     let soundArray;
     let filesArray;
-
+  
     // Get the appropriate array based on category and country
     if (country && subcategory === "protest") {
       if (!this.sounds.defense.protest[country]) {
@@ -785,7 +808,7 @@ playSound(sound) {
       soundArray = this.sounds[category][subcategory];
       filesArray = this.soundFiles[category][subcategory];
     }
-
+  
     // If no sounds loaded yet, load the first one
     if (!soundArray || soundArray.length === 0) {
       if (this.logger) {
@@ -793,117 +816,96 @@ playSound(sound) {
       }
       if (country && subcategory === "protest") {
         this.loadProtestSound(country, 0);
+        // Also try to load additional sounds for this category immediately
+        if (filesArray && filesArray.length > 1) {
+          for (let i = 1; i < filesArray.length; i++) {
+            this.loadProtestSound(country, i);
+          }
+        }
       } else {
         this.loadSound(category, subcategory, 0);
+        // Also try to load additional sounds for this category immediately
+        if (filesArray && filesArray.length > 1) {
+          for (let i = 1; i < filesArray.length; i++) {
+            this.loadSound(category, subcategory, i);
+          }
+        }
       }
       return null;
     }
-
-    // Initialize the playback queue if it doesn't exist
-    this.initPlaybackQueue(logKey, soundArray);
-
+  
+    // Force refresh the queue if it's been a while since we created it
+    // This ensures newly loaded sounds get added to the queue
+    const queueKey = logKey;
+    if (!this.playbackQueues || !this.playbackQueues[queueKey] || 
+        (this.playbackQueues[queueKey].originalArray.length !== soundArray.length)) {
+      if (this.logger) {
+        this.logger.debug("audio", `Creating/refreshing queue for ${queueKey} with ${soundArray.length} sounds`);
+      }
+      this.initPlaybackQueue(queueKey, soundArray);
+    }
+  
     // Get the next sound from the queue
-    const sound = this.getNextSoundFromQueue(logKey);
-
+    const sound = this.getNextSoundFromQueue(queueKey);
+  
     // Ensure we have a valid audio element
     if (!sound || typeof sound.play !== "function") {
       if (this.logger) {
-        this.logger.warn("audio", `Invalid sound object from queue ${logKey}`);
+        this.logger.warn("audio", `Invalid sound object from queue ${queueKey}`);
       }
       return null;
     }
-
+  
     if (this.logger) {
-      const queuePosition = this.playbackQueues[logKey].position - 1;
-      const queueLength = this.playbackQueues[logKey].currentQueue.length;
+      const queuePosition = this.playbackQueues[queueKey].position - 1;
+      const queueLength = this.playbackQueues[queueKey].currentQueue.length;
       this.logger.debug("audio", `Playing queued sound from ${logKey} (position: ${queuePosition}/${queueLength})`);
     }
-
+  
     // If not all sounds in this category are loaded, load the next one
-    if (soundArray.length < filesArray.length) {
+    if (filesArray && soundArray.length < filesArray.length) {
       if (country && subcategory === "protest") {
         this.loadProtestSound(country, soundArray.length);
       } else {
         this.loadSound(category, subcategory, soundArray.length);
       }
     }
-
-    // Ensure we don't play the sound if it's already playing
-    if (sound.currentTime > 0 && !sound.paused) {
-      // Clone the sound for simultaneous playback
-      const clonedSound = sound.cloneNode();
-      clonedSound.volume = this.volume;
-
-      try {
-        // Play and track the sound
-        const playPromise = clonedSound.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            if (this.logger) {
-              this.logger.warn("audio", `Audio playback prevented: ${error}`);
-            }
-          });
-        }
-
-        this.currentlyPlaying.push(clonedSound);
-
-        // Remove from tracking once played
-        clonedSound.onended = () => {
-          const index = this.currentlyPlaying.indexOf(clonedSound);
-          if (index !== -1) {
-            this.currentlyPlaying.splice(index, 1);
-          }
+  
+    // Play the original sound
+    sound.currentTime = 0;
+    sound.volume = this.volume;
+  
+    try {
+      const playPromise = sound.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
           if (this.logger) {
-            this.logger.trace("audio", `Sound from ${logKey} finished playing (cloned)`);
+            this.logger.warn("audio", `Audio playback prevented: ${error}`);
           }
-        };
-
-        return clonedSound;
-      } catch (e) {
-        if (this.logger) {
-          this.logger.error("audio", `Error playing cloned sound:`, e);
-        }
-        return null;
+        });
       }
-    } else {
-      // Play the original sound
-      sound.currentTime = 0;
-      sound.volume = this.volume;
-
-      try {
-        const playPromise = sound.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            if (this.logger) {
-              this.logger.warn("audio", `Audio playback prevented: ${error}`);
-            }
-          });
-        }
-
-        // Add end event listener for better tracking
-        const originalOnEnded = sound.onended;
-        sound.onended = (e) => {
-          if (this.logger) {
-            this.logger.trace("audio", `Sound from ${logKey} finished playing`);
-          }
-          if (originalOnEnded) originalOnEnded(e);
-        };
-
-        return sound;
-      } catch (e) {
+  
+      // Add end event listener for better tracking
+      const originalOnEnded = sound.onended;
+      sound.onended = (e) => {
         if (this.logger) {
-          this.logger.error("audio", `Error playing sound:`, e);
+          this.logger.trace("audio", `Sound from ${logKey} finished playing`);
         }
-        return null;
+        if (originalOnEnded) originalOnEnded(e);
+      };
+  
+      return sound;
+    } catch (e) {
+      if (this.logger) {
+        this.logger.error("audio", `Error playing sound:`, e);
       }
+      return null;
     }
   }
-
 
   
 
 
-  // Simplified loadCatchphrase function that doesn't use dataset
 loadCatchphrase(country, index) {
   const soundKey = `catchphrase.${country}.${index}`;
 
@@ -1026,6 +1028,30 @@ preloadAllCatchphrases() {
       generic: this.catchphrases.generic.length
     });
   }, 2000); // Check after 2 seconds
+}
+
+preloadAllProtestSounds() {
+  console.log("Starting protest sounds preloading");
+  
+  ["eastCanada", "westCanada", "mexico", "greenland"].forEach(country => {
+    if (this.soundFiles.defense.protest[country]) {
+      console.log(`Preloading protest sounds for ${country}`);
+      for (let i = 0; i < this.soundFiles.defense.protest[country].length; i++) {
+        this.loadProtestSound(country, i);
+      }
+    }
+  });
+  
+  // Check loading status after a delay
+  setTimeout(() => {
+    const protestStatus = {};
+    ["eastCanada", "westCanada", "mexico", "greenland"].forEach(country => {
+      protestStatus[country] = this.sounds.defense.protest[country] ? 
+                              this.sounds.defense.protest[country].length : 0;
+    });
+    
+    console.log("Protest sounds loaded status:", protestStatus);
+  }, 2000);
 }
   
   // Helper function to play catchphrase with better queue management
@@ -1199,72 +1225,104 @@ preloadAllCatchphrases() {
       }
     }
   }
-
   playSuccessfulBlock(country) {
     if (this.logger) {
       this.logger.info("audio", `Playing successful block sound sequence for ${country}`);
     }
-
+  
     // Stop the grab sound first
     this.stopGrabSound();
-
-    // Play slap sound first
-    const slapSound = this.playRandom("defense", "slap");
-
-    if (!slapSound) {
-      if (this.logger) {
-        this.logger.warn("audio", "Failed to play slap sound - not loaded yet?");
-      }
-
-      // If slap failed, try to play the sequence anyway after a delay
-      setTimeout(() => {
-        this.playFullSequence(country);
-      }, 300);
-      return;
-    }
-
-    // Start sob sound slightly before slap finishes (about 80% into the slap sound)
-    // Most slap sounds are around 300-500ms, so we'll use a 200ms delay
+  
+    // Play slap sound first using a simple approach
+    const slapSound = this.playSimpleRandom("defense", "slap");
+  
+    // After a delay, play the sob sound
     setTimeout(() => {
-      if (this.logger) {
-        this.logger.debug("audio", "Playing sob sound during end of slap");
-      }
-
-      // Play sob sound (Trump's reaction)
-      const sobSound = this.playRandom("trump", "sob");
-      if (sobSound) {
-        // Set the volume to be appropriate
-        sobSound.volume = this.volume * 0.4;
-
-        // Wait for sob to start before playing protest
-        setTimeout(() => {
-          // Play country-specific protest sound
-          if (this.logger) {
-            this.logger.debug("audio", `Playing protest sound for ${country} after sob`);
-          }
-
-          if (country === "eastCanada" || country === "westCanada") {
-            this.playRandom("defense", "protest", country);
-          } else {
-            this.playRandom("defense", "protest", country);
-          }
-        }, 150); // 150ms after sob starts
-      } else {
-        // If sob sound failed, still play protest
-        if (this.logger) {
-          this.logger.warn("audio", "Failed to play sob sound - playing protest anyway");
-        }
-
-        // Play country-specific protest sound
-        if (country === "eastCanada" || country === "westCanada") {
-          this.playRandom("defense", "protest", country);
-        } else {
-          this.playRandom("defense", "protest", country);
-        }
-      }
-    }, 200); // 200ms after slap starts - the sob will overlap with end of slap
+      // Play sob sound
+      this.playSimpleRandom("trump", "sob");
+      
+      // After another delay, play the country-specific protest sound
+      setTimeout(() => {
+        // Play the protest sound for this specific country
+        this.playSimpleRandomProtest(country);
+      }, 200);
+    }, 200);
   }
-
+  
+  // Add new method for simple random sound selection
+  playSimpleRandom(category, subcategory) {
+    if (!this.initialized || this.muted) return null;
+    
+    const sounds = this.sounds[category][subcategory];
+    if (!sounds || sounds.length === 0) {
+      // Try to load the sound if not loaded
+      if (this.soundFiles[category][subcategory]) {
+        this.loadSound(category, subcategory, 0);
+      }
+      return null;
+    }
+    
+    // Create index tracker for this sound category if it doesn't exist
+    if (!this.soundIndex) this.soundIndex = {};
+    const indexKey = `${category}.${subcategory}`;
+    if (!this.soundIndex[indexKey]) this.soundIndex[indexKey] = 0;
+    
+    // Get current index and increment for next time
+    const index = this.soundIndex[indexKey];
+    this.soundIndex[indexKey] = (index + 1) % sounds.length;
+    
+    const sound = sounds[index];
+    if (!sound) return null;
+    
+    // Play the sound
+    sound.currentTime = 0;
+    sound.volume = this.volume;
+    sound.play().catch(e => console.error(`Error playing ${category}.${subcategory} sound:`, e));
+    
+    return sound;
+  }
+  
+  // Add specialized method for protest sounds
+  playSimpleRandomProtest(country) {
+    if (!this.initialized || this.muted) return null;
+    
+    // Make sure we have a valid country name
+    const protestCountry = country;
+    
+    // Get the sounds array for this country
+    const sounds = this.sounds.defense.protest[protestCountry];
+    if (!sounds || sounds.length === 0) {
+      console.log(`No protest sounds loaded for ${protestCountry}, loading now`);
+      
+      // Try to load all protest sounds for this country
+      if (this.soundFiles.defense.protest[protestCountry]) {
+        for (let i = 0; i < this.soundFiles.defense.protest[protestCountry].length; i++) {
+          this.loadProtestSound(protestCountry, i);
+        }
+      }
+      return null;
+    }
+    
+    // Create index tracker for protest sounds if it doesn't exist
+    if (!this.protestIndex) this.protestIndex = {};
+    if (!this.protestIndex[protestCountry]) this.protestIndex[protestCountry] = 0;
+    
+    // Get current index and increment for next time
+    const index = this.protestIndex[protestCountry];
+    this.protestIndex[protestCountry] = (index + 1) % sounds.length;
+    
+    console.log(`Playing ${protestCountry} protest sound #${index}`);
+    
+    const sound = sounds[index];
+    if (!sound) return null;
+    
+    // Play the sound
+    sound.currentTime = 0;
+    sound.volume = this.volume;
+    sound.play().catch(e => console.error(`Error playing protest sound:`, e));
+    
+    return sound;
+  }
   // Helper method to play protest and sob together
   playProtestAndSob(country) {
     // For East/West Canada, use the specific protest sound
