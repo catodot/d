@@ -1,0 +1,1149 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Oswald", sans-serif;
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  background-color: black;
+  overflow: hidden;
+}
+
+.screen {
+  position: absolute;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(to bottom, #0c0e24, #0a0a1a);
+
+  z-index: 10;
+}
+
+.star {
+  position: absolute;
+  background-color: white;
+  border-radius: 50%;
+  opacity: 0;
+  z-index: -2;
+  animation: twinkle var(--duration) ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+
+@keyframes twinkle {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: var(--brightness);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.content {
+  color: white;
+  font-family: Arial, sans-serif;
+  font-size: 2em;
+  text-align: center;
+  z-index: 20;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.hidden {
+  display: none;
+}
+
+/* intro and endgame  */
+.intro-content h1,
+.game-over-content h1 {
+  font-family: "Alfa Slab One", cursive;
+  /* letter-spacing: 3px; */
+  color: #3c3b6e;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+
+}
+
+.intro-content > p {
+  font-family: "Alfa Slab One", cursive;
+  text-transform: capitalize;
+}
+
+.intro-content h2,
+.game-over-content h2 {
+  font-family: "Bebas Neue", sans-serif;
+  color: #b22234;
+  margin-bottom: 20px;
+}
+.intro-content {
+  /* background-color: rgba(255, 255, 255, 0.9); */
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 80%;
+}
+
+.intro-content h1,
+.game-over-content h1 {
+  color: #3c3b6e;
+  margin-bottom: 10px;
+}
+
+.intro-content h2,
+.game-over-content h2 {
+  color: #b22234;
+  margin-bottom: 20px;
+}
+
+.intro-content p,
+.game-over-content p {
+  /* margin-bottom: 15px;
+  line-height: 1.4; */
+}
+
+/* Game Over Screen */
+.game-over-content {
+  /* background-color: rgba(255, 255, 255, 0.9); */
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  color: white;
+
+  max-width: 80%;
+}
+
+/* Stats Display */
+.stats-container {
+  /* margin: 15px 0;
+  text-align: left;
+  background-color: rgba(255, 255, 255, 0.5);
+  padding: 10px;
+  border-radius: 5px; */
+}
+
+.stat-item {
+  /* margin: 5px 0; */
+}
+
+/* buttons  */
+button {
+  /* font-family: "Bebas Neue", sans-serif;
+  background-color: #3c3b6e;
+  color: white;
+  border: none;
+  padding: 2px 4px;
+  margin: 0 5px;
+  text-align: center;
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 5px;
+  transition: background-color 0.3s; */
+}
+
+
+button  {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    padding: 5px 10px;
+    margin: 4px 0 4px 0;
+    transition: background-color 0.3s ease;
+  
+    display: inline-block;
+    font-family: system-ui;
+    text-transform: uppercase;
+  }
+  
+  button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+#start-button {
+  min-height: 3rem;
+  min-width: 3rem;
+  font-size: 1rem;
+  letter-spacing: 3px;
+  margin: 1rem 0 0;
+  padding: 3px 5px;
+  font-family: "Bebas Neue", sans-serif;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  color: #808080;
+}
+
+button:hover {
+  /* background-color: #b22234; */
+}
+
+/* Game Screen and HUD */
+#game-screen {
+  background: linear-gradient(to bottom, #0c0e24, #0a0a1a);
+}
+
+/* hud  */
+#game-hud {
+  font-family: "Bebas Neue", sans-serif;
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 20px;
+  font-size: 3rem;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.676);
+  z-index: 15;
+  pointer-events: none;
+}
+
+/* Game container */
+#game-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  z-index: 5;
+}
+
+/* Map background */
+#map-background {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 100%;
+  max-height: 100vh;
+  z-index: -100;
+}
+
+/* Trump sprite elements */
+#trump-sprite-container {
+  position: absolute;
+  width: 500px; /* Increased from 200px - adjust as needed */
+  height: 1000px; /* Increased from 400px - adjust as needed */
+  overflow: hidden;
+  z-index: 3;
+}
+
+#trump-sprite {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+}
+
+/* debug and hitbox  */
+
+.debug-outline {
+  /* fill: rgba(255, 0, 0, 0.2) !important;
+  stroke: red !important;
+  stroke-width: 2px !important; */
+}
+
+.targeted {
+  /* fill: rgba(160, 160, 160, 0.5) !important; */
+}
+
+#hand-hitbox {
+  position: absolute;
+  /* width: 40px;
+  height: 40px; */
+  background-color: transparent;
+  pointer-events: all;
+  z-index: 2000;
+  cursor: pointer;
+  display: none; /* Default to hidden */
+}
+
+/* Calibration and Debug Modes */
+#hand-hitbox.debug-mode,
+#hand-hitbox.calibration-mode {
+  display: block;
+  background-color: rgba(255, 0, 0, 0.3);
+  border: 2px solid red;
+}
+
+/* Mobile Size */
+.mobile-size {
+  width: 80px;
+  height: 80px;
+}
+
+/* #hand-hitbox {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        background-color: transparent;
+        pointer-events: all;
+        z-index: 2000;
+        cursor: pointer;
+      } */
+
+/* .hand-hitbox {
+        position: absolute;
+        z-index: 2000;
+        cursor: pointer;
+        pointer-events: all;
+      } */
+
+/* .hand-hitbox-debug {
+        background-color: rgba(255, 0, 0, 0.3);
+        border: 2px solid red;
+      } */
+
+/* hud  */
+
+/* Country meters in HUD */
+#country-status {
+  display: none;
+  position: absolute;
+  top: -30rem;
+  left: -30rem;
+  /* top: 50px; */
+  /* left: 0; */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.country-meter {
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 5px;
+  padding: 5px 10px;
+  width: 120px;
+  text-align: center;
+}
+
+.country-label {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.meter-container {
+  height: 8px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 3px 0;
+}
+
+.resistance-meter {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(to right, #00ff00, #ffff00, #00ff00);
+  transition: width 0.3s;
+}
+
+.freedom-meter {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(to right, #ff0000, #ff5e00, #ffcc00);
+  transition: width 0.5s;
+}
+
+/* debug panel  */
+
+#debug-panel {
+  display: none; /* Ensure it's hidden by default */
+  position: fixed;
+  bottom: 50px;
+  left: 10px;
+  max-width: 350px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 5px;
+  margin: 1px;
+  border-radius: 5px;
+  z-index: 1000;
+  /* font-size: 12px; */
+  /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); */
+  /* font-size: 1rem; */
+  font-family: system-ui;
+}
+
+
+#debug-panel h3, h3 {
+  margin: 9px 0 0 0;
+  font-size: 1rem;
+  text-transform: capitalize;
+  font-family: system-ui;
+
+}
+
+/* Debug Toggle Button */
+#debug-toggle {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  /* background-color: rgba(0, 0, 0, 0.01); */
+  color: white;
+  /* text-align: center; */
+  /* line-height: 40px; */
+  /* font-size: 14px; */
+  cursor: pointer;
+  z-index: 9999;
+  /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); */
+  user-select: none;
+}
+
+/* Close Button for Debug Panel */
+#debug-panel button[title="Close Debug Panel"] {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+
+.debug-panel-title {
+  font-weight: bold;
+  font-size: 1rem;
+  border-bottom: 1px solid white;
+  padding-bottom: 5px;
+}
+
+
+.anim-controls-section {
+  margin-bottom: 1rem;
+  background-color: rgb(16, 7, 60);
+}
+
+.dev-controls-section {
+  margin-bottom: 1rem;
+  background-color: rgb(0, 24, 6);
+}
+
+.controls-margin-bottom {
+  margin-bottom: 5px;
+}
+
+.controls-margin-top {
+  margin-top: 5px;
+}
+
+/* Input Width Classes */
+.input-narrow {
+  width: 50px;
+}
+
+.input-medium {
+  width: 60px;
+}
+
+/* Dialog Input Margin */
+.dialog-input-margin {
+  margin: 10px 0;
+}
+
+/* Volume and Intensity Controls */
+.volume-control,
+.intensity-control {
+  margin: 10px 0;
+}
+
+.volume-slider {
+  width: 100%;
+}
+
+/* Calibration Panel Styles */
+#calibration-panel {
+  font-family: system-ui;
+  z-index: 2001;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+}
+
+.hitbox-calibration-overlay {
+  position: fixed;
+  /* top: 0; */
+  /* left: 0; */
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.calibration-modal {
+  background: white;
+  border-radius: 10px;
+  max-width: 500px;
+  width: 90%;
+  margin: 0 auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.calibration-header {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.calibration-body {
+  padding: 15px;
+}
+
+.calibration-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.start-btn {
+  background-color: #d32f2f;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+}
+
+.cancel-btn {
+  background-color: #757575;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+}
+
+/* Animation Test Dialog Styles */
+
+
+@media (max-width: 768px) {
+    #debug-panel {
+      max-height: 20vh;
+    }
+  
+    .animation-test-dialog {
+      top: 20%;
+    }
+  }
+
+.animation-test-dialog input,
+.animation-test-dialog select {
+  margin: 10px 0;
+  width: 100%;
+}
+
+/* Audio Debug Controls Styles */
+#audio-debug-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+#audio-debug-controls > div {
+  margin: 5px 0;
+  font-weight: bold;
+}
+
+#audio-debug-controls button {
+  margin: 3px;
+  padding: 5px 8px;
+}
+
+/* Dev Controls Styles */
+#dev-controls {
+  margin-bottom: 10px;
+}
+
+#dev-controls label {
+  margin-right: 10px;
+}
+
+#dev-controls input {
+  width: 50px;
+}
+
+#anim-controls input[type="number"] {
+  width: 60px;
+  margin-right: 5px;
+}
+
+/* Animation Controls Styles */
+#anim-controls input {
+  width: 60px;
+  margin-right: 5px;
+}
+
+#anim-info {
+  margin-top: 10px;
+  padding: 5px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+/* Developer Controls Input Styles */
+#dev-controls input[type="number"] {
+  width: 50px;
+  margin-right: 5px;
+}
+
+/* Animation Control Input Styles */
+#anim-controls input[type="number"] {
+  width: 60px;
+  margin-right: 5px;
+}
+
+/* Audio Debug Button Styles */
+.audio-debug-button {
+  margin: 3px;
+  padding: 5px 8px;
+}
+
+/* Audio Debug Button Containers */
+.audio-debug-button-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.uiBtn {
+  margin: 5px 0;
+  font-weight: bold;
+}
+
+/* Calibration Dialog Button Styles */
+.calibration-dialog-button {
+  margin: 5px 2px;
+  padding: 5px 10px;
+}
+
+/* Button Effect Styles */
+.button-active {
+  background-color: #ff7700 !important;
+}
+
+/* Status Div Styles */
+.debug-status-div {
+  margin: 10px 0;
+  padding: 5px;
+  background-color: rgba(0, 0, 0, 0.2);
+  font-size: 10px;
+}
+
+/* Calibration Styles */
+.calibration-panel {
+  position: absolute;
+  z-index: 2001;
+  bottom: 50px;
+  right: 10px;
+  margin: 1px;
+  padding: 1px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  max-width: 300px;
+}
+
+.calibration-dialog, .animation-test-dialog {
+  position: absolute;
+  z-index: 2000;
+  top: 10%;
+  left: 1rem;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 15px;
+  border-radius: 5px;
+  color: white;
+  max-width: 300px;
+  border: 1px solid yellow;
+  width: 100%;
+}
+
+  
+
+.debug-section-heading {
+  margin-top: 15px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 5px;
+  font-size: 1.1em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Additional refinements for input and button consistency */
+#debug-panel input[type="number"],
+#debug-panel input[type="text"],
+#debug-panel select {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3px 5px;
+  border-radius: 3px;
+}
+
+/* #debug-panel button, .calibration-dialog-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  padding: 5px 10px;
+  margin: 4px 0 4px 0;
+  transition: background-color 0.3s ease;
+
+  display: inline-block;
+  font-family: system-ui;
+  text-transform: uppercase;
+}
+
+#debug-panel button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+} */
+
+.calibration-dialog-button {
+  margin: 5px 2px;
+  padding: 5px 10px;
+}
+
+/* Calibration Hitbox */
+/* #hand-hitbox.calibration-mode {
+  background-color: rgba(255, 0, 0, 0.3);
+  border: 2px solid red;
+  display: block;
+} */
+
+/* Hitbox Styles during Calibration */
+/* #hand-hitbox.calibration-mode {
+  background-color: rgba(255, 0, 0, 0.3);
+  border: 2px solid red;
+  display: block;
+} */
+
+#calib-output {
+  /* margin-top: 10px;
+  font-size: 10px;
+  max-height: 100px;
+  overflow-y: auto; */
+}
+
+#coordinates-output {
+  /* max-height: 100px;
+  overflow-y: auto;
+  font-size: 10px; */
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  #game-hud {
+    font-size: 2rem;
+  }
+
+  #country-status {
+    display: none;
+
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .country-meter {
+    width: 90px;
+    padding: 3px 5px;
+  }
+
+  .country-label {
+    font-size: 12px;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Increase touch targets for mobile */
+button,
+.control-button {
+  /* min-height: 44px; */
+  /* min-width: 44px; */
+}
+
+/* Prevent unwanted selection */
+#game-container {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+
+
+/* Pause Overlay Styles */
+#pause-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .pause-overlay-message {
+    color: rgba(255, 255, 255, 0.372);
+    text-transform:uppercase;
+    letter-spacing: 3px;
+    font-size: 3rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 10px;
+  }
+  
+  #pause-overlay .pause-message {
+    color: white;
+    font-size: 24px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+  }
+
+/* audio  */
+/* Audio Controls Styling like mute button */
+.game-controls {
+  position: absolute;
+  top: 3rem;
+  right: 2rem;
+  z-index: 100;
+  display: flex;
+  /* gap: 10px; */
+}
+
+.control-button {
+  background-color: rgba(60, 59, 10, 0.1);
+  color: rgba(255, 255, 255, 0.144);
+  margin-top: 2rem;
+  border: none;
+  border-radius: 50%;
+  width: 10px;
+  min-width: 5px;
+  min-height: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  font-size: 18px;
+}
+
+.control-button:hover {
+  background-color: rgba(178, 34, 51, 0.069);
+  transform: scale(1.1);
+}
+
+.control-button:active {
+  transform: scale(0.95);
+}
+
+.control-button .icon {
+  pointer-events: none;
+}
+
+
+/* flag overlay  */
+/* Country Flag Overlay Enhancements */
+.country-flag-overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background-size: 100% 100%;
+  background-position: center;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.5s ease;
+}
+
+#canada-flag-overlay {
+  background-image: url("images/canada-flag.png");
+}
+
+#mexico-flag-overlay {
+  background-image: url("images/mexico-flag.png");
+}
+
+#greenland-flag-overlay {
+  background-image: url("images/greenland-flag.png");
+}
+
+.opacity-33 {
+  opacity: 0.33;
+}
+.opacity-66 {
+  opacity: 0.66;
+}
+.opacity-100 {
+  opacity: 1;
+}
+
+
+.positioned-flag-overlay {
+  position: absolute;
+  width: var(--map-width, 100%);
+  height: var(--map-height, 100%);
+  top: var(--map-top, 0);
+  left: var(--map-left, 0);
+  background-size: 100% 100%;
+  background-position: center;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* flag overlay end  */
+
+
+
+/* freeeodeom 
+ */
+
+ /* Container for freedom particles */
+.freedom-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 30000;
+}
+
+/* Base particle style */
+.resistance-particle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0;
+  animation: particle-rise 2s ease-out forwards;
+  z-index: 3000;
+  pointer-events: none;
+}
+
+/* Larger particle for resistance events */
+.resistance-particle-large {
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.7));
+}
+
+/* Different particle variations */
+.resistance-particle-1 {
+  background-image: url('images/particle1.png'); /* Protest sign */
+}
+
+.resistance-particle-2 {
+  background-image: url('images/particle2.png'); /* Flag */
+  animation-duration: 2.5s; /* Slightly slower */
+}
+
+.resistance-particle-3 {
+  background-image: url('images/particle3.png'); /* Fist */
+  animation-duration: 1.8s; /* Slightly faster */
+}
+
+.resistance-particle-4 {
+  background-image: url('images/particle1.pngg'); /* Freedom symbol */
+  animation-duration: 2.2s;
+}
+
+/* Animation for particles rising up */
+@keyframes particle-rise {
+  0% {
+    transform: translateY(0) scale(0.5) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-65px) scale(1.0) rotate(15deg);
+    opacity: 0;
+  }
+}
+
+/* Special uprising animation element */
+.resistance-uprising {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  background-image: url('assets/ufo.png'); /* Create this image with people raising fists/flags */
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0;
+  z-index: 35;
+  pointer-events: none;
+  animation: uprising 2.5s ease-out forwards;
+}
+
+/* Animation for uprising visual */
+@keyframes uprising {
+  0% {
+    transform: translateY(30px) scale(0.2);
+    opacity: 0;
+  }
+  30% {
+    transform: translateY(0) scale(1.0);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-10px) scale(1.1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-25px) scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* Subtle effect when resistance is possible */
+.resistance-possible {
+  animation: resistance-possible-pulse 2s ease-in-out infinite;
+}
+
+@keyframes resistance-possible-pulse {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+/* Regular resistance effect */
+.resistance-effect {
+  animation: resistance-pulse 1s ease-out;
+}
+
+@keyframes resistance-pulse {
+  0% {
+    filter: brightness(1);
+  }
+  30% {
+    filter: brightness(1.5) hue-rotate(30deg);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+/* Major resistance effect */
+.major-resistance-effect {
+  animation: major-resistance-pulse 2s ease-out;
+}
+
+@keyframes major-resistance-pulse {
+  0% {
+    filter: brightness(1) saturate(1);
+  }
+  10% {
+    filter: brightness(1.8) saturate(1.5);
+  }
+  30% {
+    filter: brightness(1.5) saturate(1.3) hue-rotate(30deg);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+
+/* Flag resistance effect */
+.flag-resistance-effect {
+  animation: flag-resistance 2s ease-out forwards;
+}
+
+@keyframes flag-resistance {
+  0% {
+    filter: brightness(1) blur(0);
+    transform: rotate(0deg) scale(1);
+  }
+  20% {
+    filter: brightness(1.5) blur(2px);
+    transform: rotate(-5deg) scale(1.1);
+  }
+  40% {
+    filter: brightness(2) blur(1px);
+    transform: rotate(3deg) scale(0.95);
+  }
+  60% {
+    filter: brightness(1.2) blur(3px);
+    transform: rotate(-2deg) scale(0.9);
+  }
+  100% {
+    filter: brightness(1) blur(0);
+    transform: rotate(0) scale(1);
+  }
+}
+
+/* Opacity classes for flag overlays */
+.opacity-33 {
+  opacity: 0.33 !important;
+}
+
+.opacity-66 {
+  opacity: 0.66 !important;
+}
+
+.opacity-100 {
+  opacity: 1 !important;
+}
+
+
+
+
