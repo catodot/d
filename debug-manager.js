@@ -45,6 +45,8 @@ class DebugManager {
     this.setupDeveloperControls();
     this.setupAnimationControls();
     this.setupAudioControls();
+    this.setupResistanceControls();
+
 
     // Show the panel by default when in debug mode
     this.panel.style.display = "block";
@@ -84,22 +86,237 @@ class DebugManager {
     this.panel.appendChild(calibrateButton);
   }
 
+  setupResistanceControls() {
+    // Add a heading for resistance controls
+    const resistanceHeading = document.createElement("h3");
+    resistanceHeading.textContent = "Resistance Testing";
+    resistanceHeading.classList.add('debug-section-heading');
+    this.panel.appendChild(resistanceHeading);
+  
+    // Create container for resistance controls
+    const resistanceControls = document.createElement("div");
+    resistanceControls.id = "resistance-debug-controls";
+    resistanceControls.classList.add('dev-controls-section'); // Reuse existing class for consistency
+    resistanceControls.style.marginBottom = "10px";
+    this.panel.appendChild(resistanceControls);
+  
+    // Country selection dropdown with label
+    const countrySelectDiv = document.createElement("div");
+    countrySelectDiv.classList.add('controls-margin-bottom'); // Reuse existing class
+    
+    const countryLabel = document.createElement("label");
+    countryLabel.textContent = "Country: ";
+    countrySelectDiv.appendChild(countryLabel);
+    
+    const countrySelect = document.createElement("select");
+    countrySelect.id = "resistance-country-select";
+    
+    // Add options
+    const countries = ["canada", "mexico", "greenland"];
+    countries.forEach(country => {
+      const option = document.createElement("option");
+      option.value = country;
+      option.textContent = country.charAt(0).toUpperCase() + country.slice(1);
+      countrySelect.appendChild(option);
+    });
+    
+    countrySelectDiv.appendChild(countrySelect);
+    resistanceControls.appendChild(countrySelectDiv);
+    
+    // Claims control
+    const claimsControlDiv = document.createElement("div");
+    claimsControlDiv.classList.add('controls-margin-bottom');
+    
+    const claimsLabel = document.createElement("label");
+    claimsLabel.textContent = "Claims: ";
+    claimsControlDiv.appendChild(claimsLabel);
+    
+    const claimsInput = document.createElement("input");
+    claimsInput.type = "number";
+    claimsInput.id = "resistance-claims";
+    claimsInput.min = "0";
+    claimsInput.max = "3";
+    claimsInput.value = "0";
+    claimsInput.classList.add('input-narrow');
+    claimsControlDiv.appendChild(claimsInput);
+    
+    const setClaimsBtn = document.createElement("button");
+    setClaimsBtn.textContent = "Set Claims";
+    setClaimsBtn.id = "set-claims-btn";
+    claimsControlDiv.appendChild(setClaimsBtn);
+    
+    resistanceControls.appendChild(claimsControlDiv);
+    
+    // Action buttons row 1
+    const buttonRow1 = document.createElement("div");
+    buttonRow1.classList.add('controls-margin-bottom');
+    
+    const annexBtn = document.createElement("button");
+    annexBtn.textContent = "Annex Country";
+    annexBtn.id = "annex-country-btn";
+    buttonRow1.appendChild(annexBtn);
+    
+    const readyBtn = document.createElement("button");
+    readyBtn.textContent = "Make Ready";
+    readyBtn.id = "make-ready-btn";
+    buttonRow1.appendChild(readyBtn);
+    
+    resistanceControls.appendChild(buttonRow1);
+    
+    // Action buttons row 2
+    const buttonRow2 = document.createElement("div");
+    buttonRow2.classList.add('controls-margin-bottom');
+    
+    const triggerBtn = document.createElement("button");
+    triggerBtn.textContent = "Trigger Resistance";
+    triggerBtn.id = "trigger-resistance-btn";
+    buttonRow2.appendChild(triggerBtn);
+    
+    const resetBtn = document.createElement("button");
+    resetBtn.textContent = "Reset All";
+    resetBtn.id = "reset-resistance-btn";
+    buttonRow2.appendChild(resetBtn);
+    
+    resistanceControls.appendChild(buttonRow2);
+    
+    // Status display
+    const statusDisplay = document.createElement("div");
+    statusDisplay.id = "resistance-status";
+    statusDisplay.classList.add('debug-status-div');
+    statusDisplay.style.fontSize = "10px";
+    statusDisplay.style.marginTop = "10px";
+    statusDisplay.textContent = "Select a country and use the controls above";
+    
+    resistanceControls.appendChild(statusDisplay);
+    
+    // Add event listeners
+    this.setupResistanceEventListeners();
+    
+    // Start periodic updates
+    this.startResistanceStatusUpdates();
+  }
+
+  setupResistanceEventListeners() {
+    // Set claims button
+    document.getElementById("set-claims-btn").addEventListener("click", () => {
+      const country = document.getElementById("resistance-country-select").value;
+      const claims = parseInt(document.getElementById("resistance-claims").value);
+      
+      if (window.freedomManager) {
+        window.freedomManager.setCountryClaims(country, claims);
+        this.showButtonEffect(document.getElementById("set-claims-btn"));
+      } else {
+        console.error("FreedomManager not available");
+      }
+    });
+    
+    // Annex Country button
+    document.getElementById("annex-country-btn").addEventListener("click", () => {
+      const country = document.getElementById("resistance-country-select").value;
+      
+      if (window.freedomManager) {
+        window.freedomManager.annexCountry(country);
+        this.showButtonEffect(document.getElementById("annex-country-btn"));
+      } else {
+        console.error("FreedomManager not available");
+      }
+    });
+    
+    // Make Resistance Ready button
+    document.getElementById("make-ready-btn").addEventListener("click", () => {
+      const country = document.getElementById("resistance-country-select").value;
+      
+      if (window.freedomManager) {
+        window.freedomManager.makeResistanceReady(country);
+        this.showButtonEffect(document.getElementById("make-ready-btn"));
+      } else {
+        console.error("FreedomManager not available");
+      }
+    });
+    
+    // Trigger Resistance button
+    document.getElementById("trigger-resistance-btn").addEventListener("click", () => {
+      const country = document.getElementById("resistance-country-select").value;
+      
+      if (window.freedomManager) {
+        window.freedomManager.triggerCountryResistance(country);
+        this.showButtonEffect(document.getElementById("trigger-resistance-btn"));
+      } else {
+        console.error("FreedomManager not available");
+      }
+    });
+    
+    // Reset Resistance button
+    document.getElementById("reset-resistance-btn").addEventListener("click", () => {
+      if (window.freedomManager) {
+        window.freedomManager.reset();
+        this.showButtonEffect(document.getElementById("reset-resistance-btn"));
+      } else {
+        console.error("FreedomManager not available");
+      }
+    });
+  }
+  
+  startResistanceStatusUpdates() {
+    // Set up periodic updates of status
+    this.resistanceStatusInterval = setInterval(() => {
+      this.updateResistanceStatus();
+    }, 500);
+  }
+  
+  updateResistanceStatus() {
+    const statusDisplay = document.getElementById("resistance-status");
+    if (!statusDisplay) return;
+    
+    const country = document.getElementById("resistance-country-select")?.value;
+    if (!country) return;
+    
+    if (!window.freedomManager || !window.freedomManager.gameState) {
+      statusDisplay.textContent = "FreedomManager not available";
+      return;
+    }
+    
+    const gameState = window.freedomManager.gameState;
+    
+    if (!gameState.countries[country]) {
+      statusDisplay.textContent = "Country data not found";
+      return;
+    }
+    
+    const countryData = gameState.countries[country];
+    const claims = countryData.claims || 0;
+    const maxClaims = countryData.maxClaims || 3;
+    
+    // Add null checks to handle cases when these properties don't exist yet
+    const annexTime = (countryData.annexedTime || 0) / 1000; // Convert to seconds
+    const resistReady = countryData.canResist || false;
+    
+    statusDisplay.innerHTML = `
+      <strong>${country.toUpperCase()}</strong>: ${claims}/${maxClaims} claims<br>
+      Annexation Time: ${annexTime.toFixed(1)}s / ${window.freedomManager.fullAnnexationTime/1000 || "?"}s<br>
+      Resistance Ready: ${resistReady ? "YES" : "NO"}
+    `;
+  }
+
+  
+
   // Setup developer controls
   setupDeveloperControls() {
     // Add a heading for dev controls
     const devHeading = document.createElement("h3");
     devHeading.textContent = "Developer Controls";
-    devHeading.style.marginTop = "15px";
+    devHeading.classList.add('debug-section-heading');
     this.panel.appendChild(devHeading);
 
     // Create container for developer controls
     const devControls = document.createElement("div");
     devControls.id = "dev-controls";
-    devControls.style.marginBottom = "10px";
+    devControls.classList.add('dev-controls-section'); 
     this.panel.appendChild(devControls);
 
     // Add time adjustment
     const timeControl = document.createElement("div");
+    timeControl.classList.add('controls-margin-bottom'); // Reusable class
     timeControl.innerHTML = `
       <label>Time: <input type="number" id="dev-time" min="10" max="300" value="60" style="width: 50px;"></label>
       <button id="dev-set-time">Set</button>
@@ -108,6 +325,7 @@ class DebugManager {
 
     // Add animation flow testing
     const animFlowTest = document.createElement("div");
+    animFlowTest.classList.add('controls-margin-bottom');
     animFlowTest.innerHTML = `
       <label>Test Animation Sequence:</label>
       <button id="test-sequence">Run Full Sequence</button>
@@ -154,38 +372,38 @@ class DebugManager {
     // Create animation controls section
     const animHeading = document.createElement("h3");
     animHeading.textContent = "Animation Controls";
-    animHeading.style.marginTop = "15px";
+    animHeading.classList.add('debug-section-heading');
     this.panel.appendChild(animHeading);
 
     // Create container for animation controls
     const animControls = document.createElement("div");
     animControls.id = "anim-controls";
-    animControls.style.marginBottom = "10px";
+    animControls.classList.add('anim-controls-section'); 
     this.panel.appendChild(animControls);
 
-    // Add animation duration controls
     const durationControls = document.createElement("div");
     durationControls.innerHTML = `
-      <div style="margin-bottom: 5px;">
+      <div class="controls-margin-bottom">
         <label>Idle Frame Time (ms): 
-          <input type="number" id="idle-frame-time" min="50" max="1000" value="800" style="width: 60px;">
+          <input type="number" id="idle-frame-time" min="50" max="1000" value="800" class="input-medium">
         </label>
         <button id="set-idle-time">Set</button>
       </div>
-      <div style="margin-bottom: 5px;">
+      <div class="controls-margin-bottom">
         <label>Grab Frame Time (ms): 
-          <input type="number" id="grab-frame-time" min="50" max="1000" value="800" style="width: 60px;">
+          <input type="number" id="grab-frame-time" min="50" max="1000" value="800" class="input-medium">
         </label>
         <button id="set-grab-time">Set</button>
       </div>
-      <div style="margin-bottom: 5px;">
+      <div class="controls-margin-bottom">
         <label>Slap Frame Time (ms): 
-          <input type="number" id="slap-frame-time" min="50" max="1000" value="100" style="width: 60px;">
+          <input type="number" id="slap-frame-time" min="50" max="1000" value="100" class="input-medium">
         </label>
         <button id="set-slap-time">Set</button>
       </div>
     `;
     animControls.appendChild(durationControls);
+  
 
     // Add loop count controls
     const loopControls = document.createElement("div");
@@ -232,10 +450,7 @@ class DebugManager {
     // Add current animation info display
     const animInfo = document.createElement("div");
     animInfo.id = "anim-info";
-    animInfo.style.marginTop = "10px";
-    animInfo.style.padding = "5px";
-    animInfo.style.backgroundColor = "rgba(0,0,0,0.3)";
-    animInfo.style.borderRadius = "3px";
+    animInfo.classList.add('controls-margin-bottom'); // Reuse for margin
     animInfo.innerHTML = `
       <div><strong>Current Animation:</strong> <span id="current-anim-name">idle</span></div>
       <div><strong>Current Frame:</strong> <span id="current-anim-frame">0</span></div>
@@ -246,7 +461,7 @@ class DebugManager {
     // Add refresh button to update animation info
     const refreshBtn = document.createElement("button");
     refreshBtn.textContent = "Refresh Info";
-    refreshBtn.style.marginTop = "5px";
+    refreshBtn.classList.add('controls-margin-top'); // New class for top margin
     refreshBtn.addEventListener("click", () => this.updateAnimationInfo());
     animControls.appendChild(refreshBtn);
 
@@ -437,17 +652,8 @@ class DebugManager {
 
     // Create a dialog for animation testing
     const dialog = document.createElement("div");
-    dialog.style.position = "absolute";
-    dialog.style.zIndex = "2000";
-    dialog.style.top = "50%";
-    dialog.style.left = "50%";
-    dialog.style.transform = "translate(-50%, -50%)";
-    dialog.style.backgroundColor = "rgba(0,0,0,0.8)";
-    dialog.style.padding = "15px";
-    dialog.style.borderRadius = "5px";
-    dialog.style.color = "white";
-
-    dialog.appendChild(animSelect);
+    dialog.classList.add('animation-test-dialog');
+ dialog.appendChild(animSelect);
 
     const testBtn = document.createElement("button");
     testBtn.textContent = "Test";
@@ -470,14 +676,13 @@ class DebugManager {
     });
 
     const loopCountInput = document.createElement("div");
-    loopCountInput.style.margin = "10px 0";
+    loopCountInput.classList.add('dialog-input-margin');
     loopCountInput.innerHTML = `
       <label>Loop Count: <input type="number" id="test-loops" min="1" max="10" value="2" style="width: 40px;"></label>
     `;
     dialog.appendChild(loopCountInput);
 
     const frameTimeInput = document.createElement("div");
-    frameTimeInput.style.margin = "10px 0";
     frameTimeInput.innerHTML = `
       <label>Frame Time (ms): <input type="number" id="test-frame-time" min="100" max="1000" value="800" style="width: 40px;"></label>
     `;
@@ -513,252 +718,321 @@ class DebugManager {
     document.body.appendChild(dialog);
   }
 
-  // Replace the setupAudioControls method in your DebugManager class with this improved version
+ 
+  
+  // Add a helper method for button effect
+  showButtonEffect(button) {
+    const originalBg = button.style.backgroundColor;
+    button.classList.add('button-active');
+    setTimeout(() => {
+      button.style.backgroundColor = originalBg;
+    }, 300);
+  }
+
   setupAudioControls() {
     // Add a heading for audio controls
     const audioHeading = document.createElement("h3");
     audioHeading.textContent = "Audio Debug";
-    audioHeading.style.marginTop = "15px";
+  audioHeading.classList.add('debug-section-heading');
     this.panel.appendChild(audioHeading);
-
+  
     // Create container for audio controls
     const audioControls = document.createElement("div");
     audioControls.id = "audio-debug-controls";
     audioControls.style.marginBottom = "10px";
     this.panel.appendChild(audioControls);
+  
+    // Simple button creation helper function that includes audio manager access
+    const createAudioButton = (text, callback) => {
+      const button = document.createElement("button");
+      button.textContent = text;
+      button.classList.add('audio-debug-button');
 
-    // Add audio test buttons
-    audioControls.innerHTML = `
-    <div style="margin-bottom: 5px;">Test Sounds:</div>
-    <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;">
-      <button class="audio-test-btn" data-category="ui" data-name="click">UI Click</button>
-      <button class="audio-test-btn" data-category="ui" data-name="start">Game Start</button>
-      <button class="audio-test-btn" data-category="ui" data-name="win">Win</button>
-      <button class="audio-test-btn" data-category="ui" data-name="lose">Lose</button>
-    </div>
-    <div style="margin-bottom: 5px;">Test Effects:</div>
-    <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;">
-      <button class="audio-test-btn" data-category="trump" data-name="grab">Trump Grab</button>
-      <button class="audio-test-btn" data-category="trump" data-name="success">Trump Success</button>
-      <button class="audio-test-btn" data-category="trump" data-name="annex">Trump Annex</button>
-      <button class="audio-test-btn" data-category="defense" data-name="slap">Defense Slap</button>
-    </div>
-    <div style="margin-bottom: 5px;">Music Control:</div>
-    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
-      <button id="start-music-btn">Start Music</button>
-      <button id="stop-music-btn">Stop Music</button>
-      <button id="toggle-mute-btn">Toggle Mute</button>
-      <select id="music-intensity">
-        <option value="0">Normal</option>
-        <option value="1">Intensity 1</option>
-        <option value="2">Intensity 2</option>
-        <option value="3">Max Intensity</option>
-      </select>
-    </div>
-    <div style="margin: 10px 0;">
-      <label>Volume: <input type="range" id="volume-control" min="0" max="100" value="100" style="width: 100%;"></label>
-      <button id="unlock-audio-btn">🔓 Unlock Audio</button>
-    </div>
-    <div style="margin: 10px 0;">
-      <div>Audio Status:</div>
-      <div id="audio-status" style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 5px; margin-top: 5px;">
-        Not initialized
-      </div>
-    </div>
-  `;
-
-    // Get audio manager reference - first try this instance, then fallback to window
-    const audioManager = this.audioManager || window.audioManager;
-    if (!audioManager) {
-      console.error("AudioManager not found for debug controls");
-
-      // Add error message to the panel
-      const errorMsg = document.createElement("div");
-      errorMsg.textContent = "Error: AudioManager not found";
-      errorMsg.style.color = "red";
-      audioControls.appendChild(errorMsg);
-      return;
-    }
-
-    console.log("Setting up audio debug controls with AudioManager:", audioManager);
-
-    // Add event listeners for all audio test buttons with explicit error handling
-    const audioTestButtons = this.panel.querySelectorAll(".audio-test-btn");
-    audioTestButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        try {
-          const category = btn.getAttribute("data-category");
-          const name = btn.getAttribute("data-name");
-
-          console.log(`Audio test button clicked: ${category}.${name}`);
-
-          if (category && name) {
-            if (name === "grab") {
-              // Special case for grab sound
-              audioManager.playGrabAttempt("canada");
-            } else {
-              // Normal sound
-              audioManager.play(category, name);
-            }
-            console.log(`Playing ${category}.${name} sound`);
-
-            // Add visual feedback that the button was clicked
-            btn.style.backgroundColor = "#ff7700";
-            setTimeout(() => {
-              btn.style.backgroundColor = "";
-            }, 300);
-          }
-        } catch (error) {
-          console.error("Error playing test sound:", error);
-          alert("Error playing sound: " + error.message);
+      button.addEventListener("click", () => {
+        // Always get the latest reference when button is clicked
+        const audioManager = this.getAudioManager();
+        if (audioManager) {
+          callback(audioManager);
+        } else {
+          console.error("AudioManager not available");
+          alert("AudioManager not available. Check console for details.");
         }
       });
+      return button;
+    };
+  
+    // Create basic UI sound buttons
+    const uiSoundDiv = document.createElement("div");
+    uiSoundDiv.innerHTML = "<div class='uiBtn'>UI Sounds:</div>";
+    audioControls.appendChild(uiSoundDiv);
+  
+    const uiButtonsDiv = document.createElement("div");
+    uiButtonsDiv.classList.add('audio-debug-button-container');
+
+    
+    // UI sound buttons
+    uiButtonsDiv.appendChild(createAudioButton("Click", (am) => {
+      am.play("ui", "click");
+    }));
+    
+    uiButtonsDiv.appendChild(createAudioButton("Start", (am) => {
+      am.play("ui", "start");
+    }));
+    
+    uiButtonsDiv.appendChild(createAudioButton("Win", (am) => {
+      am.play("ui", "win");
+    }));
+    
+    uiButtonsDiv.appendChild(createAudioButton("Lose", (am) => {
+      am.play("ui", "lose");
+    }));
+    
+    audioControls.appendChild(uiButtonsDiv);
+  
+    // Create game effect sound buttons
+    const effectSoundDiv = document.createElement("div");
+    effectSoundDiv.innerHTML = "<div class='uiBtn'>Game Effects:</div>";
+    audioControls.appendChild(effectSoundDiv);
+  
+    const effectButtonsDiv = document.createElement("div");
+    effectButtonsDiv.classList.add('audio-debug-button-container');
+
+    
+    // Game effect buttons - use playRandom for proper shuffling
+    effectButtonsDiv.appendChild(createAudioButton("Grab", (am) => {
+      am.playGrabAttempt("canada");
+    }));
+    
+    effectButtonsDiv.appendChild(createAudioButton("Success", (am) => {
+      am.playRandom("trump", "success");
+    }));
+    
+    effectButtonsDiv.appendChild(createAudioButton("Annex", (am) => {
+      am.playRandom("trump", "annex");
+    }));
+    
+    effectButtonsDiv.appendChild(createAudioButton("Slap", (am) => {
+      am.playRandom("defense", "slap");
+    }));
+    
+    effectButtonsDiv.appendChild(createAudioButton("Victory", (am) => {
+      am.playRandom("trump", "victory");
+    }));
+    
+    effectButtonsDiv.appendChild(createAudioButton("Sob", (am) => {
+      am.playRandom("trump", "sob");
+    }));
+    
+    audioControls.appendChild(effectButtonsDiv);
+  
+    // Create protest sound buttons
+    const protestDiv = document.createElement("div");
+    protestDiv.innerHTML = "<div class='uiBtn'>Protest Sounds:</div>";
+    audioControls.appendChild(protestDiv);
+  
+    const protestButtonsDiv = document.createElement("div");
+    protestButtonsDiv.classList.add('audio-debug-button-container');
+
+    
+    
+    // Protest sound buttons
+    protestButtonsDiv.appendChild(createAudioButton("Canada East", (am) => {
+      am.playRandom("defense", "protest", "eastCanada");
+    }));
+    
+    protestButtonsDiv.appendChild(createAudioButton("Canada West", (am) => {
+      am.playRandom("defense", "protest", "westCanada");
+    }));
+    
+    protestButtonsDiv.appendChild(createAudioButton("Mexico", (am) => {
+      am.playRandom("defense", "protest", "mexico");
+    }));
+    
+    protestButtonsDiv.appendChild(createAudioButton("Greenland", (am) => {
+      am.playRandom("defense", "protest", "greenland");
+    }));
+    
+    audioControls.appendChild(protestButtonsDiv);
+    
+    // Create catchphrase buttons
+    const catchphraseDiv = document.createElement("div");
+    catchphraseDiv.innerHTML = "<div class='uiBtn'>Catchphrases:</div>";
+    audioControls.appendChild(catchphraseDiv);
+  
+    const catchphraseButtonsDiv = document.createElement("div");
+    catchphraseButtonsDiv.classList.add('audio-debug-button-container');
+
+    
+    
+    // Catchphrase buttons
+    catchphraseButtonsDiv.appendChild(createAudioButton("Canada", (am) => {
+      am.playCatchphrase("canada");
+    }));
+    
+    catchphraseButtonsDiv.appendChild(createAudioButton("Mexico", (am) => {
+      am.playCatchphrase("mexico");
+    }));
+    
+    catchphraseButtonsDiv.appendChild(createAudioButton("Greenland", (am) => {
+      am.playCatchphrase("greenland");
+    }));
+    
+    catchphraseButtonsDiv.appendChild(createAudioButton("Generic", (am) => {
+      am.playCatchphrase("generic");
+    }));
+    
+    audioControls.appendChild(catchphraseButtonsDiv);
+  
+    // Create country-specific action buttons
+    const countryDiv = document.createElement("div");
+    countryDiv.innerHTML = "<div class='uiBtn'>Complete Actions:</div>";
+    audioControls.appendChild(countryDiv);
+  
+    const countryButtonsDiv = document.createElement("div");
+    countryButtonsDiv.classList.add('audio-debug-button-container');
+
+    
+    
+    // Country action buttons
+    countryButtonsDiv.appendChild(createAudioButton("Block Canada", (am) => {
+      am.playSuccessfulBlock("eastCanada");
+    }));
+    
+    countryButtonsDiv.appendChild(createAudioButton("Block Mexico", (am) => {
+      am.playSuccessfulBlock("mexico");
+    }));
+    
+    countryButtonsDiv.appendChild(createAudioButton("Block Greenland", (am) => {
+      am.playSuccessfulBlock("greenland");
+    }));
+    
+    countryButtonsDiv.appendChild(createAudioButton("Successful Canada", (am) => {
+      am.playSuccessfulGrab("canada");
+    }));
+    
+    countryButtonsDiv.appendChild(createAudioButton("Successful Mexico", (am) => {
+      am.playSuccessfulGrab("mexico");
+    }));
+    
+    countryButtonsDiv.appendChild(createAudioButton("Successful Greenland", (am) => {
+      am.playSuccessfulGrab("greenland");
+    }));
+    
+    countryButtonsDiv.appendChild(createAudioButton("Annex Canada", (am) => {
+      am.playCountryAnnexed("canada");
+    }));
+    
+    countryButtonsDiv.appendChild(createAudioButton("Annex Mexico", (am) => {
+      am.playCountryAnnexed("mexico");
+    }));
+    
+    countryButtonsDiv.appendChild(createAudioButton("Annex Greenland", (am) => {
+      am.playCountryAnnexed("greenland");
+    }));
+    
+    audioControls.appendChild(countryButtonsDiv);
+  
+    // Music controls
+    const musicDiv = document.createElement("div");
+    musicDiv.innerHTML = "<div class='uiBtn'>Music Controls:</div>";
+    audioControls.appendChild(musicDiv);
+  
+    const musicButtonsDiv = document.createElement("div");
+    musicButtonsDiv.classList.add('audio-debug-button-container');
+
+    
+    // Music buttons
+    musicButtonsDiv.appendChild(createAudioButton("Start Music", (am) => {
+      am.startBackgroundMusic();
+    }));
+    
+    musicButtonsDiv.appendChild(createAudioButton("Stop Music", (am) => {
+      am.stopBackgroundMusic();
+    }));
+    
+    const muteBtn = createAudioButton("Toggle Mute", (am) => {
+      const muted = am.toggleMute();
+      muteBtn.textContent = muted ? "Unmute" : "Mute";
     });
-
-    // Add listeners for music controls
-    const startMusicBtn = this.panel.querySelector("#start-music-btn");
-    if (startMusicBtn) {
-      startMusicBtn.addEventListener("click", () => {
-        try {
-          audioManager.startBackgroundMusic();
-          console.log("Manually started background music");
-        } catch (error) {
-          console.error("Error starting music:", error);
-        }
-      });
+    musicButtonsDiv.appendChild(muteBtn);
+    
+    audioControls.appendChild(musicButtonsDiv);
+  
+    // Music intensity
+    const intensityDiv = document.createElement("div");
+    intensityDiv.classList.add('intensity-control');
+    
+    const intensityLabel = document.createElement("div");
+    intensityLabel.textContent = "Music Intensity:";
+    intensityDiv.appendChild(intensityLabel);
+    
+    const intensitySelect = document.createElement("select");
+    for (let i = 0; i <= 3; i++) {
+      const option = document.createElement("option");
+      option.value = i;
+      option.textContent = i === 0 ? "Normal" : `Level ${i}`;
+      intensitySelect.appendChild(option);
     }
-
-    const stopMusicBtn = this.panel.querySelector("#stop-music-btn");
-    if (stopMusicBtn) {
-      stopMusicBtn.addEventListener("click", () => {
-        try {
-          audioManager.stopBackgroundMusic();
-          console.log("Manually stopped background music");
-        } catch (error) {
-          console.error("Error stopping music:", error);
-        }
-      });
-    }
-
-    const toggleMuteBtn = this.panel.querySelector("#toggle-mute-btn");
-    if (toggleMuteBtn) {
-      toggleMuteBtn.addEventListener("click", () => {
-        try {
-          const muted = audioManager.toggleMute();
-          toggleMuteBtn.textContent = muted ? "Unmute" : "Mute";
-          console.log(`Audio ${muted ? "muted" : "unmuted"}`);
-        } catch (error) {
-          console.error("Error toggling mute:", error);
-        }
-      });
-    }
-
-    const musicIntensity = this.panel.querySelector("#music-intensity");
-    if (musicIntensity) {
-      musicIntensity.addEventListener("change", (e) => {
-        try {
-          const intensity = parseInt(e.target.value);
-          audioManager.updateMusicIntensity(intensity);
-          console.log(`Set music intensity to ${intensity}`);
-        } catch (error) {
-          console.error("Error setting music intensity:", error);
-        }
-      });
-    }
-
-    const volumeControl = this.panel.querySelector("#volume-control");
-    if (volumeControl) {
-      volumeControl.addEventListener("input", (e) => {
-        try {
-          const volume = parseInt(e.target.value) / 100;
-          audioManager.setVolume(volume);
-          console.log(`Set volume to ${volume.toFixed(2)}`);
-        } catch (error) {
-          console.error("Error setting volume:", error);
-        }
-      });
-    }
-
-    const unlockAudioBtn = this.panel.querySelector("#unlock-audio-btn");
-    if (unlockAudioBtn) {
-      unlockAudioBtn.addEventListener("click", () => {
-        try {
-          // Create and play a silent sound to unlock audio on mobile
-          this.unlockAudio();
-
-          // Also explicitly resume the AudioContext
-          if (audioManager.audioContext && audioManager.audioContext.state === "suspended") {
-            audioManager.audioContext.resume().then(() => {
-              console.log(`AudioContext resumed: ${audioManager.audioContext.state}`);
-              this.updateAudioStatus();
-            });
-          }
-
-          console.log("Manual audio unlock attempted");
-
-          // Visual feedback
-          unlockAudioBtn.textContent = "✅ Unlocked";
-          setTimeout(() => {
-            unlockAudioBtn.textContent = "🔓 Unlock Audio";
-          }, 2000);
-        } catch (error) {
-          console.error("Error unlocking audio:", error);
-        }
-      });
-    }
-
-    // Start periodic audio status updates
-    this.startAudioStatusUpdates();
-  }
-
-  // Add this helper method for audio unlock
-  unlockAudio() {
-    // Create a silent sound
-    const silentSound = new Audio();
-    silentSound.src =
-      "data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
-    silentSound.load();
-    silentSound.play().catch((e) => {
-      logger.debug("audio", "Silent sound playback prevented (expected): " + e);
+    
+    intensitySelect.addEventListener("change", (e) => {
+      const audioManager = this.getAudioManager();
+      if (audioManager) {
+        const intensity = parseInt(e.target.value);
+        audioManager.updateMusicIntensity(intensity);
+      }
     });
+    
+    intensityDiv.appendChild(intensitySelect);
+    audioControls.appendChild(intensityDiv);
+  
+    // Volume control
+    const volumeDiv = document.createElement("div");
+    volumeDiv.classList.add('volume-control');
+    
+    const volumeLabel = document.createElement("div");
+    volumeLabel.textContent = "Volume:";
+    volumeDiv.appendChild(volumeLabel);
+    
+    const volumeSlider = document.createElement("input");
+    volumeSlider.type = "range";
+    volumeSlider.min = "0";
+    volumeSlider.max = "100";
+    volumeSlider.value = "100";
+  volumeSlider.classList.add('volume-slider');
+    
+    volumeSlider.addEventListener("input", (e) => {
+      const audioManager = this.getAudioManager();
+      if (audioManager) {
+        const volume = parseInt(e.target.value) / 100;
+        audioManager.setVolume(volume);
+      }
+    });
+    
+    volumeDiv.appendChild(volumeSlider);
+    audioControls.appendChild(volumeDiv);
+  
+    // Add debug status text
+    const statusDiv = document.createElement("div");
+    statusDiv.classList.add('debug-status-div');
 
-    // Also try to restart AudioContext
-    const audioManager = window.audioManager;
-    if (audioManager && audioManager.audioContext) {
-      audioManager.audioContext.resume();
-    }
+    
+    const audioManager = this.getAudioManager();
+    // statusDiv.textContent = audioManager 
+    //   ? "AudioManager found and connected" 
+    //   : "AudioManager NOT FOUND - buttons may not work";
+    
+    audioControls.appendChild(statusDiv);
+  }
+  
+  // Helper method to safely get the audio manager
+  getAudioManager() {
+    // Try different ways to access the AudioManager
+    return this.audioManager || window.audioManager || (this.debugManager && this.debugManager.audioManager);
   }
 
-  // Add method to update audio status display
-  updateAudioStatus() {
-    const audioManager = window.audioManager;
-    const statusElement = document.getElementById("audio-status");
 
-    if (!audioManager || !statusElement) return;
 
-    let status = "";
 
-    if (!audioManager.initialized) {
-      status = "Not initialized";
-    } else {
-      status = `AudioContext: ${audioManager.audioContext ? audioManager.audioContext.state : "None"}<br>`;
-      status += `Muted: ${audioManager.muted}<br>`;
-      status += `Volume: ${audioManager.volume.toFixed(2)}<br>`;
-      status += `Music Playing: ${audioManager.backgroundMusicPlaying}<br>`;
-      status += `Music Intensity: ${audioManager.musicIntensity}<br>`;
-      status += `Active Sounds: ${audioManager.currentlyPlaying.length}<br>`;
-      status += `Loaded Sounds: ${audioManager.loadedSounds ? audioManager.loadedSounds.size : "Unknown"}`;
-    }
-
-    statusElement.innerHTML = status;
-  }
-
-  // Add method to start periodic audio status updates
-  startAudioStatusUpdates() {
-    this.audioStatusInterval = setInterval(() => {
-      this.updateAudioStatus();
-    }, 1000);
-  }
 
   // Start hitbox calibration process
   startCalibration() {
@@ -772,16 +1046,8 @@ class DebugManager {
 
     // Create calibration UI
     const dialog = document.createElement("div");
-    dialog.style.position = "absolute";
-    dialog.style.zIndex = "2000";
-    dialog.style.top = "20%";
-    dialog.style.left = "20%";
-    // dialog.style.transform = "translate(-50%, -50%)";
-    dialog.style.backgroundColor = "rgba(0,0,0,0.8)";
-    dialog.style.padding = "15px";
-    dialog.style.borderRadius = "5px";
-    dialog.style.color = "white";
-    dialog.style.maxWidth = "300px";
+    dialog.classList.add('calibration-dialog');
+
 
     const title = document.createElement("h3");
     title.textContent = "Hitbox Calibration";
@@ -802,6 +1068,8 @@ class DebugManager {
 
     // Buttons
     const startBtn = document.createElement("button");
+    startBtn.classList.add('calibration-dialog-button');
+
     startBtn.textContent = "Start Calibration";
     startBtn.addEventListener("click", () => {
       this.beginCalibration(animSelect.value, wasPlaying);
@@ -809,6 +1077,8 @@ class DebugManager {
     });
 
     const cancelBtn = document.createElement("button");
+    cancelBtn.classList.add('calibration-dialog-button');
+
     cancelBtn.textContent = "Cancel";
     cancelBtn.addEventListener("click", () => {
       dialog.remove();
@@ -925,15 +1195,8 @@ class DebugManager {
     // Create calibration panel
     const panel = document.createElement("div");
     panel.id = "calibration-panel";
-    panel.style.position = "absolute";
-    panel.style.zIndex = "2001";
-    panel.style.bottom = "50px";
-    panel.style.right = "10px";
-    panel.style.backgroundColor = "rgba(0,0,0,0.8)";
-    panel.style.color = "white";
-    panel.style.padding = "10px";
-    panel.style.borderRadius = "5px";
-    panel.style.maxWidth = "300px";
+    panel.classList.add('calibration-panel');
+
 
     // Get frame count from your animation system
     let frameCount = 5; // Default frame count
@@ -1136,8 +1399,8 @@ class DebugManager {
     handHitbox.style.display = "block";
 
     // Make hitbox visible for calibration
-    handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
-    handHitbox.style.border = "2px solid red";
+    handHitbox.classList.add('calibration-mode');
+
 
     this.updateCoordsDisplay(frameIndex);
   }
@@ -1313,6 +1576,11 @@ class DebugManager {
     if (this.doneEditingBtn) {
       this.doneEditingBtn.remove();
       this.doneEditingBtn = null;
+    }
+
+    if (this.resistanceStatusInterval) {
+      clearInterval(this.resistanceStatusInterval);
+      this.resistanceStatusInterval = null;
     }
 
     // End any calibration
