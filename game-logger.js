@@ -211,133 +211,133 @@ class GameLogger {
   }
   
   // Create UI for controlling logger (useful in development)
-  createDebugUI() {
-    if (typeof document === 'undefined') return;
+  // createDebugUI() {
+  //   if (typeof document === 'undefined') return;
     
-    // Create container
-    const container = document.createElement('div');
-    container.id = 'game-logger-ui';
-    container.style.cssText = `
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
-      background-color: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 10px;
-      border-radius: 5px;
-      font-family: monospace;
-      font-size: 12px;
-      z-index: 10000;
-      max-height: 300px;
-      overflow-y: auto;
-      width: 300px;
-    `;
+  //   // Create container
+  //   const container = document.createElement('div');
+  //   container.id = 'game-logger-ui';
+  //   container.style.cssText = `
+  //     position: fixed;
+  //     bottom: 10px;
+  //     left: 10px;
+  //     background-color: rgba(0, 0, 0, 0.8);
+  //     color: white;
+  //     padding: 10px;
+  //     border-radius: 5px;
+  //     font-family: monospace;
+  //     font-size: 12px;
+  //     z-index: 10000;
+  //     max-height: 300px;
+  //     overflow-y: auto;
+  //     width: 300px;
+  //   `;
     
-    // Create header
-    const header = document.createElement('div');
-    header.textContent = 'Game Logger';
-    header.style.cssText = 'font-weight: bold; margin-bottom: 10px; cursor: pointer;';
+  //   // Create header
+  //   const header = document.createElement('div');
+  //   header.textContent = 'Game Logger';
+  //   header.style.cssText = 'font-weight: bold; margin-bottom: 10px; cursor: pointer;';
     
-    // Create content container (for toggling visibility)
-    const content = document.createElement('div');
+  //   // Create content container (for toggling visibility)
+  //   const content = document.createElement('div');
     
-    // Toggle button for collapsing
-    let isCollapsed = false;
-    header.addEventListener('click', () => {
-      isCollapsed = !isCollapsed;
-      content.style.display = isCollapsed ? 'none' : 'block';
-      header.textContent = isCollapsed ? 'Game Logger [+]' : 'Game Logger';
-    });
+  //   // Toggle button for collapsing
+  //   let isCollapsed = false;
+  //   header.addEventListener('click', () => {
+  //     isCollapsed = !isCollapsed;
+  //     content.style.display = isCollapsed ? 'none' : 'block';
+  //     header.textContent = isCollapsed ? 'Game Logger [+]' : 'Game Logger';
+  //   });
     
-    // Level toggles
-    const levelSection = document.createElement('div');
-    levelSection.innerHTML = '<strong>Log Levels:</strong>';
+  //   // Level toggles
+  //   const levelSection = document.createElement('div');
+  //   levelSection.innerHTML = '<strong>Log Levels:</strong>';
     
-    for (const level in this.config.levels) {
-      const levelToggle = document.createElement('label');
-      levelToggle.style.cssText = 'display: block; margin: 5px 0; cursor: pointer;';
+  //   for (const level in this.config.levels) {
+  //     const levelToggle = document.createElement('label');
+  //     levelToggle.style.cssText = 'display: block; margin: 5px 0; cursor: pointer;';
       
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = this.config.levels[level].enabled;
-      checkbox.addEventListener('change', () => {
-        this.toggleLevel(level, checkbox.checked);
-      });
+  //     const checkbox = document.createElement('input');
+  //     checkbox.type = 'checkbox';
+  //     checkbox.checked = this.config.levels[level].enabled;
+  //     checkbox.addEventListener('change', () => {
+  //       this.toggleLevel(level, checkbox.checked);
+  //     });
       
-      levelToggle.appendChild(checkbox);
-      levelToggle.appendChild(document.createTextNode(` ${level}`));
-      levelToggle.style.color = this.config.levels[level].color;
+  //     levelToggle.appendChild(checkbox);
+  //     levelToggle.appendChild(document.createTextNode(` ${level}`));
+  //     levelToggle.style.color = this.config.levels[level].color;
       
-      levelSection.appendChild(levelToggle);
-    }
+  //     levelSection.appendChild(levelToggle);
+  //   }
     
-    // Category toggles
-    const categorySection = document.createElement('div');
-    categorySection.innerHTML = '<strong>Categories:</strong>';
+  //   // Category toggles
+  //   const categorySection = document.createElement('div');
+  //   categorySection.innerHTML = '<strong>Categories:</strong>';
     
-    for (const category in this.config.categories) {
-      const categoryToggle = document.createElement('label');
-      categoryToggle.style.cssText = 'display: block; margin: 5px 0; cursor: pointer;';
+  //   for (const category in this.config.categories) {
+  //     const categoryToggle = document.createElement('label');
+  //     categoryToggle.style.cssText = 'display: block; margin: 5px 0; cursor: pointer;';
       
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = this.config.categories[category];
-      checkbox.addEventListener('change', () => {
-        this.toggleCategory(category, checkbox.checked);
-      });
+  //     const checkbox = document.createElement('input');
+  //     checkbox.type = 'checkbox';
+  //     checkbox.checked = this.config.categories[category];
+  //     checkbox.addEventListener('change', () => {
+  //       this.toggleCategory(category, checkbox.checked);
+  //     });
       
-      categoryToggle.appendChild(checkbox);
-      categoryToggle.appendChild(document.createTextNode(` ${category}`));
+  //     categoryToggle.appendChild(checkbox);
+  //     categoryToggle.appendChild(document.createTextNode(` ${category}`));
       
-      categorySection.appendChild(categoryToggle);
-    }
+  //     categorySection.appendChild(categoryToggle);
+  //   }
     
-    // Quick toggle buttons
-    const quickToggles = document.createElement('div');
-    quickToggles.style.marginTop = '10px';
+  //   // Quick toggle buttons
+  //   const quickToggles = document.createElement('div');
+  //   quickToggles.style.marginTop = '10px';
     
-    const enableAllBtn = document.createElement('button');
-    enableAllBtn.textContent = 'Enable All';
-    enableAllBtn.addEventListener('click', () => {
-      this.enableAllCategories();
-      // Update UI checkboxes
-      document.querySelectorAll('#game-logger-ui input[type="checkbox"]').forEach(cb => {
-        if (cb.parentElement.parentElement === categorySection) {
-          cb.checked = true;
-        }
-      });
-    });
+  //   const enableAllBtn = document.createElement('button');
+  //   enableAllBtn.textContent = 'Enable All';
+  //   enableAllBtn.addEventListener('click', () => {
+  //     this.enableAllCategories();
+  //     // Update UI checkboxes
+  //     document.querySelectorAll('#game-logger-ui input[type="checkbox"]').forEach(cb => {
+  //       if (cb.parentElement.parentElement === categorySection) {
+  //         cb.checked = true;
+  //       }
+  //     });
+  //   });
     
-    const disableAllBtn = document.createElement('button');
-    disableAllBtn.textContent = 'Disable All';
-    disableAllBtn.addEventListener('click', () => {
-      this.disableAllCategories();
-      // Update UI checkboxes
-      document.querySelectorAll('#game-logger-ui input[type="checkbox"]').forEach(cb => {
-        if (cb.parentElement.parentElement === categorySection) {
-          cb.checked = false;
-        }
-      });
-    });
+  //   const disableAllBtn = document.createElement('button');
+  //   disableAllBtn.textContent = 'Disable All';
+  //   disableAllBtn.addEventListener('click', () => {
+  //     this.disableAllCategories();
+  //     // Update UI checkboxes
+  //     document.querySelectorAll('#game-logger-ui input[type="checkbox"]').forEach(cb => {
+  //       if (cb.parentElement.parentElement === categorySection) {
+  //         cb.checked = false;
+  //       }
+  //     });
+  //   });
     
-    quickToggles.appendChild(enableAllBtn);
-    quickToggles.appendChild(document.createTextNode(' '));
-    quickToggles.appendChild(disableAllBtn);
+  //   quickToggles.appendChild(enableAllBtn);
+  //   quickToggles.appendChild(document.createTextNode(' '));
+  //   quickToggles.appendChild(disableAllBtn);
     
-    // Assemble UI
-    content.appendChild(levelSection);
-    content.appendChild(document.createElement('hr'));
-    content.appendChild(categorySection);
-    content.appendChild(quickToggles);
+  //   // Assemble UI
+  //   content.appendChild(levelSection);
+  //   content.appendChild(document.createElement('hr'));
+  //   content.appendChild(categorySection);
+  //   content.appendChild(quickToggles);
     
-    container.appendChild(header);
-    container.appendChild(content);
+  //   container.appendChild(header);
+  //   container.appendChild(content);
     
-    // Add to document
-    document.body.appendChild(container);
+  //   // Add to document
+  //   document.body.appendChild(container);
     
-    return container;
-  }
+  //   return container;
+  // }
   
   // Create a group in the console
   group(category, label) {
