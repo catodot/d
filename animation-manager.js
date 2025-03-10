@@ -1,22 +1,25 @@
 class AnimationManager {
   constructor() {
-    logger.info('animation', 'Creating Animation Manager');
+    logger.info("animation", "Creating Animation Manager");
 
     // Main DOM elements
     this.trumpSprite = document.getElementById("trump-sprite");
     this.handHitbox = document.getElementById("hand-hitbox");
-    
+
     // Animation state tracking
     this.currentState = "idle";
     this.currentFrame = 0;
     this.animationInterval = null;
     this.onAnimationEnd = null;
-    this.isLooping = true;
+    this.loopCount = 0;
     this.isPaused = false;
     this.debug = false;
-    this.loopCount = 0;
-    this.maxLoops = 1;
-
+    
+    // Speed control
+  this.gameSpeed = 1.0;
+  this.baseFrameDuration = 300; // Base duration for animations in ms
+  
+    
     // Create an overlay element for slap animations
     this.createOverlayElement();
 
@@ -25,160 +28,140 @@ class AnimationManager {
       idle: {
         spriteSheet: "images/trump-idle-sprite.png",
         frameCount: 2,
-        frameDuration: 400, 
-        looping: true,
-        maxLoops: 4, // Loop 4 times then end
+        loopCount: 3,
         handVisible: false,
       },
       grabEastCanada: {
         spriteSheet: "images/trump-grab-east-canada-sprite.png",
         frameCount: 2,
-        frameDuration: 250, // 200ms per frame = 400ms per cycle
-        looping: true,
-        maxLoops: 4, // Loop 4 times then end
+        loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 430, y: 385, width: 90, height: 90 }, // Frame 0
-          { x: 404, y: 383, width: 90, height: 90 }  // Frame 1
+          { x: 514, y: 458, width: 90, height: 90 }, // Frame 0
+          { x: 473, y: 442, width: 90, height: 90 }  // Frame 1
         ],
-        // Mobile coordinates (from your calibration)
         deviceCoordinates: {
           mobile: [
             { x: 232, y: 209, width: 50, height: 50 }, // Frame 0
-            { x: 218, y: 204, width: 50, height: 50 } // Frame 1
-          ]
-        }
+            { x: 218, y: 204, width: 50, height: 50 }, // Frame 1
+          ],
+        },
+        smackAnimation: "smackEastCanada"
       },
       grabWestCanada: {
         spriteSheet: "images/trump-grab-west-canada-sprite.png",
         frameCount: 2,
-        frameDuration: 250, // 200ms per frame = 400ms per cycle
-        looping: true,
-        maxLoops: 4, // Loop 4 times then end
+        loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 122, y: 337, width: 90, height: 90 }, // Frame 0
-          { x: 110, y: 316, width: 90, height: 90 } // Frame 1
+          { x: 139, y: 408, width: 90, height: 90 }, // Frame 0
+          { x: 137, y: 371, width: 90, height: 90 }, // Frame 1
         ],
-        // Mobile coordinates (from your calibration)
         deviceCoordinates: {
           mobile: [
             { x: 60, y: 183, width: 50, height: 50 }, // Frame 0
-            { x: 61, y: 172, width: 50, height: 50 } // Frame 1
-          ]
-        }
+            { x: 61, y: 172, width: 50, height: 50 }, // Frame 1
+          ],
+        },
+        smackAnimation: "smackWestCanada"
       },
       grabGreenland: {
         spriteSheet: "images/trump-grab-greenland-sprite.png",
         frameCount: 2,
-        frameDuration: 250, // 200ms per frame = 400ms per cycle
-        looping: true,
-        maxLoops: 4, // Loop 4 times then end
+        loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 559, y: 222, width: 90, height: 90 }, // Frame 0
-          { x: 540, y: 220, width: 90, height: 90 } // Frame 1
+          { x: 659, y: 269, width: 90, height: 90 }, // Frame 0
+          { x: 627, y: 275, width: 90, height: 90 }, // Frame 1
         ],
-        // Mobile coordinates (from your calibration)
         deviceCoordinates: {
           mobile: [
             { x: 313, y: 131, width: 50, height: 50 }, // Frame 0
-            { x: 292, y: 126, width: 50, height: 50 } // Frame 1
-          ]
-        }
+            { x: 292, y: 126, width: 50, height: 50 }, // Frame 1
+          ],
+        },
+        smackAnimation: "smackGreenland"
       },
-
       grabMexico: {
         spriteSheet: "images/trump-grab-mexico-sprite.png",
         frameCount: 2,
-        frameDuration: 250, // 200ms per frame = 400ms per cycle
-        looping: true,
-        maxLoops: 4, // Loop 4 times then end
+        loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 298, y: 598, width: 90, height: 90 }, // Frame 0
-          { x: 278, y: 605, width: 90, height: 90 } // Frame 1
+          { x: 361, y: 692, width: 90, height: 90 }, // Frame 0
+          { x: 314, y: 713, width: 90, height: 90 }, // Frame 1
         ],
-        // Mobile coordinates (from your calibration)
         deviceCoordinates: {
           mobile: [
             { x: 168, y: 333, width: 50, height: 50 }, // Frame 0
-            { x: 151, y: 337, width: 50, height: 50 } // Frame 1
-          ]
-        }
+            { x: 151, y: 337, width: 50, height: 50 }, // Frame 1
+          ],
+        },
+        smackAnimation: "smackMexico"
       },
       slapped: {
         spriteSheet: "images/trump-slapped-sprite.png",
         frameCount: 2,
-        frameDuration: 250, // 200ms per frame = 400ms per cycle
-        looping: true,
-        maxLoops: 2, // Play twice before ending
+        loopCount: 2,
         handVisible: false,
       },
       victory: {
         spriteSheet: "images/trump-idle-sprite.png",
         frameCount: 2,
-        frameDuration: 250, // 200ms per frame = 400ms per cycle
-        looping: true,
-        maxLoops: 2, // Play twice before ending
+        loopCount: 2,
         handVisible: false,
       },
       // Slap animations defined but played differently via overlay
       smackEastCanada: {
         spriteSheet: "images/smack-east-canada-sprite.png",
         frameCount: 5,
-        frameDuration: 100, // 100ms per frame = slap plays faster than other animations
-        looping: false,
-        handVisible: false
+        frameDuration: 120, // Faster animation (120ms per frame)
+        handVisible: false,
       },
       smackWestCanada: {
         spriteSheet: "images/smack-west-canada-sprite.png",
         frameCount: 5,
-        frameDuration: 100, // 100ms per frame = slap plays faster than other animations
-        looping: false,
-        handVisible: false
+        frameDuration: 120,
+        handVisible: false,
       },
       smackMexico: {
         spriteSheet: "images/smack-mexico-sprite.png",
         frameCount: 5,
-        frameDuration: 100, // 100ms per frame = slap plays faster than other animations
-        looping: false,
-        handVisible: false
+        frameDuration: 120,
+        handVisible: false,
       },
       smackGreenland: {
         spriteSheet: "images/smack-greenland-sprite.png",
         frameCount: 5,
-        frameDuration: 100, // 100ms per frame = slap plays faster than other animations
-        looping: false,
-        handVisible: false
-      }
+        frameDuration: 120,
+        handVisible: false,
+      },
     };
   }
 
   init() {
-    logger.info('animation', 'Initializing Animation Manager');
+    logger.info("animation", "Initializing Animation Manager");
     // Start with idle animation
     this.changeState("idle");
 
-    // Make sure the hand hitbox is properly initialized
     if (this.handHitbox) {
       this.handHitbox.style.pointerEvents = "all";
-      logger.debug('animation', 'Hand hitbox initialized');
+      logger.debug("animation", "Hand hitbox initialized");
     } else {
-      logger.error('animation', 'Hand hitbox element not found');
+      logger.error("animation", "Hand hitbox element not found");
     }
   }
 
   createOverlayElement() {
     // Check if overlay already exists
     if (document.getElementById("smack-overlay")) return;
-    
+
     const trumpContainer = document.getElementById("trump-sprite-container");
     if (!trumpContainer) {
-      logger.error('animation', 'Trump container not found, cannot create smack overlay');
+      logger.error("animation", "Trump container not found, cannot create smack overlay");
       return;
     }
-    
+
     // Create overlay element
     const overlay = document.createElement("div");
     overlay.id = "smack-overlay";
@@ -189,87 +172,94 @@ class AnimationManager {
     overlay.style.backgroundSize = "auto 100%";
     overlay.style.zIndex = "5"; // Above trump but below hand
     overlay.style.display = "none";
-    
+
     trumpContainer.appendChild(overlay);
-    logger.debug('animation', 'Smack overlay element created');
+    logger.debug("animation", "Smack overlay element created");
   }
+
+  // Add this method to the AnimationManager class
+setFrame(frameIndex) {
+  const animation = this.animations[this.currentState];
+  if (!animation) return;
+
+  // Ensure frame is in valid range
+  frameIndex = Math.max(0, Math.min(frameIndex, animation.frameCount - 1));
+  this.currentFrame = frameIndex;
+  this.updateFrame(frameIndex);
+  
+  // Also update hand position if needed
+  if (animation.handVisible && animation.handCoordinates) {
+    this.updateHandPosition(frameIndex);
+  }
+}
+
   setGameSpeed(speedMultiplier) {
-    // We don't adjust animation speeds directly anymore
-    // Animation timings stay fixed for consistent animations
-    logger.debug('animation', `Game speed set to ${speedMultiplier.toFixed(2)}x (animations remain at fixed speed)`);
-    
-    // We could store the value if needed for reference
+    // Update the game speed multiplier
     this.gameSpeed = speedMultiplier;
+    logger.debug("animation", `Game speed set to ${speedMultiplier.toFixed(2)}x`);
   }
 
   changeState(stateName, onEndCallback = null) {
-    const timestamp = new Date().getTime();
-  logger.debug('animation', `changeState to "${stateName}" at ${timestamp}ms`);
-  
+    logger.debug("animation", `changeState to "${stateName}"`);
+
     // Don't change animation if requested state doesn't exist
     if (!this.animations[stateName]) {
-      logger.error('animation', `Animation state '${stateName}' does not exist`);
+      logger.error("animation", `Animation state '${stateName}' does not exist`);
       return;
     }
-    
+
     // Log previous state details before changing
     if (this.currentState) {
-      logger.debug('animation', `Changing from ${this.currentState} (frame ${this.currentFrame}, loop ${this.loopCount}/${this.maxLoops}) to ${stateName}`);
-    } else {
-      logger.debug('animation', `Setting initial animation state to ${stateName}`);
+      logger.debug(
+        "animation",
+        `Changing from ${this.currentState} (frame ${this.currentFrame}, loop ${this.loopCount}) to ${stateName}`
+      );
     }
-    
+
     // Stop current animation
     this.stop();
-    
+
     // Get animation data
     const animation = this.animations[stateName];
     this.currentState = stateName;
     this.currentFrame = 0;
     this.loopCount = 0;
-    this.maxLoops = animation.maxLoops || 1;
-    this.isLooping = animation.looping;
     this.onAnimationEnd = onEndCallback;
-    
+
     // Update sprite image
     if (this.trumpSprite) {
       this.trumpSprite.style.backgroundImage = `url('${animation.spriteSheet}')`;
-      logger.debug('animation', `Set sprite image to ${animation.spriteSheet}`);
+      logger.debug("animation", `Set sprite image to ${animation.spriteSheet}`);
     } else {
-      logger.error('animation', 'Trump sprite element not found');
+      logger.error("animation", "Trump sprite element not found");
     }
-    
-    // Handle hand visibility
-    if (animation.handVisible && animation.handCoordinates && this.handHitbox) {
-      this.handHitbox.style.display = "block";
-      this.updateHandPosition(0);
-      logger.debug('animation', 'Hand hitbox made visible');
-    } else if (this.handHitbox) {
-      this.handHitbox.style.display = "none";
-      logger.debug('animation', 'Hand hitbox hidden');
-    }
-    
+
+ // Handle hand visibility
+ if (animation.handVisible && animation.handCoordinates && this.handHitbox) {
+  this.handHitbox.style.display = "block";
+  this.updateHandPosition(0);
+  logger.debug("animation", "Hand hitbox made visible");
+} else if (this.handHitbox) {
+  this.handHitbox.style.display = "none";
+  logger.debug("animation", "Hand hitbox hidden");
+}
+
+
     // Update initial frame
     this.updateFrame(0);
-    
-    // Ensure the first frame is displayed for the full duration
-    // by adding a short delay before starting the animation interval
+
+    // Small delay to ensure first frame renders properly
     setTimeout(() => {
       // Start animation loop
       this.play();
-    }, 16); // Small delay to ensure frame rendering
+    }, 16);
   }
 
-  
   updateFrame(frameIndex) {
     if (!this.trumpSprite) return;
 
     const animation = this.animations[this.currentState];
-  if (!animation) return;
-
-  // Add timestamp logging
-  const timestamp = new Date().getTime();
-  logger.debug('animation', `Frame update at ${timestamp}ms: ${this.currentState} frame ${frameIndex}, loop ${this.loopCount}`);
+    if (!animation) return;
 
     // Ensure valid frame index
     frameIndex = Math.min(frameIndex, animation.frameCount - 1);
@@ -283,14 +273,92 @@ class AnimationManager {
 
     // Update hand position if needed
     if (animation.handVisible && animation.handCoordinates) {
-      this.updateHandPosition(frameIndex);
+      this.updateHandPosition(this.currentFrame);
     }
+
+    logger.trace(
+      "animation",
+      `${this.currentState}: frame ${frameIndex}/${animation.frameCount - 1}, loop ${this.loopCount}/${animation.loopCount}`
+    );
   }
+
+  // yours not working 
+  // updateHandPosition(frameIndex) {
+  //   const handHitbox = document.getElementById("hand-hitbox");
+  //   if (!handHitbox) {
+  //     logger.error("animation", "Hand hitbox not found in updateHandPosition");
+  //     return;
+  //   }
+
+  //   const animation = this.animations[this.currentState];
+  //   if (!animation || !animation.handCoordinates) {
+  //     logger.error("animation", `No hand coordinates for ${this.currentState}`);
+  //     this.handHitbox.style.display = "none";
+  //     this.handHitbox.style.pointerEvents = "none";
+  //     return;
+  //   }
+
+  //   // Determine if we're on mobile
+  //   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  //   // Choose the right coordinates based on device type
+  //   let coords;
+  //   if (isMobile && animation.deviceCoordinates && animation.deviceCoordinates.mobile && animation.deviceCoordinates.mobile[frameIndex]) {
+  //     // Use mobile-specific coordinates if available
+  //     coords = animation.deviceCoordinates.mobile[frameIndex];
+  //     logger.trace("animation", "Using mobile-specific coordinates");
+  //   } else {
+  //     // Fall back to standard coordinates
+  //     coords = animation.handCoordinates[frameIndex];
+  //     logger.trace("animation", "Using standard coordinates");
+  //   }
+
+  //   if (!coords) {
+  //     logger.error("animation", `No coordinates for frame ${frameIndex} in ${this.currentState}`);
+  //     this.handHitbox.style.display = "none";
+  //     this.handHitbox.style.pointerEvents = "none";
+  //     return;
+  //   }
+
+  //   // Position the hitbox
+  //   this.handHitbox.style.position = "absolute";
+  //   this.handHitbox.style.left = `${coords.x}px`;
+  //   this.handHitbox.style.top = `${coords.y}px`;
+  //   this.handHitbox.style.width = `${coords.width}px`;
+  //   this.handHitbox.style.height = `${coords.height}px`;
+
+  //   // Debug visualization
+  //   if (this.debug) {
+  //     this.handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
+  //     this.handHitbox.style.border = "2px solid red";
+
+  //     // Make debug hitbox more visible on mobile
+  //     if (isMobile) {
+  //       this.handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.5)";
+  //       this.handHitbox.style.border = "3px solid red";
+  //     }
+  //   } else {
+  //     this.handHitbox.style.backgroundColor = "transparent";
+  //     this.handHitbox.style.border = "none";
+  //   }
+
+  //   this.handHitbox.style.display = "block";
+
+  //   // Enable interaction
+  //   this.handHitbox.style.zIndex = "2000";
+  //   this.handHitbox.style.pointerEvents = "all";
+
+  //   logger.trace("animation", `Positioned hand hitbox at (${coords.x}, ${coords.y}) with dimensions ${coords.width}x${coords.height}`);
+  // }
+
+
+
+
 
   updateHandPosition(frameIndex) {
     const handHitbox = document.getElementById("hand-hitbox");
     if (!handHitbox) {
-      logger.error('animation', 'Hand hitbox not found in updateHandPosition');
+      logger.error("animation", "Hand hitbox not found in updateHandPosition");
       return;
     }
   
@@ -302,7 +370,7 @@ class AnimationManager {
     if (this.currentState === "idle" || smackedAnimations.includes(this.currentState)) {
       handHitbox.style.display = "none";
       handHitbox.style.pointerEvents = "none";
-      logger.trace('animation', `Hiding hand hitbox for ${this.currentState} state`);
+      logger.trace("animation", `Hiding hand hitbox for ${this.currentState} state`);
       return;
     }
   
@@ -315,7 +383,7 @@ class AnimationManager {
   
     const animation = this.animations[this.currentState];
     if (!animation || !animation.handCoordinates) {
-      logger.error('animation', `No hand coordinates for ${this.currentState}`);
+      logger.error("animation", `No hand coordinates for ${this.currentState}`);
       handHitbox.style.display = "none";
       handHitbox.style.pointerEvents = "none";
       return;
@@ -323,22 +391,21 @@ class AnimationManager {
   
     // Determine if we're on mobile
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
+  
     // Choose the right coordinates based on device type
     let coords;
-    if (isMobile && animation.deviceCoordinates && animation.deviceCoordinates.mobile && 
-        animation.deviceCoordinates.mobile[frameIndex]) {
+    if (isMobile && animation.deviceCoordinates && animation.deviceCoordinates.mobile && animation.deviceCoordinates.mobile[frameIndex]) {
       // Use mobile-specific coordinates if available
       coords = animation.deviceCoordinates.mobile[frameIndex];
-      logger.trace('animation', 'Using mobile-specific coordinates');
+      logger.trace("animation", "Using mobile-specific coordinates");
     } else {
       // Fall back to standard coordinates
       coords = animation.handCoordinates[frameIndex];
-      logger.trace('animation', 'Using standard coordinates');
+      logger.trace("animation", "Using standard coordinates");
     }
   
     if (!coords) {
-      logger.error('animation', `No coordinates for frame ${frameIndex} in ${this.currentState}`);
+      logger.error("animation", `No coordinates for frame ${frameIndex} in ${this.currentState}`);
       handHitbox.style.display = "none";
       handHitbox.style.pointerEvents = "none";
       return;
@@ -355,7 +422,7 @@ class AnimationManager {
     if (isDebugMode) {
       handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
       handHitbox.style.border = "2px solid red";
-      
+  
       // Make debug hitbox more visible on mobile
       if (isMobile) {
         handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.5)";
@@ -365,91 +432,97 @@ class AnimationManager {
       handHitbox.style.backgroundColor = "transparent";
       handHitbox.style.border = "none";
     }
-    
+  
     handHitbox.style.display = "block";
   
     // Enable interaction
     handHitbox.style.zIndex = "2000";
     handHitbox.style.pointerEvents = "all";
   
-    logger.trace('animation', `Positioned hand hitbox at (${coords.x}, ${coords.y}) with dimensions ${coords.width}x${coords.height}`);
+    logger.trace("animation", `Positioned hand hitbox at (${coords.x}, ${coords.y}) with dimensions ${coords.width}x${coords.height}`);
   }
- 
-  play() {
-    // Clear any existing animation interval
-    if (this.animationInterval) {
-      clearInterval(this.animationInterval);
-      this.animationInterval = null;
-    }
-  
-    const animation = this.animations[this.currentState];
-    if (!animation) {
-      logger.error('animation', `No animation data found for state: ${this.currentState}`);
-      return;
-    }
-  
-    // If we have just one frame, or paused, don't start animation
-    if (animation.frameCount <= 1 || this.isPaused) {
-      if (animation.frameCount <= 1 && typeof this.onAnimationEnd === "function") {
-        setTimeout(this.onAnimationEnd, animation.frameDuration || 300);
-      }
-      return;
-    }
-  
-    logger.debug('animation', `Starting animation loop for ${this.currentState}: ${animation.frameCount} frames, max ${this.maxLoops} loops, ${animation.frameDuration}ms per frame`);
-  
-    // Use fixed interval timing for predictable animation
-    this.animationInterval = setInterval(() => {
-      if (this.isPaused) return;
-  
-      // Advance frame
-      this.currentFrame++;
-  
-      // Check for loop completion
-      if (this.currentFrame >= animation.frameCount) {
-        // Reset frame counter
-        this.currentFrame = 0;
-        
-        // Increase loop counter
-        this.loopCount++;
-  
-        logger.trace('animation', `Completed loop ${this.loopCount}/${this.maxLoops} for ${this.currentState}`);
-  
-        // Check if we've reached max loops for this animation
-        if (!this.isLooping || (this.maxLoops > 0 && this.loopCount >= this.maxLoops)) {
-          // Log completion before stopping
-          logger.debug('animation', `Animation ${this.currentState} completed after ${this.loopCount} loops`);
-          
-          // Stop the animation
-          this.stop();
-          
-          // Call completion callback if provided
-          if (typeof this.onAnimationEnd === "function") {
-            const timestamp = new Date().getTime();
-            logger.debug('animation', `Animation end callback triggered at ${timestamp}ms for ${this.currentState}`);
-            const callback = this.onAnimationEnd;
-            setTimeout(() => callback(), 16);
-          }
-          return;
-        }
-      }
-  
-      // Trace frame changes
-      logger.trace('animation', `${this.currentState}: frame ${this.currentFrame}/${animation.frameCount-1}, loop ${this.loopCount}/${this.maxLoops}`);
-  
-      // Update the displayed frame
-      this.updateFrame(this.currentFrame);
-    }, animation.frameDuration);
-  }
-  
 
+  // This goes inside AnimationManager class
+playAnimationSequence(startState, onComplete = null) {
+  // Play the start animation
+  this.changeState(startState, () => {
+    // When animation completes, call the provided callback
+    if (typeof onComplete === "function") {
+      onComplete();
+    }
+  });
+}
+
+
+play() {
+  // Clear any existing animation interval
+  if (this.animationInterval) {
+    clearInterval(this.animationInterval);
+    this.animationInterval = null;
+  }
+
+  const animation = this.animations[this.currentState];
+  if (!animation) {
+    logger.error("animation", `No animation data found for state: ${this.currentState}`);
+    return;
+  }
+
+  // If paused, don't start animation
+  if (this.isPaused) return;
+
+  // Calculate frame duration based on game speed
+  const frameDuration = animation.frameDuration ? 
+    animation.frameDuration : // Use specific duration if provided
+    Math.max(50, this.baseFrameDuration / this.gameSpeed); // Don't go below 50ms
+
+  logger.debug(
+    "animation",
+    `Starting animation loop for ${this.currentState}: ${animation.frameCount} frames, max ${animation.loopCount} loops at ${frameDuration}ms per frame`
+  );
+
+  // Use interval timing with speed adjustment
+  this.animationInterval = setInterval(() => {
+    if (this.isPaused) return;
+
+    // Advance frame
+    this.currentFrame++;
+
+    // Check for loop completion
+    if (this.currentFrame >= animation.frameCount) {
+      // Reset frame counter
+      this.currentFrame = 0;
+      
+      // Increase loop counter
+      this.loopCount++;
+      
+      // Check if we've reached max loops for this animation
+      if (animation.loopCount && this.loopCount >= animation.loopCount) {
+        // Log completion before stopping
+        logger.debug("animation", `Animation ${this.currentState} completed after ${this.loopCount} loops`);
+
+        // Stop the animation
+        this.stop();
+
+        // Call completion callback if provided
+        if (typeof this.onAnimationEnd === "function") {
+          const callback = this.onAnimationEnd;
+          setTimeout(() => callback(), 16);
+        }
+        return;
+      }
+    }
+
+    // Update the displayed frame
+    this.updateFrame(this.currentFrame);
+  }, frameDuration);
+}
 
   stop() {
-    const stack = new Error().stack;
-    const caller = stack.split('\n')[2];
-    
     if (this.animationInterval) {
-      logger.debug('animation', `Stopping animation interval for ${this.currentState} at frame ${this.currentFrame}, loop ${this.loopCount}/${this.maxLoops} - called from: ${caller}`);
+      logger.debug(
+        "animation",
+        `Stopping animation interval for ${this.currentState} at frame ${this.currentFrame}, loop ${this.loopCount}`
+      );
       clearInterval(this.animationInterval);
       this.animationInterval = null;
     }
@@ -461,127 +534,118 @@ class AnimationManager {
       clearInterval(this.animationInterval);
       this.animationInterval = null;
     }
+    logger.debug("animation", "Animation paused");
   }
 
   resume() {
     if (this.isPaused) {
       this.isPaused = false;
       this.play();
+      logger.debug("animation", "Animation resumed");
     }
   }
 
   playSmackAnimation(animationNameOrCountry, onCompleteCallback) {
-    // Add detailed logging to see input values
-    logger.info('animation', `playSmackAnimation called with: "${animationNameOrCountry}" (${typeof animationNameOrCountry})`);
-    
-    // Make sure we have a string before calling startsWith
-    let smackAnimationName = '';
-    
-    if (typeof animationNameOrCountry === 'string') {
-      // Only add 'smack' prefix if it's a country name without the prefix
-      if (!animationNameOrCountry.startsWith('smack')) {
-        // Get a consistent format by converting to lowercase first
-        const lowerCountry = animationNameOrCountry.toLowerCase();
-        logger.debug('animation', `Converted to lowercase: "${lowerCountry}"`);
-        
-        // Map country names to their correct animation names
-        const countryToAnimation = {
-          'eastcanada': 'smackEastCanada',
-          'westcanada': 'smackWestCanada',
-          'greenland': 'smackGreenland',
-          'mexico': 'smackMexico'
-        };
-        
-        // Log the lookup result
-        logger.debug('animation', `Lookup result for "${lowerCountry}": ${countryToAnimation[lowerCountry] || 'not found'}`);
-        
-        if (countryToAnimation[lowerCountry]) {
-          smackAnimationName = countryToAnimation[lowerCountry];
-        } else {
-          // Default handling for unmapped countries
-          smackAnimationName = `smack${animationNameOrCountry.charAt(0).toUpperCase() + animationNameOrCountry.slice(1)}`;
-          logger.debug('animation', `Using default animation name construction: ${smackAnimationName}`);
-        }
-      } else {
-        smackAnimationName = animationNameOrCountry;
-        logger.debug('animation', `Using provided animation name: ${smackAnimationName}`);
-      }
-    } else {
-      // Not a string - log error and use fallback
-      logger.error('animation', `Invalid animation or country name: ${animationNameOrCountry}`);
-      smackAnimationName = 'smackMexico'; // Fallback to a default animation
-    }
-    
-    logger.info('animation', `Final smack animation name: "${smackAnimationName}"`);
-    
-    // Check if animation exists (important check)
-    if (!this.animations[smackAnimationName]) {
-      logger.error('animation', `Smack animation "${smackAnimationName}" not found in available animations!`);
-      logger.debug('animation', `Available animations: ${Object.keys(this.animations).join(', ')}`);
-      
-      // If animation doesn't exist, skip to the callback
-      if (typeof onCompleteCallback === 'function') {
+    // Get the smack overlay element
+    const overlay = document.getElementById("smack-overlay");
+    if (!overlay) {
+      logger.error("animation", "Smack overlay element not found");
+      if (typeof onCompleteCallback === "function") {
         onCompleteCallback();
       }
       return;
     }
 
+    // Determine the correct smack animation name
+    let smackAnimationName = "";
     
-    // Get animation data
-    const smackAnimation = this.animations[smackAnimationName];
-    
-    // Get overlay element
-    const overlay = document.getElementById("smack-overlay");
-    if (!overlay) {
-      logger.error('animation', 'Smack overlay element not found');
-      if (typeof onCompleteCallback === 'function') {
+    if (typeof animationNameOrCountry === "string") {
+      // If it already starts with "smack", use it directly
+      if (animationNameOrCountry.startsWith("smack")) {
+        smackAnimationName = animationNameOrCountry;
+      } else {
+        // Map country names to their corresponding smack animations
+        const countryToAnimation = {
+          eastcanada: "smackEastCanada",
+          westcanada: "smackWestCanada",
+          greenland: "smackGreenland",
+          mexico: "smackMexico",
+          canada: "smackEastCanada", // Default for generic "canada"
+        };
+        
+        const lowerCountry = animationNameOrCountry.toLowerCase();
+        if (countryToAnimation[lowerCountry]) {
+          smackAnimationName = countryToAnimation[lowerCountry];
+        } else {
+          // Construct a name if not found in the mapping
+          smackAnimationName = `smack${animationNameOrCountry.charAt(0).toUpperCase() + animationNameOrCountry.slice(1)}`;
+        }
+      }
+    } else {
+      logger.error("animation", `Invalid animation or country name: ${animationNameOrCountry}`);
+      smackAnimationName = "smackMexico"; // Fallback to a default animation
+    }
+
+    logger.info("animation", `Playing smack animation: "${smackAnimationName}"`);
+
+    // Check if animation exists
+    if (!this.animations[smackAnimationName]) {
+      logger.error("animation", `Smack animation "${smackAnimationName}" not found in available animations!`);
+      if (typeof onCompleteCallback === "function") {
         onCompleteCallback();
       }
       return;
     }
-    
+
+    // Get animation data
+    const smackAnimation = this.animations[smackAnimationName];
+
     // Set overlay background to smack animation
     overlay.style.backgroundImage = `url('${smackAnimation.spriteSheet}')`;
     overlay.style.display = "block";
     overlay.style.backgroundPosition = "0% 0%";
-    
+
     // Track current frame and set up interval
     let currentFrame = 0;
     let hasTriggeredImpact = false;
     const impactFrame = 3; // Frame at which we'll trigger the callback
-    
+
+    // Use the animation's own frameDuration or default to a fast value for smacks
+    const frameDuration = smackAnimation.frameDuration || 120;
+
     // Create interval for overlay animation
     const overlayInterval = setInterval(() => {
       // Update frame
       currentFrame++;
-      
+
       // Calculate progress through animation
       const percentPosition = (currentFrame / (smackAnimation.frameCount - 1)) * 100;
       overlay.style.backgroundPosition = `${percentPosition}% 0%`;
-      
+
       // Check if we've reached impact frame but haven't triggered the impact yet
       if (!hasTriggeredImpact && currentFrame >= impactFrame) {
         hasTriggeredImpact = true;
-        logger.debug('animation', `Smack impact triggered at frame ${currentFrame}`);
-        
+        logger.debug("animation", `Smack impact triggered at frame ${currentFrame}`);
+
         // Call callback to change Trump's animation to slapped
-        if (typeof onCompleteCallback === 'function') {
+        if (typeof onCompleteCallback === "function") {
           onCompleteCallback();
         }
       }
-      
+
       // Check if animation is complete
       if (currentFrame >= smackAnimation.frameCount - 1) {
         clearInterval(overlayInterval);
         overlay.style.display = "none";
       }
-    }, smackAnimation.frameDuration);
+    }, frameDuration);
   }
 
   // Enable or disable debug mode
   setDebugMode(enabled) {
     this.debug = enabled;
-
+    
+    // Update hand hitbox display if it exists
     if (this.handHitbox) {
       if (enabled) {
         this.handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
@@ -594,18 +658,26 @@ class AnimationManager {
         }
       }
     }
+    
+    logger.info("animation", `Debug mode ${enabled ? 'enabled' : 'disabled'}`);
   }
 
-  // Manually set frame (useful for debugging)
-  setFrame(frameIndex) {
-    const animation = this.animations[this.currentState];
-    if (!animation) return;
+  // setDebugMode(enabled) {
+  //   this.debug = enabled;
 
-    // Ensure frame is in valid range
-    frameIndex = Math.max(0, Math.min(frameIndex, animation.frameCount - 1));
-    this.currentFrame = frameIndex;
-    this.updateFrame(frameIndex);
-  }
+  //   if (this.handHitbox) {
+  //     if (enabled) {
+  //       this.handHitbox.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
+  //       this.handHitbox.style.border = "2px solid red";
+  //     } else {
+  //       const animation = this.animations[this.currentState];
+  //       if (!animation || !animation.handVisible) {
+  //         this.handHitbox.style.backgroundColor = "transparent";
+  //         this.handHitbox.style.border = "none";
+  //       }
+  //     }
+  //   }
+  // }
 
   // Get current animation data
   getCurrentAnimation() {
@@ -614,11 +686,6 @@ class AnimationManager {
       frame: this.currentFrame,
       data: this.animations[this.currentState],
     };
-  }
-
-  // Add or update an animation
-  addAnimation(name, data) {
-    this.animations[name] = data;
   }
 }
 
