@@ -37,8 +37,8 @@ class AnimationManager {
         loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 514, y: 458, width: 90, height: 90 }, // Frame 0
-          { x: 473, y: 442, width: 90, height: 90 }  // Frame 1
+          { x: 439, y: 396, width: 90, height: 90 }, // Frame 0
+          { x: 411, y: 378, width: 90, height: 90 }  // Frame 1
         ],
         deviceCoordinates: {
           mobile: [
@@ -54,8 +54,8 @@ class AnimationManager {
         loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 139, y: 408, width: 90, height: 90 }, // Frame 0
-          { x: 137, y: 371, width: 90, height: 90 }, // Frame 1
+          { x: 112, y: 347, width: 90, height: 90 }, // Frame 0
+          { x: 113, y: 320, width: 90, height: 90 }, // Frame 1
         ],
         deviceCoordinates: {
           mobile: [
@@ -65,14 +65,22 @@ class AnimationManager {
         },
         smackAnimation: "smackWestCanada"
       },
+
+      grabGreenland: {
+        // Desktop coordinates for grabGreenland
+        handCoordinates: [
+          { x: 557, y: 230, width: 50, height: 50 }, // Frame 0
+          { x: 537, y: 230, width: 50, height: 50 } // Frame 1
+        ],
+      },
       grabGreenland: {
         spriteSheet: "images/trump-grab-greenland-sprite.png",
         frameCount: 2,
         loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 659, y: 269, width: 90, height: 90 }, // Frame 0
-          { x: 627, y: 275, width: 90, height: 90 }, // Frame 1
+          { x: 557, y: 230, width: 90, height: 90 }, // Frame 0
+          { x: 537, y: 230, width: 90, height: 90 }, // Frame 1
         ],
         deviceCoordinates: {
           mobile: [
@@ -82,14 +90,17 @@ class AnimationManager {
         },
         smackAnimation: "smackGreenland"
       },
+
+
+
       grabMexico: {
         spriteSheet: "images/trump-grab-mexico-sprite.png",
         frameCount: 2,
         loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 361, y: 692, width: 90, height: 90 }, // Frame 0
-          { x: 314, y: 713, width: 90, height: 90 }, // Frame 1
+          { x: 299, y: 593, width: 90, height: 90 }, // Frame 0
+          { x: 270, y: 605, width: 90, height: 90 }, // Frame 1
         ],
         deviceCoordinates: {
           mobile: [
