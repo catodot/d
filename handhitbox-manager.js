@@ -23,10 +23,68 @@ class HandHitboxManager {
       this.trumpHandHitBox.style.display = "none";
       this.trumpHandHitBox.style.pointerEvents = "none";
       logger.debug("hitbox", "Hand hitbox initialized");
+      
+      // Set up hover effects
+      this.setupHoverEffects();
     } else {
       logger.error("hitbox", "Hand hitbox element not found");
     }
+    
+    // Clear any existing tracking interval
+    if (window.handVisualInterval) {
+      clearInterval(window.handVisualInterval);
+      window.handVisualInterval = null;
+    }
   }
+
+  hideHitbox() {
+    if (this.trumpHandHitBox) {
+      this.trumpHandHitBox.style.display = "none";
+      this.trumpHandHitBox.style.pointerEvents = "none";
+      this.isVisible = false;
+      
+      // Also hide the visual element
+      if (this.trumpHandHitBoxVisual) {
+        this.trumpHandHitBoxVisual.style.opacity = "0";
+      }
+    }
+  }
+
+ // Add this method to HandHitboxManager class
+setupHoverEffects() {
+  if (!this.trumpHandHitBox || !this.trumpHandHitBoxVisual) return;
+  
+  const hitbox = this.trumpHandHitBox;
+  const visual = this.trumpHandHitBoxVisual;
+  
+  // Remove existing listeners to prevent duplicates
+  if (this._hoverHandlers) {
+    hitbox.removeEventListener("mouseenter", this._hoverHandlers.enter);
+    hitbox.removeEventListener("mouseleave", this._hoverHandlers.leave);
+  }
+  
+  // Define event handlers
+  const onMouseEnter = () => {
+    if (hitbox.classList.contains("hittable")) {
+      visual.style.transform = "scale(1.2)"; 
+      visual.style.opacity = "0.4";
+    }
+  };
+  
+  const onMouseLeave = () => {
+    if (hitbox.classList.contains("hittable")) {
+      visual.style.transform = "scale(1.0)";
+      visual.style.opacity = "0.1";
+    }
+  };
+  
+  // Add the event listeners
+  hitbox.addEventListener("mouseenter", onMouseEnter);
+  hitbox.addEventListener("mouseleave", onMouseLeave);
+  
+  // Store the handlers for potential later removal
+  this._hoverHandlers = { enter: onMouseEnter, leave: onMouseLeave };
+}
 
   // Method to set reference to animations data
   setAnimationsData(animations) {
@@ -125,7 +183,14 @@ class HandHitboxManager {
 
   // Helper method to determine if on mobile device
   isMobileDevice() {
-    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // Check if it's an actual mobile device by user agent
+    const isMobileUserAgent = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // Also check if the viewport is mobile-sized (e.g., less than 768px width)
+    const isMobileViewport = window.innerWidth < 768;
+    
+    // Consider it mobile if either condition is true
+    return isMobileUserAgent || isMobileViewport;
   }
 
   // Helper method to get coordinates based on device type
@@ -142,35 +207,63 @@ class HandHitboxManager {
 
     return null;
   }
-
+ 
   positionHitbox(coords, isMobile) {
+    // Position the hitbox
     this.trumpHandHitBox.style.position = "absolute";
     this.trumpHandHitBox.style.left = `${coords.x}px`;
     this.trumpHandHitBox.style.top = `${coords.y}px`;
     this.trumpHandHitBox.style.width = `${coords.width}px`;
     this.trumpHandHitBox.style.height = `${coords.height}px`;
-
-    // Debug visualization - ONLY show visual elements in debug mode
-    if (this.isDebugMode) {
-      this.trumpHandHitBox.style.backgroundColor = "rgba(255, 0, 0, 0.4)";
-      this.trumpHandHitBox.style.border = "2px solid red";
-
-      // Make debug hitbox more visible on mobile
-      if (isMobile) {
-        this.trumpHandHitBox.style.backgroundColor = "rgba(255, 0, 0, 0.5)";
-        this.trumpHandHitBox.style.border = "3px solid red";
-      }
-    } else {
-      // When not in debug mode, hitbox should be completely invisible
-      this.trumpHandHitBox.style.backgroundColor = "transparent";
-      this.trumpHandHitBox.style.border = "none";
-    }
-
-    // Always make it clickable, but don't show it visually unless in debug mode
+    
+    // Make it visible and clickable
     this.trumpHandHitBox.style.display = "block";
     this.trumpHandHitBox.style.pointerEvents = "all";
     this.isVisible = true;
-
+    
+    // Position the visual element directly, adjusting for the different coordinate space
+    if (this.trumpHandHitBoxVisual) {
+      // Get the sprite container's position relative to its parent
+      const trumpContainer = document.getElementById("trump-sprite-container");
+      const containerRect = trumpContainer.getBoundingClientRect();
+      const parentRect = trumpContainer.parentElement.getBoundingClientRect();
+      
+      // Calculate the offset from sprite container to its parent
+      const offsetX = containerRect.left - parentRect.left;
+      const offsetY = containerRect.top - parentRect.top;
+      
+      // Apply sizing and account for the coordinate system difference
+      const scaledWidth = coords.width * 0.55;
+      const scaledHeight = coords.height * 0.55;
+      const adjustedX = coords.x + offsetX + (coords.width - scaledWidth) / 2;
+      const adjustedY = coords.y + offsetY + (coords.height - scaledHeight) / 2;
+      
+      this.trumpHandHitBoxVisual.style.position = "absolute";
+      this.trumpHandHitBoxVisual.style.left = `${adjustedX}px`;
+      this.trumpHandHitBoxVisual.style.top = `${adjustedY}px`;
+      this.trumpHandHitBoxVisual.style.width = `${scaledWidth}px`;
+      this.trumpHandHitBoxVisual.style.height = `${scaledHeight}px`;
+      
+      // Update visibility only if not in an animation state
+      if (!this.trumpHandHitBoxVisual.classList.contains("hit") && 
+          !this.trumpHandHitBoxVisual.classList.contains("grab-success")) {
+        // Set appropriate opacity based on hitbox state
+        if (this.trumpHandHitBox.classList.contains("hittable")) {
+          this.trumpHandHitBoxVisual.style.display = "block";
+          if (this.trumpHandHitBoxVisual.style.opacity === "0") {
+            this.trumpHandHitBoxVisual.style.opacity = "0.1"; // Default opacity when hittable
+          }
+        } else {
+          this.trumpHandHitBoxVisual.style.opacity = "0";
+        }
+      }
+      
+      // Ensure hover effects are attached
+      if (!this._hoverHandlers) {
+        this.setupHoverEffects();
+      }
+    }
+    
     logger.trace("hitbox", `Positioned hand hitbox at (${coords.x}, ${coords.y}) with dimensions ${coords.width}x${coords.height}`);
   }
 

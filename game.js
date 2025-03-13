@@ -205,7 +205,7 @@ document.addEventListener("DOMContentLoaded", function () {
         animationManager.setDebugMode(true);
       }
 
-      window.stopHandTracking = setupHandVisualTrackingForHandHitBoxViz(); // To start tracking
+      // window.stopHandTracking = setupHandVisualTrackingForHandHitBoxViz(); // To start tracking
 
       animationManager.init();
 

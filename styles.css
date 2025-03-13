@@ -1368,8 +1368,8 @@ button,
 /* Only show hitbox visual elements in debug mode */
 body.debug-mode #trump-hand-hitbox,
 #trump-hand-hitbox.trump-hand-hitbox-debug {
-  /* background-color: rgba(255, 0, 0, 0.4) !important; */
-  /* border: 2px solid red !important; */
+  /* background-color: rgba(255, 0, 0, 0.1) !important;
+  border: 2px solid red !important; */
 }
 
 
