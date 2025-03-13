@@ -30,6 +30,11 @@ class AudioManager {
       music: {} // Background music
     };
 
+    this.shuffledSoundIndexes = {}; // Tracks the current position in each shuffled array
+    this.shuffledSoundArrays = {}; // Stores the shuffled arrays
+    this.shuffledCatchphraseIndexes = {}; // For catchphrases
+    this.shuffledCatchphraseArrays = {}; // For catchphrases
+
     // Timing parameters for audio sequencing
     this.timingParams = {
       catchphraseDelay: 300, // ms to wait between success/annex and catchphrase
@@ -566,29 +571,164 @@ class AudioManager {
   }
 
   /**
-   * Play a random sound from a category
+   * Get a sound from an array with shuffle-play behavior (no repeats until all are played)
+   * @param {string} category - The sound category
+   * @param {string} subcategory - The sound subcategory
+   * @param {string} country - Optional country for protest sounds
+   * @returns {string} - The path to the sound file
    */
-  playRandom(category, subcategory, country = null) {
-    if (!this.initialized || this.muted) return null;
-  
-    // Determine which file array to use
-    let filesArray;
+  getShuffledSound(category, subcategory, country = null) {
+    // Determine which array to use
+    let soundArray;
+    let soundKey;
+    
     if (country && subcategory === "protest") {
-      filesArray = this.soundFiles.defense.protest[country];
+      soundArray = this.soundFiles.defense.protest[country];
+      soundKey = `defense.protest.${country}`;
     } else {
-      filesArray = this.soundFiles[category][subcategory];
+      soundArray = this.soundFiles[category][subcategory];
+      soundKey = `${category}.${subcategory}`;
     }
     
-    // Make sure we have files to play
-    if (!filesArray || filesArray.length === 0) {
+    // If no sounds available, return null
+    if (!soundArray || soundArray.length === 0) {
       return null;
     }
     
-    // Select a random file
-    const randomIndex = Math.floor(Math.random() * filesArray.length);
-    const soundFile = filesArray[randomIndex];
+    // If we don't have a shuffled array for this sound category yet, create one
+    if (!this.shuffledSoundArrays[soundKey]) {
+      // Create an array of indices
+      const indices = Array.from({ length: soundArray.length }, (_, i) => i);
+      
+      // Shuffle the indices
+      this.shuffledSoundArrays[soundKey] = this.shuffleArray(indices);
+      this.shuffledSoundIndexes[soundKey] = 0;
+      
+      if (this.logger) {
+        this.logger.debug("audio", `Created new shuffled array for ${soundKey} with ${indices.length} sounds`);
+      }
+    }
     
-    // Play directly for reliability (especially on mobile)
+    // Get the current position in the shuffled array
+    const position = this.shuffledSoundIndexes[soundKey];
+    
+    // Get the index from the shuffled array
+    const soundIndex = this.shuffledSoundArrays[soundKey][position];
+    
+    // Increment position
+    this.shuffledSoundIndexes[soundKey]++;
+    
+    // If we've reached the end, reshuffle and start over
+    if (this.shuffledSoundIndexes[soundKey] >= soundArray.length) {
+      this.shuffledSoundArrays[soundKey] = this.shuffleArray(this.shuffledSoundArrays[soundKey]);
+      this.shuffledSoundIndexes[soundKey] = 0;
+      
+      if (this.logger) {
+        this.logger.debug("audio", `Reshuffled array for ${soundKey} after playing all sounds`);
+      }
+    }
+    
+    // Return the sound file path
+    return soundArray[soundIndex];
+  }
+
+  /**
+   * Get a shuffled catchphrase sound
+   * @param {string} country - The country for catchphrase
+   * @returns {string} - The path to the catchphrase sound file
+   */
+  getShuffledCatchphrase(country) {
+    // Handle eastCanada and westCanada
+    const actualCountry = country === "eastCanada" || country === "westCanada" ? "canada" : country;
+    
+    // Use country-specific catchphrases if available, otherwise use generic
+    const useCountry = (this.catchphrases[actualCountry] && this.catchphrases[actualCountry].length > 0) 
+      ? actualCountry 
+      : "generic";
+    
+    const soundArray = this.catchphraseFiles[useCountry];
+    const soundKey = `catchphrase.${useCountry}`;
+    
+    // If no sounds available, return null
+    if (!soundArray || soundArray.length === 0) {
+      return null;
+    }
+    
+    // If we're on mobile, just use the first sound for reliability
+    if (this.isMobile) {
+      return soundArray[0];
+    }
+    
+    // If we don't have a shuffled array for this catchphrase yet, create one
+    if (!this.shuffledCatchphraseArrays[soundKey]) {
+      // Create an array of indices
+      const indices = Array.from({ length: soundArray.length }, (_, i) => i);
+      
+      // Shuffle the indices
+      this.shuffledCatchphraseArrays[soundKey] = this.shuffleArray(indices);
+      this.shuffledCatchphraseIndexes[soundKey] = 0;
+      
+      if (this.logger) {
+        this.logger.debug("audio", `Created new shuffled catchphrase array for ${soundKey} with ${indices.length} sounds`);
+      }
+    }
+    
+    // Get the current position in the shuffled array
+    const position = this.shuffledCatchphraseIndexes[soundKey];
+    
+    // Get the index from the shuffled array
+    const soundIndex = this.shuffledCatchphraseArrays[soundKey][position];
+    
+    // Increment position
+    this.shuffledCatchphraseIndexes[soundKey]++;
+    
+    // If we've reached the end, reshuffle and start over
+    if (this.shuffledCatchphraseIndexes[soundKey] >= soundArray.length) {
+      this.shuffledCatchphraseArrays[soundKey] = this.shuffleArray(this.shuffledCatchphraseArrays[soundKey]);
+      this.shuffledCatchphraseIndexes[soundKey] = 0;
+      
+      if (this.logger) {
+        this.logger.debug("audio", `Reshuffled catchphrase array for ${soundKey} after playing all sounds`);
+      }
+    }
+    
+    // Return the sound file path
+    return soundArray[soundIndex];
+  }
+
+  /**
+   * Fisher-Yates shuffle algorithm
+   * @param {Array} array - The array to shuffle
+   * @returns {Array} - A new shuffled array
+   */
+  shuffleArray(array) {
+    // Create a copy to avoid modifying the original
+    const shuffled = [...array];
+    
+    // Perform Fisher-Yates shuffle
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
+    return shuffled;
+  }
+
+  /**
+   * Play a random sound from a category using the shuffle system
+   */
+  playRandom(category, subcategory, country = null) {
+    if (!this.initialized || this.muted) return null;
+
+    // Get a sound file using our shuffled method
+    const soundFile = this.getShuffledSound(category, subcategory, country);
+    
+    // If no sound file is available, return null
+    if (!soundFile) {
+      return null;
+    }
+    
+    // Play directly for reliability
     return this.playDirect(soundFile);
   }
 
@@ -598,25 +738,13 @@ class AudioManager {
   playCatchphrase(country) {
     if (!this.initialized || this.muted) return null;
     
-    // Handle eastCanada and westCanada
-    const actualCountry = country === "eastCanada" || country === "westCanada" ? "canada" : country;
+    // Get shuffled catchphrase sound file
+    const soundFile = this.getShuffledCatchphrase(country);
     
-    // Use country-specific catchphrases if available, otherwise use generic
-    const useCountry = (this.catchphrases[actualCountry] && this.catchphrases[actualCountry].length > 0) 
-      ? actualCountry 
-      : "generic";
-    
-    // Get catchphrase files array
-    const catchphraseFiles = this.catchphraseFiles[useCountry];
-    
-    // Make sure we have files to play
-    if (!catchphraseFiles || catchphraseFiles.length === 0) {
+    // If no sound file is available, return null
+    if (!soundFile) {
       return null;
     }
-    
-    // Select random file if not on mobile, otherwise use the first one for reliability
-    const index = this.isMobile ? 0 : Math.floor(Math.random() * catchphraseFiles.length);
-    const soundFile = catchphraseFiles[index];
     
     // Play directly for reliability
     return this.playDirect(soundFile);
@@ -687,13 +815,15 @@ class AudioManager {
     this.stopGrabSound();
 
     try {
-      // Get a random file
-      const grabFiles = this.soundFiles.trump.grab;
-      const randomIndex = Math.floor(Math.random() * grabFiles.length);
-      const soundPath = grabFiles[randomIndex];
+      // Get a sound file using our shuffled method
+      const soundFile = this.getShuffledSound("trump", "grab");
+      
+      if (!soundFile) {
+        return null;
+      }
       
       // Create a new audio element
-      const grabSound = new Audio(this.getSoundPath(soundPath));
+      const grabSound = new Audio(this.getSoundPath(soundFile));
       grabSound.loop = true;
       grabSound.volume = this.currentGrabVolume * this.volume;
       
@@ -762,385 +892,372 @@ class AudioManager {
   /**
    * Play the sequence for a successful block (player slapped Trump's hand)
    */
-  playSuccessfulBlock(country) {
-    // Stop the grab sound first
-    this.stopGrabSound();
-    
-    if (this.logger) {
-      this.logger.info("audio", `Playing successful block sound sequence for ${country}`);
-    }
-    
-    // Always play slap sound with direct Audio for reliability
-    const slapFile = this.soundFiles.defense.slap[0];
-    this.playDirect(slapFile);
-    
-    // After a delay, play the sob sound
-    setTimeout(() => {
-      // Select a random sob sound file
-      const sobFiles = this.soundFiles.trump.sob;
-      const randomSob = sobFiles[Math.floor(Math.random() * sobFiles.length)];
-      
-      // Play sob sound directly
-      this.playDirect(randomSob);
-      
-      // After another delay, play the country-specific protest sound
-      setTimeout(() => {
-        const protestFiles = this.soundFiles.defense.protest[country];
-        if (protestFiles && protestFiles.length > 0) {
-          const randomProtest = protestFiles[Math.floor(Math.random() * protestFiles.length)];
-          
-          // Play protest sound directly
-          this.playDirect(randomProtest);
-        }
-      }, this.timingParams.protestDelay);
-    }, 200);
-  }
-
-  /**
-   * Play a successful grab sequence (country being claimed)
-   */
-  playSuccessfulGrab(country) {
-    if (!this.initialized || this.muted) return null;
-    
-    if (this.logger) {
-      this.logger.info("audio", `Playing successful grab sound for ${country}`);
-    }
-
-    // Stop the grab sound first
-    this.stopGrabSound();
-
-    // Get a random success sound
-    const successFiles = this.soundFiles.trump.success;
-    const randomIndex = Math.floor(Math.random() * successFiles.length);
-    const successFile = successFiles[randomIndex];
-    
-    // Play success sound directly
-    const successSound = this.playDirect(successFile);
-    
-    // Default duration if we can't get it from the audio element
-    let soundDuration = 1.5; 
-    
-    // Try to get actual duration
-    if (successSound && successSound.duration && !isNaN(successSound.duration) && successSound.duration > 0) {
-      soundDuration = successSound.duration;
-    }
-    
-    // Play catchphrase after success sound finishes
-    const catchphraseDelay = soundDuration * 1000 + this.timingParams.catchphraseDelay;
-    
-    setTimeout(() => {
-      this.playCatchphrase(country);
-    }, catchphraseDelay);
-
-    return successSound;
-  }
-
-  /**
-   * Play country annexed sequence (final grab on a country)
-   */
-  playCountryAnnexed(country) {
-    if (!this.initialized || this.muted) return null;
-    
-    if (this.logger) {
-      this.logger.info("audio", `Playing country annexed sound for ${country}`);
-    }
-
-    // Get a random annex sound
-    const annexFiles = this.soundFiles.trump.annex;
-    const randomIndex = Math.floor(Math.random() * annexFiles.length);
-    const annexFile = annexFiles[randomIndex];
-    
-    // Play annex sound directly
-    const annexSound = this.playDirect(annexFile);
-    
-    // Default duration if we can't get it from the audio element
-    let soundDuration = 1.5;
-    
-    // Try to get actual duration
-    if (annexSound && annexSound.duration && !isNaN(annexSound.duration) && annexSound.duration > 0) {
-      soundDuration = annexSound.duration;
-    }
-    
-    // Calculate the delay using our timing parameter
-    const catchphraseDelay = soundDuration * 1000 + this.timingParams.catchphraseDelay;
-    
-    // Play catchphrase after annex sound finishes
-    setTimeout(() => {
-      this.playCatchphrase(country);
-    }, catchphraseDelay);
-
-    return annexSound;
-  }
-
-  /**
-   * Start background music
-   */
-  startBackgroundMusic() {
-    if (!this.initialized || this.muted) return Promise.resolve(false);
-    
-    // Resume AudioContext first (mobile requirement)
-    return this.resumeAudioContext().then(() => {
-      try {
-        // Always create a new Audio element for background music
-        const music = new Audio(this.getSoundPath(this.soundFiles.music.background));
-        music.loop = true;
-        music.volume = this.volume * 0.5; // Lower volume for background
-        
-        // Play the music
-        const playPromise = music.play();
-        if (playPromise !== undefined) {
-          return playPromise.then(() => {
-            // Store reference to the background music
-            this.backgroundMusic = music;
-            this.backgroundMusicPlaying = true;
-            return true;
-          }).catch(error => {
-            if (this.logger) {
-              this.logger.warn("audio", `Background music prevented: ${error}`);
-            }
-            return false;
-          });
-        }
-        
-        // Store reference to the background music
-        this.backgroundMusic = music;
-        this.backgroundMusicPlaying = true;
-        return Promise.resolve(true);
-      } catch (e) {
-        if (this.logger) {
-          this.logger.error("audio", `Error starting background music: ${e.message}`);
-        }
-        return Promise.resolve(false);
-      }
-    });
-  }
-
-  /**
-   * Update music intensity based on game state
-   */
 /**
-   * Update music intensity based on game state
+   * Play the sequence for a successful block (player slapped Trump's hand)
    */
-  updateMusicIntensity(annexedCountries) {
-    // Calculate desired intensity (0-3)
-    const newIntensity = Math.min(annexedCountries, 3);
+playSuccessfulBlock(country) {
+  // Stop the grab sound first
+  this.stopGrabSound();
+  
+  if (this.logger) {
+    this.logger.info("audio", `Playing successful block sound sequence for ${country}`);
+  }
+  
+  // Always play slap sound with direct Audio for reliability using shuffle
+  const slapFile = this.getShuffledSound("defense", "slap");
+  this.playDirect(slapFile);
+  
+  // After a delay, play the sob sound using shuffle system
+  setTimeout(() => {
+    // Play sob sound using shuffled system
+    this.playRandom("trump", "sob");
+    
+    // After another delay, play the country-specific protest sound
+    setTimeout(() => {
+      // Play protest sound using shuffled system
+      this.playRandom("defense", "protest", country);
+    }, this.timingParams.protestDelay);
+  }, 200);
+}
 
-    // If intensity hasn't changed, do nothing
-    if (newIntensity === this.musicIntensity) return;
+/**
+ * Play a successful grab sequence (country being claimed)
+ */
+playSuccessfulGrab(country) {
+  if (!this.initialized || this.muted) return null;
+  
+  if (this.logger) {
+    this.logger.info("audio", `Playing successful grab sound for ${country}`);
+  }
 
-    this.musicIntensity = newIntensity;
+  // Stop the grab sound first
+  this.stopGrabSound();
 
-    // Apply music effects based on intensity
-    if (this.backgroundMusic) {
-      switch (this.musicIntensity) {
-        case 0: // Normal
-          this.backgroundMusic.playbackRate = 1.0;
-          this.backgroundMusic.volume = this.volume * 0.5;
-          break;
-        case 1: // One country annexed
-          this.backgroundMusic.playbackRate = 1.05;
-          this.backgroundMusic.volume = this.volume * 0.6;
-          break;
-        case 2: // Two countries annexed
-          this.backgroundMusic.playbackRate = 1.1;
-          this.backgroundMusic.volume = this.volume * 0.7;
-          break;
-        case 3: // Maximum intensity
-          this.backgroundMusic.playbackRate = 1.15;
-          this.backgroundMusic.volume = this.volume * 0.8;
+  // Get shuffled success sound
+  const successFile = this.getShuffledSound("trump", "success");
+  
+  // Play success sound directly
+  const successSound = this.playDirect(successFile);
+  
+  // Default duration if we can't get it from the audio element
+  let soundDuration = 1.5; 
+  
+  // Try to get actual duration
+  if (successSound && successSound.duration && !isNaN(successSound.duration) && successSound.duration > 0) {
+    soundDuration = successSound.duration;
+  }
+  
+  // Play catchphrase after success sound finishes
+  const catchphraseDelay = soundDuration * 1000 + this.timingParams.catchphraseDelay;
+  
+  setTimeout(() => {
+    this.playCatchphrase(country);
+  }, catchphraseDelay);
 
-          // Add a subtle "heartbeat" effect at highest intensity
-          if (!this.musicRateInterval) {
-            let increasing = true;
-            this.musicRateInterval = setInterval(() => {
-              if (!this.backgroundMusic || this.backgroundMusic.paused) return;
+  return successSound;
+}
 
-              if (increasing) {
-                this.backgroundMusic.playbackRate += 0.01;
-                if (this.backgroundMusic.playbackRate >= 1.2) increasing = false;
-              } else {
-                this.backgroundMusic.playbackRate -= 0.01;
-                if (this.backgroundMusic.playbackRate <= 1.1) increasing = true;
-              }
-            }, 500);
+/**
+ * Play country annexed sequence (final grab on a country)
+ */
+playCountryAnnexed(country) {
+  if (!this.initialized || this.muted) return null;
+  
+  if (this.logger) {
+    this.logger.info("audio", `Playing country annexed sound for ${country}`);
+  }
+
+  // Get shuffled annex sound
+  const annexFile = this.getShuffledSound("trump", "annex");
+  
+  // Play annex sound directly
+  const annexSound = this.playDirect(annexFile);
+  
+  // Default duration if we can't get it from the audio element
+  let soundDuration = 1.5;
+  
+  // Try to get actual duration
+  if (annexSound && annexSound.duration && !isNaN(annexSound.duration) && annexSound.duration > 0) {
+    soundDuration = annexSound.duration;
+  }
+  
+  // Calculate the delay using our timing parameter
+  const catchphraseDelay = soundDuration * 1000 + this.timingParams.catchphraseDelay;
+  
+  // Play catchphrase after annex sound finishes
+  setTimeout(() => {
+    this.playCatchphrase(country);
+  }, catchphraseDelay);
+
+  return annexSound;
+}
+
+/**
+ * Start background music
+ */
+startBackgroundMusic() {
+  if (!this.initialized || this.muted) return Promise.resolve(false);
+  
+  // Resume AudioContext first (mobile requirement)
+  return this.resumeAudioContext().then(() => {
+    try {
+      // Always create a new Audio element for background music
+      const music = new Audio(this.getSoundPath(this.soundFiles.music.background));
+      music.loop = true;
+      music.volume = this.volume * 0.5; // Lower volume for background
+      
+      // Play the music
+      const playPromise = music.play();
+      if (playPromise !== undefined) {
+        return playPromise.then(() => {
+          // Store reference to the background music
+          this.backgroundMusic = music;
+          this.backgroundMusicPlaying = true;
+          return true;
+        }).catch(error => {
+          if (this.logger) {
+            this.logger.warn("audio", `Background music prevented: ${error}`);
           }
-          break;
+          return false;
+        });
       }
-    }
-  }
-
-  /**
-   * Stop background music
-   */
-  stopBackgroundMusic() {
-    if (this.backgroundMusic) {
-      // Clear any intensity effects
-      if (this.musicRateInterval) {
-        clearInterval(this.musicRateInterval);
-        this.musicRateInterval = null;
-      }
-
-      this.backgroundMusic.pause();
-      this.backgroundMusic.currentTime = 0;
-      this.backgroundMusicPlaying = false;
-    }
-  }
-
-  /**
-   * Ensure sounds are loaded properly - helps with mobile issues
-   */
-  ensureSoundsAreLoaded() {
-    // Check if any sounds are loaded
-    if (this.loadedSounds.size === 0 && this.isMobile) {
+      
+      // Store reference to the background music
+      this.backgroundMusic = music;
+      this.backgroundMusicPlaying = true;
+      return Promise.resolve(true);
+    } catch (e) {
       if (this.logger) {
-        this.logger.warn('audio', 'No sounds loaded yet, trying with alternate path');
+        this.logger.error("audio", `Error starting background music: ${e.message}`);
       }
+      return Promise.resolve(false);
+    }
+  });
+}
+
+/**
+ * Update music intensity based on game state
+ */
+updateMusicIntensity(annexedCountries) {
+  // Calculate desired intensity (0-3)
+  const newIntensity = Math.min(annexedCountries, 3);
+
+  // If intensity hasn't changed, do nothing
+  if (newIntensity === this.musicIntensity) return;
+
+  this.musicIntensity = newIntensity;
+
+  // Apply music effects based on intensity
+  if (this.backgroundMusic) {
+    switch (this.musicIntensity) {
+      case 0: // Normal
+        this.backgroundMusic.playbackRate = 1.0;
+        this.backgroundMusic.volume = this.volume * 0.5;
+        break;
+      case 1: // One country annexed
+        this.backgroundMusic.playbackRate = 1.05;
+        this.backgroundMusic.volume = this.volume * 0.6;
+        break;
+      case 2: // Two countries annexed
+        this.backgroundMusic.playbackRate = 1.1;
+        this.backgroundMusic.volume = this.volume * 0.7;
+        break;
+      case 3: // Maximum intensity
+        this.backgroundMusic.playbackRate = 1.15;
+        this.backgroundMusic.volume = this.volume * 0.8;
+
+        // Add a subtle "heartbeat" effect at highest intensity
+        if (!this.musicRateInterval) {
+          let increasing = true;
+          this.musicRateInterval = setInterval(() => {
+            if (!this.backgroundMusic || this.backgroundMusic.paused) return;
+
+            if (increasing) {
+              this.backgroundMusic.playbackRate += 0.01;
+              if (this.backgroundMusic.playbackRate >= 1.2) increasing = false;
+            } else {
+              this.backgroundMusic.playbackRate -= 0.01;
+              if (this.backgroundMusic.playbackRate <= 1.1) increasing = true;
+            }
+          }, 500);
+        }
+        break;
+    }
+  }
+}
+
+/**
+ * Stop background music
+ */
+stopBackgroundMusic() {
+  if (this.backgroundMusic) {
+    // Clear any intensity effects
+    if (this.musicRateInterval) {
+      clearInterval(this.musicRateInterval);
+      this.musicRateInterval = null;
+    }
+
+    this.backgroundMusic.pause();
+    this.backgroundMusic.currentTime = 0;
+    this.backgroundMusicPlaying = false;
+  }
+}
+
+/**
+ * Ensure sounds are loaded properly - helps with mobile issues
+ */
+ensureSoundsAreLoaded() {
+  // Check if any sounds are loaded
+  if (this.loadedSounds.size === 0 && this.isMobile) {
+    if (this.logger) {
+      this.logger.warn('audio', 'No sounds loaded yet, trying with alternate path');
+    }
+    
+    // Try with a different path approach for mobile
+    const baseUrl = window.location.origin + window.location.pathname;
+    const altPath = baseUrl.endsWith('/') ? baseUrl + 'sounds/' : baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1) + 'sounds/';
+    
+    if (this.soundPath !== altPath) {
+      this.soundPath = altPath;
       
-      // Try with a different path approach for mobile
-      const baseUrl = window.location.origin + window.location.pathname;
-      const altPath = baseUrl.endsWith('/') ? baseUrl + 'sounds/' : baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1) + 'sounds/';
-      
-      if (this.soundPath !== altPath) {
-        this.soundPath = altPath;
-        
-        // Reload essential sounds
-        this.loadSound('ui', 'click');
-        this.loadSound('ui', 'start');
-        this.loadSound('defense', 'slap', 0);
-        this.loadSound('trump', 'grab', 0);
-      }
+      // Reload essential sounds
+      this.loadSound('ui', 'click');
+      this.loadSound('ui', 'start');
+      this.loadSound('defense', 'slap', 0);
+      this.loadSound('trump', 'grab', 0);
     }
   }
+}
 
-  /**
-   * Toggle mute state
-   */
-  toggleMute() {
-    this.muted = !this.muted;
+/**
+ * Toggle mute state
+ */
+toggleMute() {
+  this.muted = !this.muted;
 
-    // Apply to all currently playing sounds
-    this.currentlyPlaying.forEach((sound) => {
-      sound.muted = this.muted;
-    });
+  // Apply to all currently playing sounds
+  this.currentlyPlaying.forEach((sound) => {
+    sound.muted = this.muted;
+  });
 
-    // Apply to background music
-    if (this.backgroundMusic) {
-      this.backgroundMusic.muted = this.muted;
-    }
-
-    // Stop grab sound interval if muted
-    if (this.muted && this.grabVolumeInterval) {
-      clearInterval(this.grabVolumeInterval);
-      this.grabVolumeInterval = null;
-    }
-
-    return this.muted;
+  // Apply to background music
+  if (this.backgroundMusic) {
+    this.backgroundMusic.muted = this.muted;
   }
 
-  /**
-   * Set volume level
-   */
-  setVolume(level) {
-    this.volume = Math.max(0, Math.min(1, level));
-
-    // Apply to all playing sounds
-    this.currentlyPlaying.forEach((sound) => {
-      sound.volume = this.volume;
-    });
-
-    // Update grab sound volume
-    if (this.activeGrabSound) {
-      this.activeGrabSound.volume = this.currentGrabVolume * this.volume;
-    }
-
-    // Apply to background music
-    if (this.backgroundMusic) {
-      this.backgroundMusic.volume = this.volume * 0.5;
-    }
+  // Stop grab sound interval if muted
+  if (this.muted && this.grabVolumeInterval) {
+    clearInterval(this.grabVolumeInterval);
+    this.grabVolumeInterval = null;
   }
 
-  /**
-   * Pause all audio (for when game is paused)
-   */
-  pauseAll() {
-    // Pause background music
-    if (this.backgroundMusic && !this.backgroundMusic.paused) {
-      this.backgroundMusic.pause();
-    }
+  return this.muted;
+}
 
-    // Pause all currently playing sounds
-    this.currentlyPlaying.forEach((sound) => {
-      if (!sound.paused) {
-        sound.pause();
-      }
-    });
+/**
+ * Set volume level
+ */
+setVolume(level) {
+  this.volume = Math.max(0, Math.min(1, level));
 
-    // Pause grab sound interval
-    if (this.grabVolumeInterval) {
-      clearInterval(this.grabVolumeInterval);
-      this.grabVolumeInterval = null;
-    }
+  // Apply to all playing sounds
+  this.currentlyPlaying.forEach((sound) => {
+    sound.volume = this.volume;
+  });
+
+  // Update grab sound volume
+  if (this.activeGrabSound) {
+    this.activeGrabSound.volume = this.currentGrabVolume * this.volume;
   }
 
-  /**
-   * Resume audio (when game is unpaused)
-   */
-  resumeAll() {
-    // Resume background music if it was playing
-    if (this.backgroundMusic && this.backgroundMusicPlaying) {
-      this.backgroundMusic.play().catch((e) => {
-        if (this.logger) {
-          this.logger.warn("audio", "Could not resume background music:", e);
-        }
-      });
-    }
+  // Apply to background music
+  if (this.backgroundMusic) {
+    this.backgroundMusic.volume = this.volume * 0.5;
+  }
+}
 
-    // Resume grab sound if it was active
-    if (this.activeGrabSound) {
-      this.activeGrabSound.play().catch((e) => {
-        if (this.logger) {
-          this.logger.warn("audio", "Could not resume grab sound:", e);
-        }
-      });
-
-      // Restart volume interval
-      this.grabVolumeInterval = setInterval(() => {
-        if (this.activeGrabSound) {
-          this.currentGrabVolume = Math.min(this.maxGrabVolume, this.currentGrabVolume + this.grabVolumeStep);
-          this.activeGrabSound.volume = this.currentGrabVolume * this.volume;
-        }
-      }, 300);
-    }
+/**
+ * Pause all audio (for when game is paused)
+ */
+pauseAll() {
+  // Pause background music
+  if (this.backgroundMusic && !this.backgroundMusic.paused) {
+    this.backgroundMusic.pause();
   }
 
-  /**
-   * Stop all sounds (for game over or reset)
-   */
-  stopAll() {
-    this.currentlyPlaying.forEach((sound) => {
+  // Pause all currently playing sounds
+  this.currentlyPlaying.forEach((sound) => {
+    if (!sound.paused) {
       sound.pause();
-      sound.currentTime = 0;
+    }
+  });
+
+  // Pause grab sound interval
+  if (this.grabVolumeInterval) {
+    clearInterval(this.grabVolumeInterval);
+    this.grabVolumeInterval = null;
+  }
+}
+
+/**
+ * Resume audio (when game is unpaused)
+ */
+resumeAll() {
+  // Resume background music if it was playing
+  if (this.backgroundMusic && this.backgroundMusicPlaying) {
+    this.backgroundMusic.play().catch((e) => {
+      if (this.logger) {
+        this.logger.warn("audio", "Could not resume background music:", e);
+      }
+    });
+  }
+
+  // Resume grab sound if it was active
+  if (this.activeGrabSound) {
+    this.activeGrabSound.play().catch((e) => {
+      if (this.logger) {
+        this.logger.warn("audio", "Could not resume grab sound:", e);
+      }
     });
 
-    this.currentlyPlaying = [];
-    this.stopBackgroundMusic();
-    this.stopGrabSound();
+    // Restart volume interval
+    this.grabVolumeInterval = setInterval(() => {
+      if (this.activeGrabSound) {
+        this.currentGrabVolume = Math.min(this.maxGrabVolume, this.currentGrabVolume + this.grabVolumeStep);
+        this.activeGrabSound.volume = this.currentGrabVolume * this.volume;
+      }
+    }, 300);
   }
+}
 
-  /**
-   * Log the state of the audio system (for debugging)
-   */
-  logAudioState() {
-    if (!this.logger) return;
+/**
+ * Stop all sounds (for game over or reset)
+ */
+stopAll() {
+  this.currentlyPlaying.forEach((sound) => {
+    sound.pause();
+    sound.currentTime = 0;
+  });
 
-    this.logger.info("audio", "=== AUDIO SYSTEM STATE ===");
-    this.logger.info("audio", `Initialized: ${this.initialized}, Muted: ${this.muted}, Volume: ${this.volume}`);
-    this.logger.info("audio", `Background Music Playing: ${this.backgroundMusicPlaying}`);
-    this.logger.info("audio", `Currently Playing Sounds: ${this.currentlyPlaying.length}`);
-    this.logger.info("audio", `Active Grab Sound: ${this.activeGrabSound ? "Yes" : "No"}`);
-    this.logger.info("audio", `Total Loaded Sounds: ${this.loadedSounds.size}`);
-    this.logger.info("audio", "========================");
-  }
+  this.currentlyPlaying = [];
+  this.stopBackgroundMusic();
+  this.stopGrabSound();
+}
+
+/**
+ * Log the state of the audio system (for debugging)
+ */
+logAudioState() {
+  if (!this.logger) return;
+
+  this.logger.info("audio", "=== AUDIO SYSTEM STATE ===");
+  this.logger.info("audio", `Initialized: ${this.initialized}, Muted: ${this.muted}, Volume: ${this.volume}`);
+  this.logger.info("audio", `Background Music Playing: ${this.backgroundMusicPlaying}`);
+  this.logger.info("audio", `Currently Playing Sounds: ${this.currentlyPlaying.length}`);
+  this.logger.info("audio", `Active Grab Sound: ${this.activeGrabSound ? "Yes" : "No"}`);
+  this.logger.info("audio", `Total Loaded Sounds: ${this.loadedSounds.size}`);
+  this.logger.info("audio", "========================");
+}
 }
 
 window.AudioManager = AudioManager;
