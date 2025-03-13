@@ -32,15 +32,28 @@ class AnimationManager {
         loopCount: 3,
         handVisible: false,
       },
+
+
+      grabEastCanada: {
+        // Base coordinates for grabEastCanada (calibrated at scale 0.23)
+        handCoordinates: [
+          { x: 1608, y: 1439, width: 737, height: 737 }, // Frame 0
+          { x: 1469, y: 1344, width: 737, height: 737 } // Frame 1
+        ],
+        calibrationScale: 0.23,
+      },
+
+      
       grabEastCanada: {
         spriteSheet: "images/trump-grab-east-canada-sprite.png",
         frameCount: 2,
         loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 371, y: 332, width: 170, height: 170 }, // Frame 0
-          { x: 339, y: 310, width: 170, height: 170 }, // Frame 1
+          { x: 1608, y: 1439, width: 737, height: 737 }, // Frame 0
+          { x: 1469, y: 1344, width: 737, height: 737 } // Frame 1
         ],
+        calibrationScale: 0.23,
         deviceCoordinates: {
           mobile: [
             { x: 232, y: 209, width: 50, height: 50 }, // Frame 0
@@ -50,15 +63,18 @@ class AnimationManager {
         smackAnimation: "smackEastCanada",
       },
       // Rest of animations remain the same
+
       grabWestCanada: {
         spriteSheet: "images/trump-grab-west-canada-sprite.png",
         frameCount: 2,
         loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 60, y: 282, width: 170, height: 170 }, // Frame 0
-          { x: 58, y: 251, width: 170, height: 170 }, // Frame 1
+          { x: 286, y: 1248, width: 737, height: 737 }, // Frame 0
+          { x: 282, y: 1140, width: 737, height: 737 } // Frame 1
         ],
+        calibrationScale: 0.23,
+
         deviceCoordinates: {
           mobile: [
             { x: 60, y: 183, width: 50, height: 50 }, // Frame 0
@@ -67,15 +83,18 @@ class AnimationManager {
         },
         smackAnimation: "smackWestCanada",
       },
+
       grabGreenland: {
         spriteSheet: "images/trump-grab-greenland-sprite.png",
         frameCount: 2,
         loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 499, y: 174, width: 170, height: 170 }, // Frame 0
-          { x: 478, y: 182, width: 170, height: 170 }, // Frame 1
+          { x: 2163, y: 754, width: 737, height: 737 }, // Frame 0
+          { x: 2072, y: 789, width: 737, height: 737 } // Frame 1
         ],
+        calibrationScale: 0.23,
+
         deviceCoordinates: {
           mobile: [
             { x: 313, y: 131, width: 50, height: 50 }, // Frame 0
@@ -84,15 +103,18 @@ class AnimationManager {
         },
         smackAnimation: "smackGreenland",
       },
+
       grabMexico: {
         spriteSheet: "images/trump-grab-mexico-sprite.png",
         frameCount: 2,
         loopCount: 4,
         handVisible: true,
         handCoordinates: [
-          { x: 245, y: 529, width: 170, height: 170 }, // Frame 0
-          { x: 216, y: 550, width: 170, height: 170 }, // Frame 1
+          { x: 1118, y: 2319, width: 737, height: 737 }, // Frame 0
+          { x: 906, y: 2445, width: 737, height: 737 } // Frame 1
         ],
+        calibrationScale: 0.23,
+
         deviceCoordinates: {
           mobile: [
             { x: 168, y: 333, width: 50, height: 50 }, // Frame 0

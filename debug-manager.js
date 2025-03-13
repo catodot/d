@@ -1222,6 +1222,8 @@ cancelBtn.addEventListener("click", () => {
     const panel = document.createElement("div");
     panel.id = "calibration-panel";
     panel.classList.add('calibration-panel');
+
+    
   
     // Get frame count from your animation system
     let frameCount = 5; // Default frame count
@@ -1530,49 +1532,43 @@ cancelBtn.addEventListener("click", () => {
   }
 
 
-
   formatCoordinatesOutput() {
     const animName = this.calibration.currentAnimation;
     const isMobileCalibration = document.getElementById("mobile-coords-toggle")?.checked || false;
     
+    // Get the map for reference size calculation
+    const mapElem = document.getElementById("map-background");
+    const mapScale = mapElem ? (mapElem.clientWidth / mapElem.naturalWidth) : 1.0;
+    
     let output = `${animName}: {\n`;
     
-    if (isMobileCalibration) {
-      output += `  // Mobile coordinates for ${animName}\n`;
-      output += `  deviceCoordinates: {\n`;
-      output += `    mobile: [\n`;
+    // For our new approach, we'll always store base coordinates relative to natural map size
+    output += `  // Base coordinates for ${animName} (calibrated at scale ${mapScale.toFixed(2)})\n`;
+    output += `  handCoordinates: [\n`;
+    
+    this.calibration.frameCoordinates.forEach((coords, index) => {
+      // Calculate coordinates relative to the natural map size
+      const naturalX = Math.round(coords.x / mapScale);
+      const naturalY = Math.round(coords.y / mapScale);
+      const naturalWidth = Math.round(coords.width / mapScale);
+      const naturalHeight = Math.round(coords.height / mapScale);
       
-      this.calibration.frameCoordinates.forEach((coords, index) => {
-        output += `      { x: ${coords.x}, y: ${coords.y}, width: ${coords.width}, height: ${coords.height} }`;
-        if (index < this.calibration.frameCoordinates.length - 1) {
-          output += ",";
-        }
-        output += ` // Frame ${index}\n`;
-      });
-      
-      output += `    ]\n`;
-      output += `  },\n`;
-    } else {
-      // Standard desktop coordinates
-      output += `  // Desktop coordinates for ${animName}\n`;
-      output += `  handCoordinates: [\n`;
-      
-      this.calibration.frameCoordinates.forEach((coords, index) => {
-        output += `    { x: ${coords.x}, y: ${coords.y}, width: ${coords.width}, height: ${coords.height} }`;
-        if (index < this.calibration.frameCoordinates.length - 1) {
-          output += ",";
-        }
-        output += ` // Frame ${index}\n`;
-      });
-      
-      output += `  ],\n`;
-    }
+      output += `    { x: ${naturalX}, y: ${naturalY}, width: ${naturalWidth}, height: ${naturalHeight} }`;
+      if (index < this.calibration.frameCoordinates.length - 1) {
+        output += ",";
+      }
+      output += ` // Frame ${index}\n`;
+    });
+    
+    output += `  ],\n`;
+    
+    // Include a reference to the scale at which these coordinates were calibrated
+    output += `  calibrationScale: ${mapScale.toFixed(2)},\n`;
     
     output += `},`;
     
     return output;
   }
-
   saveCalibration() {
     // Copy to clipboard
     const formattedOutput = this.formatCoordinatesOutput();
@@ -1583,17 +1579,34 @@ cancelBtn.addEventListener("click", () => {
       .writeText(formattedOutput)
       .then(() => {
         console.log("Coordinates copied to clipboard!");
-        alert("Coordinates copied to clipboard! You'll need to update your code with these values.");
+        alert("Coordinates copied to clipboard! These coordinates will be automatically scaled at runtime.");
       })
       .catch((err) => {
         console.error("Error copying to clipboard:", err);
         alert("Failed to copy to clipboard. See console for details.");
       });
   
-    // Also update the animation object in the current session
+    // Get the map for reference scale
+    const mapElem = document.getElementById("map-background");
+    const mapScale = mapElem ? (mapElem.clientWidth / mapElem.naturalWidth) : 1.0;
+    
+    // Convert coordinates to be relative to natural map size
+    const naturalCoordinates = this.calibration.frameCoordinates.map(coords => ({
+      x: Math.round(coords.x / mapScale),
+      y: Math.round(coords.y / mapScale),
+      width: Math.round(coords.width / mapScale),
+      height: Math.round(coords.height / mapScale)
+    }));
+  
+    // Update the animation object in the current session
     if (this.animationManager && this.animationManager.animations[this.calibration.currentAnimation]) {
       console.log("Updating animationManager with new coordinates");
-      this.animationManager.animations[this.calibration.currentAnimation].handCoordinates = [...this.calibration.frameCoordinates];
+      
+      // Store natural size coordinates
+      this.animationManager.animations[this.calibration.currentAnimation].handCoordinates = [...naturalCoordinates];
+      
+      // Also store the calibration scale for reference
+      this.animationManager.animations[this.calibration.currentAnimation].calibrationScale = mapScale;
       
       // Make sure the HandHitboxManager gets updated too
       if (this.animationManager.handHitboxManager) {
@@ -1602,7 +1615,8 @@ cancelBtn.addEventListener("click", () => {
       }
     } else if (this.trumpAnimations && this.trumpAnimations[this.calibration.currentAnimation]) {
       console.log("Updating trumpAnimations with new coordinates");
-      this.trumpAnimations[this.calibration.currentAnimation].handCoordinates = [...this.calibration.frameCoordinates];
+      this.trumpAnimations[this.calibration.currentAnimation].handCoordinates = [...naturalCoordinates];
+      this.trumpAnimations[this.calibration.currentAnimation].calibrationScale = mapScale;
     } else {
       console.warn("No animation object found to update with new coordinates");
     }

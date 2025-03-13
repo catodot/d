@@ -1510,6 +1510,7 @@ if (!visual.classList.contains("hit") && !visual.classList.contains("grab-succes
         // Remove the class after a short delay
         setTimeout(() => visual.classList.remove("animation-completed"), 100);
       }, 650);
+
     }
   
     if (hitbox) {

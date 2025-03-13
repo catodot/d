@@ -195,18 +195,56 @@ setupHoverEffects() {
 
   // Helper method to get coordinates based on device type
   getCoordinatesForDevice(animation, isMobile) {
-    if (isMobile && animation.deviceCoordinates && animation.deviceCoordinates.mobile && animation.deviceCoordinates.mobile[this.currentFrame]) {
-      // Use mobile-specific coordinates if available
-      logger.trace("hitbox", "Using mobile-specific coordinates");
-      return animation.deviceCoordinates.mobile[this.currentFrame];
-    } else if (animation.handCoordinates && animation.handCoordinates[this.currentFrame]) {
-      // Fall back to standard coordinates
-      logger.trace("hitbox", "Using standard coordinates");
-      return animation.handCoordinates[this.currentFrame];
+    // Always start with the base desktop coordinates
+    if (!animation.handCoordinates || !animation.handCoordinates[this.currentFrame]) {
+      logger.trace("hitbox", "No base coordinates found for frame");
+      return null;
     }
-
-    return null;
+    
+    const baseCoords = animation.handCoordinates[this.currentFrame];
+    logger.trace("hitbox", `Base coordinates: x:${baseCoords.x}, y:${baseCoords.y}, w:${baseCoords.width}, h:${baseCoords.height}`);
+    
+    // Get the current map element
+    const mapElem = document.getElementById("map-background");
+    if (!mapElem) {
+      logger.error("hitbox", "Map element not found for scaling calculation");
+      return baseCoords;
+    }
+    
+    // Calculate current map scale compared to natural size
+    const currentMapScale = mapElem.clientWidth / mapElem.naturalWidth;
+    
+    // This is your "reference" scale at which the desktop coordinates were calibrated
+    // You may need to adjust this value based on your development environment
+    const referenceDesktopScale = 1.0; // Starting with 1.0 assumes coordinates were calibrated at natural size
+    
+    // Calculate the adjustment needed
+    const scaleAdjustment = currentMapScale / referenceDesktopScale;
+    
+    // For mobile, you might want to make hitboxes slightly larger for easier touch targets
+    const touchFactor = isMobile ? 1.2 : 1.0;
+    
+    // Apply scaling
+    const scaledCoords = {
+      x: Math.round(baseCoords.x * scaleAdjustment),
+      y: Math.round(baseCoords.y * scaleAdjustment),
+      width: Math.round(baseCoords.width * scaleAdjustment * touchFactor),
+      height: Math.round(baseCoords.height * scaleAdjustment * touchFactor)
+    };
+    
+    logger.trace("hitbox", `Scaled coordinates (factor ${scaleAdjustment.toFixed(2)}): x:${scaledCoords.x}, y:${scaledCoords.y}, w:${scaledCoords.width}, h:${scaledCoords.height}`);
+    return scaledCoords;
   }
+
+  // Add this new method to the HandHitboxManager class
+scaleCoordinates(baseCoords, scaleFactor, touchFactor = 1.0) {
+  return {
+    x: Math.round(baseCoords.x * scaleFactor),
+    y: Math.round(baseCoords.y * scaleFactor),
+    width: Math.round(baseCoords.width * scaleFactor * touchFactor),
+    height: Math.round(baseCoords.height * scaleFactor * touchFactor)
+  };
+}
  
   positionHitbox(coords, isMobile) {
     // Position the hitbox
