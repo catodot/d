@@ -1,0 +1,2082 @@
+@import url("https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Alfa Slab One", cursive;
+  /* text-transform: uppercase;  */
+
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  background-color: black;
+  overflow: hidden;
+}
+
+.screen {
+  position: absolute;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(to bottom, #0c0e24, #0a0a1a);
+
+  z-index: 10;
+}
+
+#starfield-container {
+  z-index: 0; /* Ensure stars are behind other content */
+}
+
+.star {
+  position: absolute;
+  background-color: white;
+  border-radius: 50%;
+  opacity: 0;
+  z-index: -2;
+  animation: twinkle var(--duration) ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+
+@keyframes twinkle {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: var(--brightness);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.content {
+  color: white;
+  font-family: Arial, sans-serif;
+  font-size: 2em;
+  text-align: center;
+  z-index: 20;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.hidden {
+  display: none;
+}
+
+/* intro and endgame  */
+.intro-content {
+  font-family: "Alfa Slab One", cursive;
+  /* letter-spacing: 3px; */
+  color: #3c3b6e;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+}
+
+.intro-content > p {
+  font-family: "Alfa Slab One", cursive;
+
+  text-transform: capitalize;
+}
+
+.intro-content h2 {
+  font-family: "Bebas Neue", sans-serif;
+  color: #b22234;
+  margin-bottom: 20px;
+}
+.intro-content {
+  /* background-color: rgba(255, 255, 255, 0.9); */
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 80%;
+}
+
+.intro-content p {
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+
+.intro-content h1 {
+  color: #3c3b6e3c;
+  margin-bottom: 10px;
+  font-size: 6rem;
+}
+
+@media (max-width: 768px) {
+  .intro-content {
+    /* background-color: rgba(255, 255, 255, 0.9); */
+    padding: 0;
+    margin: 0;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .intro-content h1 {
+    font-size: 2.3rem;
+    /* display: flex; */
+  }
+}
+
+.intro-content h2 {
+  /* font-family: "Alfa Slab One", cursive; */
+  font-family: "Rock Salt", sans-serif;
+
+  color: #b22234;
+  margin-bottom: 20px;
+}
+
+.intro-content h1 {
+  font-family: "Alfa Slab One", cursive;
+  /* letter-spacing: 3px; */
+  color: #3c3b6e;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+}
+
+.game-over-content {
+  font-family: monospace;
+  /* padding: 40px; */
+  /* border-radius: 10px; */
+  text-align: center;
+  color: white;
+  /* max-width: 600px; */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Headings */
+.game-over-content h1 {
+  font-family: "Alfa Slab One", cursive;
+  /* 2.8rem */
+  font-size: 3.4rem;
+  color: #3c3b6e;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+  margin-bottom: -1rem;
+}
+
+.game-over-content h2 {
+  font-family: "Rock Salt", sans-serif;
+  font-size: 3.5rem;
+  color: #b22234;
+  /* margin-bottom: 40px; */
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .game-over-content h1 {
+    font-size: 2.5rem;
+  }
+
+  .game-over-content h2 {
+    font-size: 2rem;
+  }
+
+  #final-score {
+    font-size: 2rem;
+  }
+
+  .game-over-stats-container {
+    font-size: 1.1rem;
+  }
+}
+
+#final-score {
+  display: inline-block;
+  /* margin-top: 5px; */
+  font-size: 3.2rem;
+}
+
+/* Stats container and image */
+.game-over-stats-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 3rem 0;
+  gap: 5px;
+  /* margin-bottom: 40px; */
+  width: 100%;
+  font-size: 1.4rem;
+  /* text-transform: uppercase; */
+  color: #716fb9;
+  margin-bottom: 4rem;
+}
+
+.stats-text {
+  /* font-size: 1.4rem; */
+  /* line-height: 1.5; */
+  margin: 0;
+  /* max-width: 500px; */
+}
+
+.game-over-cto {
+  /* margin: 3rem 0; */
+  /* font-family: "Alfa Slab One", sans-serif; */
+  /* letter-spacing: 4px; */
+  /* color: #b1afd8; */
+}
+.game-over-stat-value {
+  /* font-family: "Alfa Slab One", sans-serif; */
+  /* font-family: "Rock Salt", sans-serif; */
+  /* font-size: 1.3rem; */
+  /* color: white; */
+  /* color: #716fb9; */
+  /* letter-spacing: 3px; */
+  display: inline-block;
+  /* padding: 0 5px; */
+  text-transform: uppercase;
+}
+
+.end-image {
+  width: 15rem;
+  height: 15rem;
+  background-image: url("images/ufo.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* margin: 10px 0; */
+}
+
+/* Buttons */
+.game-over-button-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  /* margin-top: 4rem; */
+}
+
+.hand-drawn-button {
+  font-family: "Rock Salt", sans-serif;
+  background-color: #b22234;
+  color: white;
+  border: 3px solid white;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-size: 1.4rem;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+  transform: rotate(-1deg);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+}
+
+.hand-drawn-button:hover {
+  transform: rotate(1deg) scale(1.05);
+  background-color: #b22234;
+}
+
+.hand-drawn-button:active {
+  transform: rotate(0) scale(0.95);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+#restart-button {
+  font-family: monospace;
+  font-size: 1.1rem;
+  padding: 5px;
+  margin: 10px 0 0 0;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  color: white;
+  color: #716fb9;
+
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+#restart-button:hover {
+  color: #b22234;
+}
+
+#trump-game-over-animation {
+  /* position: absolute; */
+  /* left: 0; */
+  width: 100%;
+  height: 200px;
+  z-index: -1;
+  opacity: 0.9;
+
+  /* Center the sprite horizontally */
+  display: flex;
+  justify-content: center;
+  margin: -5rem 0 0rem;
+
+  /* Move this element to be above the button */
+  /* bottom: 180px; Adjust this value based on your layout */
+}
+
+.trump-victory-animation:before {
+  content: "";
+  display: block;
+  width: 200px;
+  height: 200px;
+  background-image: url("images/end-screen-mad.png");
+  background-size: 200% 100%; /* Two frames, side by side */
+  background-repeat: no-repeat;
+  background-position: 0% 0%;
+  animation: trumpFrames 1s steps(1) infinite;
+}
+
+/* We'll add the specific animation class in JavaScript based on win/lose */
+.trump-victory-animation {
+  background-image: url("images/trump-idle-sprite.png");
+  animation: trumpFrames 1s infinite steps(1);
+}
+
+.trump-slapped-animation {
+  background-image: url("images/trump-slapped-sprite.png");
+  animation: trumpFrames 1s infinite steps(1);
+}
+
+.contributeSounds {
+  color: #808080;
+  padding: 10px 0;
+}
+
+@keyframes trumpFrames {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 0%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+
+/* buttons  */
+button {
+  /* font-family: "Bebas Neue", sans-serif;
+  background-color: #3c3b6e;
+  color: white;
+  border: none;
+  padding: 2px 4px;
+  margin: 0 5px;
+  text-align: center;
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 5px;
+  transition: background-color 0.3s; */
+}
+
+button {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  padding: 5px 10px;
+  margin: 4px 0 4px 0;
+  transition: background-color 0.3s ease;
+
+  display: inline-block;
+  font-family: system-ui;
+  text-transform: uppercase;
+}
+
+button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+#start-button {
+  min-height: 3rem;
+  min-width: 3rem;
+  font-size: 1rem;
+  letter-spacing: 3px;
+  margin: 1rem 0 0;
+  padding: 1rem 3rem;
+  font-family: "Rock Salt", sans-serif;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  color: #808080;
+}
+
+button:hover {
+  /* background-color: #b22234; */
+}
+
+/* Game Screen and HUD */
+#game-screen {
+  background: linear-gradient(to bottom, #0c0e24, #0a0a1a);
+}
+
+#game-hud {
+  font-family: "Bebas Neue", sans-serif;
+  /* font-family: "Permanent Marker", cursive; */
+  text-transform: uppercase; /* To ensure all caps */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* z-index: 15; */
+  pointer-events: none;
+}
+
+#term-progress-container {
+  width: 100%;
+  height: 30px;
+  background-color: #222;
+  /* border-bottom: 2px solid #444; */
+  overflow: hidden;
+}
+
+#term-progress-bar {
+  width: 0%;
+  height: 100%;
+  background-color: rgb(221, 17, 34);
+  transition: width 1s linear;
+}
+
+#term-progress-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* font-family: "Bebas Neue", sans-serif; */
+  /* findme  */
+  color: #9896e3;
+
+  /* font-size: 1rem; */
+  letter-spacing: 2px;
+  /* text-shadow: 2px 2px 0 #000; */
+  /* font-family: "Alfa Slab One", cursive;  */
+
+  font-family: "Rock Salt", sans-serif;
+  font-weight: 700;
+  text-transform: uppercase; /* To ensure all caps */
+  letter-spacing: 3px;
+}
+
+@media (max-width: 768px) {
+  #term-progress-label {
+    /* position: absolute; */
+    /* top: 0; */
+    /* left: 0; */
+    /* width: 100%; */
+    /* height: 30px; */
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+  }
+}
+
+#score {
+  display: none; /* Hide the score but keep it in the DOM */
+}
+
+#about {
+  position: fixed;
+  top:0;
+  right:0;
+  font-family: "Rock Salt", sans-serif;
+  color: white;
+  padding: 0 10px;
+  margin:0;
+  font-size: .77rem;
+  cursor: pointer;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Game container */
+#game-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  z-index: 5;
+}
+
+/* Map background */
+#map-background {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 100%;
+  max-height: 100vh;
+  z-index: -100;
+}
+
+/* Trump sprite elements */
+#trump-sprite-container {
+  position: absolute;
+  width: 500px; /* Increased from 200px - adjust as needed */
+  height: 1000px; /* Increased from 400px - adjust as needed */
+  overflow: hidden;
+  z-index: 1;
+}
+
+#trump-sprite {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  z-index: 1;
+}
+
+/* debug and hitbox  */
+
+.debug-outline {
+  /* fill: rgba(255, 0, 0, 0.2) !important;
+  stroke: red !important;
+  stroke-width: 2px !important; */
+}
+
+.targeted {
+  /* fill: rgba(160, 160, 160, 0.5) !important; */
+}
+
+/* Mobile Size */
+.mobile-size {
+  width: 80px;
+  height: 80px;
+}
+
+
+
+/* hud  */
+
+/* Country meters in HUD */
+#country-status {
+  display: none;
+  position: absolute;
+  top: -30rem;
+  left: -30rem;
+  /* top: 50px; */
+  /* left: 0; */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.country-meter {
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 5px;
+  padding: 5px 10px;
+  width: 120px;
+  text-align: center;
+}
+
+.country-label {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.meter-container {
+  height: 8px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 3px 0;
+}
+
+.resistance-meter {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(to right, #00ff00, #ffff00, #00ff00);
+  transition: width 0.3s;
+}
+
+.freedom-meter {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(to right, #ff0000, #ff5e00, #ffcc00);
+  transition: width 0.5s;
+}
+
+/* debug panel  */
+
+#debug-panel {
+  display: none; /* Ensure it's hidden by default */
+  position: fixed;
+  bottom: 50px;
+  left: 10px;
+  max-width: 350px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 5px;
+  margin: 1px;
+  border-radius: 5px;
+  z-index: 1000;
+  /* font-size: 12px; */
+  /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); */
+  /* font-size: 1rem; */
+  font-family: system-ui;
+}
+
+#debug-panel h3,
+h3 {
+  margin: 9px 0 0 0;
+  font-size: 1rem;
+  text-transform: capitalize;
+  font-family: system-ui;
+}
+
+/* Debug Toggle Button */
+#debug-toggle {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  /* background-color: rgba(0, 0, 0, 0.01); */
+  color: white;
+  /* text-align: center; */
+  /* line-height: 40px; */
+  /* font-size: 14px; */
+  cursor: pointer;
+  z-index: 9999;
+  /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); */
+  user-select: none;
+}
+
+/* Close Button for Debug Panel */
+#debug-panel button[title="Close Debug Panel"] {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  line-height: 18px;
+  text-align: center;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.debug-panel-title {
+  font-weight: bold;
+  font-size: 1rem;
+  border-bottom: 1px solid white;
+  padding-bottom: 5px;
+}
+
+.anim-controls-section {
+  margin-bottom: 1rem;
+  background-color: rgb(16, 7, 60);
+}
+
+.dev-controls-section {
+  margin-bottom: 1rem;
+  background-color: rgb(0, 24, 6);
+}
+
+.controls-margin-bottom {
+  margin-bottom: 5px;
+}
+
+.controls-margin-top {
+  margin-top: 5px;
+}
+
+/* Input Width Classes */
+.input-narrow {
+  width: 50px;
+}
+
+.input-medium {
+  width: 60px;
+}
+
+/* Dialog Input Margin */
+.dialog-input-margin {
+  margin: 10px 0;
+}
+
+/* Volume and Intensity Controls */
+.volume-control,
+.intensity-control {
+  margin: 10px 0;
+}
+
+.volume-slider {
+  width: 100%;
+}
+
+/* Calibration Panel Styles */
+#calibration-panel {
+  font-family: system-ui;
+  z-index: 2001;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+}
+
+.hitbox-calibration-overlay {
+  position: fixed;
+  /* top: 0; */
+  /* left: 0; */
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.calibration-modal {
+  background: white;
+  border-radius: 10px;
+  max-width: 500px;
+  width: 90%;
+  margin: 0 auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.calibration-header {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.calibration-body {
+  padding: 15px;
+}
+
+.calibration-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+/* 
+.start-btn {
+  background-color: #d32f2f;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-family: "Rock Salt", sans-serif;
+} */
+
+.cancel-btn {
+  background-color: #757575;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+}
+
+/* Animation Test Dialog Styles */
+
+@media (max-width: 768px) {
+  #debug-panel {
+    max-height: 20vh;
+  }
+
+  .animation-test-dialog {
+    top: 20%;
+  }
+}
+
+.animation-test-dialog input,
+.animation-test-dialog select {
+  margin: 10px 0;
+  width: 100%;
+}
+
+/* Audio Debug Controls Styles */
+#audio-debug-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+#audio-debug-controls > div {
+  margin: 5px 0;
+  font-weight: bold;
+}
+
+#audio-debug-controls button {
+  margin: 3px;
+  padding: 5px 8px;
+}
+
+/* Dev Controls Styles */
+#dev-controls {
+  margin-bottom: 10px;
+}
+
+#dev-controls label {
+  margin-right: 10px;
+}
+
+#dev-controls input {
+  width: 50px;
+}
+
+#anim-controls input[type="number"] {
+  width: 60px;
+  margin-right: 5px;
+}
+
+/* Animation Controls Styles */
+#anim-controls input {
+  width: 60px;
+  margin-right: 5px;
+}
+
+#anim-info {
+  margin-top: 10px;
+  padding: 5px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+/* Developer Controls Input Styles */
+#dev-controls input[type="number"] {
+  width: 50px;
+  margin-right: 5px;
+}
+
+/* Animation Control Input Styles */
+#anim-controls input[type="number"] {
+  width: 60px;
+  margin-right: 5px;
+}
+
+/* Audio Debug Button Styles */
+.audio-debug-button {
+  margin: 3px;
+  padding: 5px 8px;
+}
+
+/* Audio Debug Button Containers */
+.audio-debug-button-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.uiBtn {
+  margin: 5px 0;
+  font-weight: bold;
+}
+
+/* Calibration Dialog Button Styles */
+.calibration-dialog-button {
+  margin: 5px 2px;
+  padding: 5px 10px;
+}
+
+/* Button Effect Styles */
+.button-active {
+  background-color: #ff7700 !important;
+}
+
+/* Status Div Styles */
+.debug-status-div {
+  margin: 10px 0;
+  padding: 5px;
+  background-color: rgba(0, 0, 0, 0.2);
+  font-size: 10px;
+}
+
+/* Calibration Styles */
+.calibration-panel {
+  position: absolute;
+  z-index: 2001;
+  bottom: 50px;
+  right: 10px;
+  margin: 1px;
+  padding: 1px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  max-width: 300px;
+}
+
+.calibration-dialog,
+.animation-test-dialog {
+  position: absolute;
+  z-index: 2000;
+  top: 10%;
+  left: 1rem;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 15px;
+  border-radius: 5px;
+  color: white;
+  max-width: 300px;
+  border: 1px solid yellow;
+  width: 100%;
+}
+
+.debug-section-heading {
+  margin-top: 15px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 5px;
+  font-size: 1.1em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Additional refinements for input and button consistency */
+#debug-panel input[type="number"],
+#debug-panel input[type="text"],
+#debug-panel select {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3px 5px;
+  border-radius: 3px;
+}
+
+/* #debug-panel button, .calibration-dialog-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  padding: 5px 10px;
+  margin: 4px 0 4px 0;
+  transition: background-color 0.3s ease;
+
+  display: inline-block;
+  font-family: system-ui;
+  text-transform: uppercase;
+}
+
+#debug-panel button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+} */
+
+.calibration-dialog-button {
+  margin: 5px 2px;
+  padding: 5px 10px;
+}
+
+/* Calibration Hitbox */
+/* #trump-hand-hitbox.calibration-mode {
+  background-color: rgba(255, 0, 0, 0.3);
+  border: 2px solid red;
+  display: block;
+} */
+
+/* Hitbox Styles during Calibration */
+/* #trump-hand-hitbox.calibration-mode {
+  background-color: rgba(255, 0, 0, 0.3);
+  border: 2px solid red;
+  display: block;
+} */
+
+#calib-output {
+  /* margin-top: 10px;
+  font-size: 10px;
+  max-height: 100px;
+  overflow-y: auto; */
+}
+
+#coordinates-output {
+  /* max-height: 100px;
+  overflow-y: auto;
+  font-size: 10px; */
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  #game-hud {
+    font-size: 2rem;
+  }
+
+  #country-status {
+    display: none;
+
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .country-meter {
+    width: 90px;
+    padding: 3px 5px;
+  }
+
+  .country-label {
+    font-size: 12px;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Increase touch targets for mobile */
+button,
+.control-button {
+  /* min-height: 44px; */
+  /* min-width: 44px; */
+}
+
+/* Prevent unwanted selection */
+#game-container {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* audio  */
+/* Audio Controls Styling like mute button */
+.game-controls {
+  position: absolute;
+  top: 3rem;
+  right: 2rem;
+  z-index: 100;
+  display: flex;
+  /* gap: 10px; */
+}
+
+.control-button {
+  background-color: rgba(60, 59, 10, 0.1);
+  color: rgba(255, 255, 255, 0.144);
+  margin-top: 2rem;
+  border: none;
+  border-radius: 50%;
+  width: 10px;
+  min-width: 5px;
+  min-height: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  font-size: 18px;
+}
+
+.control-button:hover {
+  background-color: rgba(178, 34, 51, 0.069);
+  transform: scale(1.1);
+}
+
+.control-button:active {
+  transform: scale(0.95);
+}
+
+.control-button .icon {
+  pointer-events: none;
+}
+
+/* flag overlay  */
+/* Country Flag Overlay Enhancements */
+.country-flag-overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background-size: 100% 100%;
+  background-position: center;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.5s ease;
+}
+
+#canada-flag-overlay {
+  background-image: url("images/canada-flag.png");
+}
+
+#mexico-flag-overlay {
+  background-image: url("images/mexico-flag.png");
+}
+
+#greenland-flag-overlay {
+  background-image: url("images/greenland-flag.png");
+}
+
+
+
+.positioned-flag-overlay {
+  position: absolute;
+  width: var(--map-width, 100%);
+  height: var(--map-height, 100%);
+  top: var(--map-top, 0);
+  left: var(--map-left, 0);
+  background-size: 100% 100%;
+  background-position: center;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* flag overlay end  */
+/* Enhanced Freedom Manager Styles */
+
+/* Container for freedom particles */
+.freedom-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Base particle style */
+.resistance-particle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-family: monospace;
+  opacity: 0;
+  animation: particle-float 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  z-index: 3000;
+  pointer-events: none;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+}
+
+/* Larger particle for resistance events */
+.resistance-particle-large {
+  width: 36px;
+  height: 36px;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+}
+
+/* Different particle variations */
+.resistance-particle-1 {
+  color: #ff3d3d;
+}
+
+.resistance-particle-2 {
+  color: #4285f4;
+  animation-duration: 2.2s;
+}
+
+.resistance-particle-3 {
+  color: #fbbc05;
+  animation-duration: 1.8s;
+}
+
+.resistance-particle-4 {
+  color: #34a853;
+  animation-duration: 2.5s;
+}
+
+/* Improved animation for particles */
+@keyframes particle-float {
+  0% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-65px) scale(1) rotate(var(--rotation, 0deg));
+    opacity: 0;
+  }
+}
+
+/* Special uprising animation element */
+.resistance-uprising {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 15px rgba(255, 100, 100, 0.8), 0 0 30px rgba(255, 50, 50, 0.5);
+  opacity: 0;
+  z-index: 35;
+  pointer-events: none;
+  animation: uprising 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Animation for uprising visual */
+@keyframes uprising {
+  0% {
+    transform: translateY(30px) scale(0.2);
+    opacity: 0;
+  }
+  30% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-10px) scale(1.1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-25px) scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* Subtle effect when resistance is possible */
+.resistance-possible {
+  animation: resistance-possible-pulse 3s ease-in-out infinite;
+}
+
+@keyframes resistance-possible-pulse {
+  0% {
+    filter: brightness(1) saturate(1);
+  }
+  50% {
+    filter: brightness(1.15) saturate(1.2);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+
+/* Regular resistance effect */
+.resistance-effect {
+  animation: resistance-pulse 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes resistance-pulse {
+  0% {
+    filter: brightness(1) saturate(1);
+  }
+  30% {
+    filter: brightness(1.3) saturate(1.3);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+
+/* Major resistance effect */
+.major-resistance-effect {
+  animation: major-resistance-pulse 2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes major-resistance-pulse {
+  0% {
+    filter: brightness(1) saturate(1);
+  }
+  15% {
+    filter: brightness(1.5) saturate(1.4);
+  }
+  40% {
+    filter: brightness(1.3) saturate(1.2);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+
+/* Flag resistance effect */
+.flag-resistance-effect {
+  animation: flag-resistance 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes flag-resistance {
+  0% {
+    filter: brightness(1) blur(0);
+    transform: scale(1);
+  }
+  25% {
+    filter: brightness(1.3) blur(1px);
+    transform: scale(1.05);
+  }
+  50% {
+    filter: brightness(1.2) blur(0.5px);
+    transform: scale(0.98);
+  }
+  100% {
+    filter: brightness(1) blur(0);
+    transform: scale(1);
+  }
+}
+
+/* Opacity classes for flag overlays */
+.opacity-33 {
+  opacity: 0.23 !important;
+}
+
+.opacity-66 {
+  opacity: 0.36 !important;
+}
+
+.opacity-100 {
+  opacity: 0.66 !important;
+}
+
+.trump-hand-hitbox-debug {
+  /* background-color: rgba(255, 0, 0, 0.3);
+  border: 2px solid red; */
+}
+
+#trump-hand-hitbox {
+  position: absolute;
+  background: transparent;
+  pointer-events: all; /* This ensures it can receive clicks */
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  border: none;
+  background-color: transparent;
+  z-index: 10; /* High z-index to ensure it's clickable */
+}
+
+/* Only show hitbox visual elements in debug mode */
+body.debug-mode #trump-hand-hitbox,
+#trump-hand-hitbox.trump-hand-hitbox-debug {
+  /* background-color: rgba(255, 0, 0, 0.4) !important; */
+  /* border: 2px solid red !important; */
+}
+
+
+/* Animation keyframes */
+@keyframes subtle-pulse {
+  0% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes hit-splash {
+  0% {
+    background: radial-gradient(circle, rgba(61, 255, 181, 0.8) 20%, rgba(255, 0, 0, 0) 70%);
+    transform: scale(0.9);
+  }
+  50% {
+    background: radial-gradient(circle, rgba(40, 176, 10, 0.7) 30%, rgba(255, 0, 0, 0) 80%);
+    transform: scale(1.5);
+  }
+  100% {
+    background: radial-gradient(circle, rgba(2, 88, 51, 0) 0%, rgba(255, 0, 0, 0) 0%);
+    transform: scale(2);
+    opacity: 0 !important; /* Force invisible at the end */
+  }
+}
+
+
+
+/* Hit state */
+#trump-hand-visual.hit {
+  display: block;
+  transform: scale(1);
+  opacity: 1;
+  animation: cartoony-hit-splash 0.6s ease-out forwards;
+  /* position: relative; Ensure position is set for pseudo-elements */
+
+}
+
+
+
+/* Ensure animation completes with element invisible */
+#trump-hand-visual.hit.animation-completed {
+  opacity: 0 !important;
+  background: none !important;
+}
+
+
+
+
+
+
+
+/* Animation keyframes for grab success */
+@keyframes cartoony-grab-success {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  20% {
+    transform: scale(1.15);
+    filter: brightness(1.5);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* Shard animations with jagged, asymmetrical shapes */
+@keyframes shard1-burst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(40px, -30px) scale(0.6) rotate(45deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(80px, -60px) scale(0.8) rotate(90deg);
+  }
+}
+
+@keyframes shard2-burst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50px, -20px) scale(0.6) rotate(-30deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-100px, -40px) scale(0.9) rotate(-60deg);
+  }
+}
+
+@keyframes shard3-burst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(30px, 40px) scale(0.5) rotate(60deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(60px, 80px) scale(0.7) rotate(120deg);
+  }
+}
+
+@keyframes shard4-burst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-40px, 30px) scale(0.5) rotate(-45deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-80px, 60px) scale(0.8) rotate(-90deg);
+  }
+}
+
+
+/* Add new shard animations */
+@keyframes shard5-burst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(20px, -50px) scale(0.5) rotate(30deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(40px, -100px) scale(0.7) rotate(60deg);
+  }
+}
+
+@keyframes shard6-burst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-30px, -40px) scale(0.4) rotate(-50deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-60px, -80px) scale(0.6) rotate(-100deg);
+  }
+}
+
+@keyframes shard7-burst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(45px, 15px) scale(0.5) rotate(40deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(90px, 30px) scale(0.7) rotate(80deg);
+  }
+}
+
+@keyframes shard8-burst {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-25px, 45px) scale(0.5) rotate(-35deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50px, 90px) scale(0.7) rotate(-70deg);
+  }
+}
+
+/* Shard 3 - Bottom Right */
+#trump-hand-visual.grab-success .shard3 {
+  border-left: 12px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 28px solid rgb(255, 100, 50);
+  transform-origin: center;
+  animation: shard3-burst 0.6s ease-out forwards;
+}
+
+/* Shard 4 - Bottom Left */
+#trump-hand-visual.grab-success .shard4 {
+  border-left: 7px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 22px solid rgb(255, 120, 80);
+  transform-origin: center;
+  animation: shard4-burst 0.6s ease-out forwards;
+}
+
+/* Shard 5 - Top Far */
+#trump-hand-visual.grab-success .shard5 {
+  border-left: 6px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 18px solid rgb(255, 160, 80);
+  transform-origin: center;
+  animation: shard5-burst 0.7s ease-out forwards;
+}
+
+/* Shard 6 - Top Left Far */
+#trump-hand-visual.grab-success .shard6 {
+  border-left: 9px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 20px solid rgb(255, 180, 100);
+  transform-origin: center;
+  animation: shard6-burst 0.65s ease-out forwards;
+}
+
+/* Shard 7 - Right Side */
+#trump-hand-visual.grab-success .shard7 {
+  border-left: 5px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 16px solid rgb(255, 140, 60);
+  transform-origin: center;
+  animation: shard7-burst 0.7s ease-out forwards;
+}
+
+/* Shard 8 - Left Side */
+#trump-hand-visual.grab-success .shard8 {
+  border-left: 8px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 19px solid rgb(255, 200, 120);
+  transform-origin: center;
+  animation: shard8-burst 0.75s ease-out forwards;
+}
+
+
+
+/* Grab screen shake animation */
+@keyframes grab-screen-shake {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-1.5px, 1.5px) rotate(-0.5deg); }
+  50% { transform: translate(1.5px, -1px) rotate(0.5deg); }
+  75% { transform: translate(-1px, 0.5px) rotate(-0.25deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.grab-screen-shake {
+  animation: grab-screen-shake 0.5s ease-in-out;
+}
+
+/* Grab success state */
+#trump-hand-visual.grab-success {
+  position: relative;
+  animation: cartoony-grab-success 0.6s ease-out forwards;
+}
+
+#trump-hand-visual.grab-success::before,
+#trump-hand-visual.grab-success::after,
+#trump-hand-visual.grab-success .shard3,
+#trump-hand-visual.grab-success .shard4,
+#trump-hand-visual.grab-success .shard5,
+#trump-hand-visual.grab-success .shard6,
+#trump-hand-visual.grab-success .shard7,
+#trump-hand-visual.grab-success .shard8 {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* Shard 1 - Top Right */
+#trump-hand-visual.grab-success::before {
+  content: "";
+  border-left: 10px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 30px solid rgb(255, 50, 50);
+  transform-origin: center;
+  animation: shard1-burst 0.6s ease-out forwards;
+}
+
+/* Shard 2 - Top Left */
+#trump-hand-visual.grab-success::after {
+  content: "";
+  border-left: 8px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 25px solid rgb(255, 80, 80);
+  transform-origin: center;
+  animation: shard2-burst 0.6s ease-out forwards;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/* Pause Overlay Styles */
+#pause-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pause-overlay-message {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.372);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-size: 3rem;
+  background: rgba(0, 0, 0, 0.2);
+  /* padding: 20px; */
+  border-radius: 10px;
+}
+/* 
+#pause-overlay .pause-message {
+  color: white;
+  font-size: 24px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+} */
+
+/* .speed-notification {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  z-index: 1000;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 8px;
+  font-size: 3rem;
+  padding: 20px 1rem;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 7px;
+} */
+
+.speed-notification {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 1000;
+  text-align: center;
+  
+  /* Cartoony text styling */
+  color: #fff;
+  letter-spacing: 3px;
+  font-family: "Rock Salt", sans-serif;
+
+  font-size: 2rem;
+  font-weight: bold;
+  text-shadow: 
+    2px 2px 0 #000,
+    4px 4px 0 #000,
+    -1px -1px 0 #000;
+  
+  /* Hand-drawn background */
+  background: #b22234;
+  border: 5px solid #000;
+  border-radius: 15px;
+  padding: 5px 10px;
+
+  /* Updated animation */
+  animation: speed-drop 1.5s cubic-bezier(0.25, 0.1, 0.25, 1) 1 forwards;
+}
+
+/* New animation keyframes */
+@keyframes speed-drop {
+  0% { 
+    transform: 
+      translateX(-50%) 
+      translateY(-100%) 
+      rotate(-15deg);
+  }
+  50% { 
+    transform: 
+      translateX(-50%) 
+      translateY(50%) 
+      rotate(5deg);
+  }
+  50% { 
+    transform: 
+      translateX(-50%) 
+      translateY(70%) 
+      rotate(5deg);
+  }
+  50% { 
+    transform: 
+      translateX(-50%) 
+      translateY(70%) 
+      rotate(5deg);
+  }
+  100% { 
+    transform: 
+      translateX(50%) 
+      translateY(-100%) 
+      rotate(15deg);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Cartoony hit splash animation */
+@keyframes cartoony-hit-splash {
+  0% {
+    background: radial-gradient(circle, rgba(255, 255, 0, 0.9) 20%, rgba(255, 0, 0, 0) 70%);
+    transform: scale(0.6) rotate(-5deg);
+    border: 3px solid #000;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+  25% {
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.8) 30%, rgba(255, 165, 0, 0.5) 60%, rgba(255, 0, 0, 0) 90%);
+    transform: scale(1.2) rotate(5deg);
+    border: 3px solid #000;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+  }
+  50% {
+    background: radial-gradient(circle, rgba(255, 99, 71, 0.7) 20%, rgba(255, 165, 0, 0.4) 50%, rgba(255, 255, 0, 0.2) 80%);
+    transform: scale(1.0) rotate(-8deg);
+    border: 4px solid #000;
+  }
+  75% {
+    background: radial-gradient(circle, rgba(255, 69, 0, 0.6) 10%, rgba(255, 140, 0, 0.3) 40%, rgba(255, 215, 0, 0.1) 70%);
+    transform: scale(1.3) rotate(8deg);
+    border: 2px solid #000;
+  }
+  100% {
+    background: radial-gradient(circle, rgba(255, 0, 0, 0) 0%, rgba(255, 0, 0, 0) 0%);
+    transform: scale(1.5) rotate(0deg);
+    opacity: 0 !important;
+    border: 0px solid transparent;
+  }
+}
+
+/* Impact star effect */
+#trump-hand-visual.hit::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 100%;
+  height: 100%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23FFCC00' stroke='%23000' stroke-width='2' d='M50,0 L55,35 L90,25 L60,50 L95,70 L60,65 L70,100 L50,70 L30,100 L40,65 L5,70 L40,50 L10,25 L45,35 Z'/%3E%3C/svg%3E") no-repeat center center;
+  background-size: contain;
+  opacity: 0;
+  animation: star-impact 1.8s ease-out forwards;
+  pointer-events: none;
+  z-index: 9998; /* High z-index */
+}
+
+@keyframes star-impact {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.1) rotate(20deg);
+  }
+  80% {
+    opacity: 0.8;
+    transform: scale(0.3) rotate(35deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.1) rotate(45deg);
+  }
+}
+
+/* Screen shake effect */
+.screen-shake {
+  animation: screen-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  transform-origin: center center;
+}
+
+@keyframes screen-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+
+/* Update the base styles for the hand visual */
+#trump-hand-visual {
+  position: absolute;
+  display: none;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  opacity: 0;
+  z-index: -10;
+}
+
+/* Hittable state - more subtle to ensure it fits within hitbox */
+#trump-hand-visual.hittable {
+  display: block;
+  scale: 1.0; /* Reduced to ensure it stays within hitbox */
+  background-color: rgb(255, 255, 255);
+  /* border:#22222232 3px solid; */
+  opacity: .2;
+}
+
+
+
+
+
+
+
+
+
+/* Social buttons */
+.social-buttons-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  /* margin-top: 1rem; */
+}
+
+.social-button {
+  /* width: 2rem;
+  height: 2rem;
+  border: none;
+  color: white;
+  font-weight: bold;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s; */
+
+  font-family: "Rock Salt", sans-serif;
+    background-color: #b22234;
+    color: white;
+    border: 3px solid 2e2d58;
+    border-radius: 8px;
+    padding: 9px 15px;
+    /* font-size: 1.4rem; */
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    transform: rotate(-1deg);
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+    min-width: 3rem;
+}
+
+.social-button:hover {
+  transform: rotate(1deg) scale(1.05);
+}
+
+.social-button:active {
+  transform: rotate(0) scale(0.95);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.download-button:hover {
+  background-color: #ff77df;
+}
+
+.native-share-button:hover {
+  background-color: #e7a900;
+}
+
+.twitter-button:hover {
+  background-color: #1DA1F2;
+}
+
+.facebook-button:hover {
+  background-color: #1877F2;
+}
+
+.bluesky-button:hover {
+  background-color: #0085FF;
+}
+
+.mastodon-button:hover {
+  background-color: #563ACC;
+}
+
+
+
+
+/* Freedom text animation */
+.freedom-text {
+  font-family: 'Bebas Neue', 'Oswald', sans-serif;
+  /* font-size: 28px; */
+  font-weight: bold;
+  color: white;
+  animation: freedom-text-animation 2s ease-out forwards;
+  pointer-events: none;
+  white-space: nowrap;
+
+  /* animation: freedom-text-animation 2s ease-out forwards; */
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: "Rock Salt", sans-serif;
+  color: rgba(255, 255, 255, 0.269);
+  font-size: .3rem;
+  transition: all 0.3s;
+}
+
+@keyframes freedom-text-animation {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2) rotate(-5deg);
+  }
+  40% {
+    transform: translate(-50%, -60%) scale(1.1) rotate(5deg);
+  }
+  60% {
+    transform: translate(-50%, -70%) scale(1.2) rotate(-3deg);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -80%) scale(1.1) rotate(2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -100%) scale(1) rotate(0);
+  }
+}
+
+/* Screen shake animation */
+@keyframes screen-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.screen-shake {
+  animation: screen-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  transform-origin: center center;
+}
+
+/* Confetti container and pieces - very simple with most styling in JS */
+.freedom-confetti-container {
+  pointer-events: none;
+  overflow: visible;
+}
+
+.confetti-piece {
+  position: absolute;
+  transform-origin: center center;
+  pointer-events: none;
+}

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
+    <title>Presidential Grab</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap" rel="stylesheet" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@700&family=Alfa+Slab+One&display=swap" rel="stylesheet" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&display=swap" rel="stylesheet" />
+
+    <!-- Stylesheets -->
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+    <link href="https://fonts.googleapis.com/css2?family=PT+Mono&display=swap" rel="stylesheet" />
+
+    <meta name="author" content="Cato Döt" />
+    <meta name="description" content="Sovereignty Slap" />
+     <!-- Open Graph / Yuck -->
+     <meta property="og:type" content="website" />
+     <meta property="og:url" content="https://catodot.github.io/d/" />
+     <meta property="og:title" content="Sovereignty Slap" />
+     <meta
+       property="og:description"
+       content="Smack those hands away to survive another day." />
+     <meta property="og:image" content="https://catodot.github.io/d/img/grab.png" />
+ 
+     <!-- Eewww Card Tags  -->
+     <meta name="twitter:card" content="summary_large_image" />
+     <meta name="twitter:title" content="Sovereignty Slap - Toronto Bike Survival Game" />
+     <meta
+       name="twitter:description"
+       content="Smack those hands away to survive another day." />
+     <meta name="twitter:image" content="https://catodot.github.io/d/img/grab.png" />
+ 
+     <link rel="me" href="https://mastodon.social/@freedom" />
+ 
+     <!-- Bluesky/AT Protocol -->
+     <!--  currently use OpenGraph tags, but add these for future compatibility -->
+     <meta property="bsky:title" content="Sovereignty Slap - Survival Game" />
+     <meta
+       property="bsky:description"
+       content="Smack those hands away to survive another day.." />
+     <meta property="bsky:image" content="https://catodot.github.io/d/img/grab.png" />
+ 
+     <!-- General SEO Meta Tags -->
+     <meta
+       name="description"
+       content="Smack those hands away to survive another day.." />
+ 
+ 
+   
+
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+  </head>
+
+  <body>
+    <!-- Intro Screen -->
+    <div id="intro-screen" class="screen">
+      <div class="intro-content">
+        <h1>Welcome to the resistance</h1>
+
+        <button id="start-button">Start Game</button>
+      </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen hidden">
+      <!-- Game HUD -->
+      <!-- <div id="game-hud">
+        <div id="timer">Time: <span id="time-value">60</span></div>
+        <div id="score">Score: <span id="score-value">0</span></div>
+      </div> -->
+
+      <div id="game-hud">
+        <div id="term-progress-container">
+          <!-- <div id="about">?</div> -->
+
+          <div id="term-progress-bar"></div>
+                    <!-- <marquee behavior="alternate" scrollamount="1" id="term-progress-label">UNLESS WE DO SOMETHING</marquee> -->
+
+          <div id="term-progress-label">UNLESS WE DO SOMETHING</div>
+        </div>
+        <div id="score" class="hidden">Score: <span id="score-value">0</span></div>
+      </div>
+
+      <!-- Country Status Meters -->
+      <div id="country-status">
+        <div class="country-meter" id="canada-meter">
+          <div class="country-label">Canada</div>
+          <div class="meter-container">
+            <div class="freedom-meter" id="canada-occupation"></div>
+          </div>
+          <div class="meter-container">
+            <div class="resistance-meter" id="canada-resistance"></div>
+          </div>
+        </div>
+
+        <div class="country-meter" id="mexico-meter">
+          <div class="country-label">Mexico</div>
+          <div class="meter-container">
+            <div class="freedom-meter" id="mexico-occupation"></div>
+          </div>
+          <div class="meter-container">
+            <div class="resistance-meter" id="mexico-resistance"></div>
+          </div>
+        </div>
+
+        <div class="country-meter" id="greenland-meter">
+          <div class="country-label">Greenland</div>
+          <div class="meter-container">
+            <div class="freedom-meter" id="greenland-occupation"></div>
+          </div>
+          <div class="meter-container">
+            <div class="resistance-meter" id="greenland-resistance"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Container -->
+      <div id="game-container">
+        <!-- Map Background -->
+        <img id="map-background" src="images/world-map.png" alt="World Map" />
+
+        <div id="canada-flag-overlay" class="country-flag-overlay"></div>
+        <div id="mexico-flag-overlay" class="country-flag-overlay"></div>
+        <div id="greenland-flag-overlay" class="country-flag-overlay"></div>
+
+        <!-- Trump sprite container -->
+        <div id="trump-sprite-container">
+          <div id="trump-hand-hitbox"></div>
+          <div id="trump-sprite"></div>
+        </div>
+        <div id="trump-hand-visual"></div>
+      </div>
+
+      <!-- Simplified Debug Panel -->
+      <div id="debug-panel">
+        <h3>Debug Tools</h3>
+        <button id="toggle-hitbox">Show Hitbox</button>
+        <button id="test-animation">Test Animation</button>
+      </div>
+    </div>
+
+
+    <div id="game-over-screen" class="screen hidden">
+      <div class="game-over-content">
+        <h1 id="game-result">Game Over</h1>
+        <h2>Resistance Score: <span id="final-score">0</span></h2>
+        <div class="game-over-stats-container">
+          <p class="stats-text game-over-stat-value">YOU BLOCKED <span id="blocks-stat">0 attacks</span> AND SURVIVED <span id="time-stat">10 months</span></p>
+          <p class="stats-text game-over-cto">
+            Join the resistance.
+          </p>
+        </div>
+        <div id="trump-game-over-animation" class="trump-victory-animation"></div>
+        <div class="game-over-button-container">
+          <!-- <button id="share-button" class="hand-drawn-button" href="https://vote.gov" target="_blank">share</button> -->
+        </div>
+        <!-- New social share buttons -->
+        <div class="social-buttons-row">
+          <button id="download-screenshot" class="social-button download-button" aria-label="Download Screenshot">↓</button>
+          <button id="share-twitter" class="social-button twitter-button" aria-label="Share on Twitter">X</button>
+          <button id="share-facebook" class="social-button facebook-button" aria-label="Share on Facebook">f</button>
+          <button id="share-bluesky" class="social-button bluesky-button" aria-label="Share on Bluesky">B</button>
+          <button id="share-mastodon" class="social-button mastodon-button" aria-label="Share on Mastodon">M</button>
+        </div>
+        
+        <a href="https://docs.google.com/forms/d/1SuNDqRFRY3NxZYYjb78tk8uBCQs1Gn5M1Sj8PMXPx4o" target="_blank" class="contributeSounds">contribute sounds</a>
+        
+      </div>
+    </div>
+
+    <script src="audio-manager.js"></script>
+    <script src="game-logger.js"></script>
+
+    <script src="animation-manager.js"></script>
+    <script src="smack-manager.js"></script>
+    <!-- <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script> -->
+
+    <script src="html2canvas.js"></script>
+    <script src="screen-shot-share.js"></script>
+
+
+
+    <script src="debug-manager.js"></script>
+    <script src="effects-manager.js"></script>
+    <script src="ufo-manager.js"></script>
+    <script src="stars.js"></script>
+    <script src="freedom-manager.js"></script>
+    <script src="handhitbox-manager.js"></script>
+    <script src="game-speed-manager.js"></script>
+
+    <script src="game.js"></script>
+  </body>
+</html>
