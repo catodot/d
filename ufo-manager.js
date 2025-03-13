@@ -21,8 +21,8 @@ class UfoManager {
     // Configuration
     this.config = {
       intervals: {
-        min: 6000,
-        max: 8000
+        min: 60000,
+        max: 80000
       },
       ufoSize: {
         min: 30,
