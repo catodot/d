@@ -96,6 +96,9 @@ class GameSpeedManager {
     this.notificationElement.classList.add("speed-notification");
     this.notificationElement.textContent = speedName.toUpperCase() + "!";
     
+    this.notificationElement.setAttribute("role", "alert");
+    this.notificationElement.setAttribute("aria-live", "assertive");
+
     // Add to game screen
     const gameScreen = document.getElementById("game-screen");
     if (gameScreen) {

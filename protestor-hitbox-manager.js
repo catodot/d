@@ -195,6 +195,9 @@ class ProtestorHitboxManager {
       hitbox.style.pointerEvents = "all";
       hitbox.style.cursor = "pointer";
       hitbox.style.display = "none"; // Start hidden
+
+      hitbox.setAttribute("role", "button");
+hitbox.setAttribute("aria-label", `Support ${countryId.charAt(0).toUpperCase() + countryId.slice(1)} protestors`);
   
       // Add debug styling if in debug mode
       if (this.isDebugMode) {

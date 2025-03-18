@@ -86,6 +86,9 @@ class UfoManager {
     this.elements.ufo.style.transition = "opacity 0.5s ease";
     this.elements.ufo.style.pointerEvents = "none";
 
+    this.elements.ufo.setAttribute("aria-hidden", "true"); // Hide UFO from screen readers
+
+
     const gameScreen = document.getElementById("game-screen");
     gameScreen.appendChild(this.elements.ufo);
 
@@ -129,6 +132,9 @@ class UfoManager {
     this.elements.elon.style.transformOrigin = "bottom right";
     this.elements.elon.style.transform = "scale(0.2)";
     this.elements.elon.style.transition = "opacity 0.8s ease, transform 0.8s cubic-bezier(0.18, 1.25, 0.4, 1.1)";
+
+    this.elements.elon.setAttribute("aria-hidden", "true"); // Hide Elon from screen readers
+
 
     wrapper.appendChild(this.elements.elon);
     this.elements.elonContainer = wrapper;
