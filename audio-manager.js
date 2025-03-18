@@ -73,7 +73,7 @@ class AudioManager {
       defense: {
         slap: ["slap1.mp3", "slap2.mp3", "slap3.mp3", "slap4.mp3"],
         protest: {
-          eastCanada: ["protestEastCan1.mp3", "protestEastCan2.mp3", "protestEastCan3.mp3"],
+          eastCanada: ["protestEastCan1.mp3", "protestEastCan2.mp3", "protestEastCan3.mp3", "protestEastCan4.mp3", "protestEastCan5.mp3", "protestEastCan6.mp3", "protestEastCan7.mp3"],
           westCanada: ["protestWestCan1.mp3", "protestWestCan2.mp3", "protestWestCan3.mp3"],
           mexico: [
             "protestMex1.mp3",
