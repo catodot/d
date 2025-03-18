@@ -84,7 +84,7 @@ class AudioManager {
             "protestMex6.mp3",
             "protestMex7.mp3",
           ],
-          greenland: ["protestGreen1.mp3", "protestGreen2.mp3", "protestGreen3.mp3"],
+          greenland: ["protestGreen1.mp3", "protestGreen2.mp3", "protestGreen3.mp3", "protestGreen4.mp3", "protestGreen5.mp3", "protestGreen6.mp3", "protestGreen7.mp3", "protestGreen8.mp3", "protestGreen9.mp3", "protestGreen10.mp3"],
         },
       },
       music: {
@@ -104,7 +104,7 @@ class AudioManager {
     this.catchphraseFiles = {
       canada: ["canada1.mp3", "canada2.mp3", "canada3.mp3"],
       mexico: ["mexico1.mp3", "mexico2.mp3", "mexico3.mp3"],
-      greenland: ["greenland1.mp3", "greenland2.mp3"],
+      greenland: ["greenland1.mp3", "greenland2.mp3", "greenland3.mp3", "greenland4.mp3", "greenland5.mp3"],
       generic: ["catchphrase1.mp3", "catchphrase2.mp3", "catchphrase3.mp3"],
     };
 
