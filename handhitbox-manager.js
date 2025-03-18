@@ -82,9 +82,9 @@ setupHoverEffects() {
         !visual.classList.contains("hit") && 
         !visual.classList.contains("grab-success")) {
       
-      console.log("Mouse leave - setting opacity to 0.1"); // Debug log
+      console.log("Mouse leave - setting opacity to 0.3"); // Debug log
       visual.style.transform = "scale(1.0)";
-      visual.style.opacity = "0.1";
+      visual.style.opacity = "0.3";
     }
   };
   
@@ -296,7 +296,7 @@ scaleCoordinates(baseCoords, scaleFactor, touchFactor = 1.0) {
     this.trumpHandHitBoxVisual.style.display = "block";
     // Only set default opacity if no custom opacity is set
     if (!this.trumpHandHitBoxVisual.style.opacity || this.trumpHandHitBoxVisual.style.opacity === "0") {
-      this.trumpHandHitBoxVisual.style.opacity = "0.01"; // Use 0.01 as default
+      this.trumpHandHitBoxVisual.style.opacity = "0.3"; // Use 0.01 as default
     }
   } else {
     this.trumpHandHitBoxVisual.style.opacity = "0";

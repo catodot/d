@@ -842,7 +842,8 @@ document.addEventListener("DOMContentLoaded", function () {
   
     if (visual) {
       visual.classList.add("hittable");
-      visual.style.opacity = "0.01"; // Set default opacity to 0.01
+      visual.style.opacity = "0.2"; // Set default opacity to 0.01
+      // visual.style.border = "1px solid black";
       visual.style.transform = "scale(1.0)";
     }
   
