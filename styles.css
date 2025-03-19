@@ -162,7 +162,7 @@ body {
 }
 
 .stats-text {
-  margin: 0;
+  margin: 1rem 0;
 }
 
 .game-over-stat-value, .game-over-cto {
@@ -171,7 +171,7 @@ body {
 }
 
 .voice {
- color: red;
+  color: var(--secondary-color);
 }
 
 .end-image {
