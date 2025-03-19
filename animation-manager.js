@@ -54,12 +54,6 @@ class AnimationManager {
           { x: 1469, y: 1344, width: 737, height: 737 } // Frame 1
         ],
         calibrationScale: 0.23,
-        deviceCoordinates: {
-          mobile: [
-            { x: 232, y: 209, width: 50, height: 50 }, // Frame 0
-            { x: 218, y: 204, width: 50, height: 50 }, // Frame 1
-          ],
-        },
         smackAnimation: "smackEastCanada",
       },
       // Rest of animations remain the same
@@ -74,13 +68,6 @@ class AnimationManager {
           { x: 282, y: 1140, width: 737, height: 737 } // Frame 1
         ],
         calibrationScale: 0.23,
-
-        deviceCoordinates: {
-          mobile: [
-            { x: 60, y: 183, width: 50, height: 50 }, // Frame 0
-            { x: 61, y: 172, width: 50, height: 50 }, // Frame 1
-          ],
-        },
         smackAnimation: "smackWestCanada",
       },
 
@@ -94,13 +81,6 @@ class AnimationManager {
           { x: 2072, y: 789, width: 737, height: 737 } // Frame 1
         ],
         calibrationScale: 0.23,
-
-        deviceCoordinates: {
-          mobile: [
-            { x: 313, y: 131, width: 50, height: 50 }, // Frame 0
-            { x: 292, y: 126, width: 50, height: 50 }, // Frame 1
-          ],
-        },
         smackAnimation: "smackGreenland",
       },
 
@@ -114,13 +94,6 @@ class AnimationManager {
           { x: 906, y: 2445, width: 737, height: 737 } // Frame 1
         ],
         calibrationScale: 0.23,
-
-        deviceCoordinates: {
-          mobile: [
-            { x: 168, y: 333, width: 50, height: 50 }, // Frame 0
-            { x: 151, y: 337, width: 50, height: 50 }, // Frame 1
-          ],
-        },
         smackAnimation: "smackMexico",
       },
       slapped: {

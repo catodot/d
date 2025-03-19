@@ -1326,8 +1326,7 @@ class DebugManager {
           // Load mobile coordinates if they exist
           if (
             this.animationManager &&
-            this.animationManager.animations[this.calibration.currentAnimation] &&
-            this.animationManager.animations[this.calibration.currentAnimation].deviceCoordinates &&
+            this.animationManager.animations[this.calibration.currentAnimation]  &&
             this.animationManager.animations[this.calibration.currentAnimation].deviceCoordinates.mobile
           ) {
             this.calibration.frameCoordinates = [...this.animationManager.animations[this.calibration.currentAnimation].deviceCoordinates.mobile];

@@ -223,30 +223,6 @@ class FreedomManager {
 
 
 
-  shrinkAndHideProtestors(countryId) {
-    const protestorWrapper = this.countries[countryId].protestorWrapper || 
-                          document.getElementById(`${countryId}-protestors-wrapper`);
-    if (!protestorWrapper) return;
-  
-    this.logger.info("freedom", `Protestors timed out in ${countryId}, disappearing`);
-  
-    // Add transition for smooth shrinking animation
-    protestorWrapper.style.transition = "transform 0.5s ease, opacity 0.5s ease";
-    protestorWrapper.style.transform = "scale(0.1)";
-    protestorWrapper.style.opacity = "0";
-  
-    // Hide after animation completes
-    setTimeout(() => {
-      this.hideProtestors(countryId);
-  
-      // Reset click counter
-      if (this.countries[countryId]) {
-        this.countries[countryId].clickCounter = 0;
-      }
-    }, 500);
-  }
-
-
   /**
    * Create freedom celebration for country liberation
    * @param {string} countryId - Country identifier
@@ -328,39 +304,96 @@ class FreedomManager {
       }
     }, 1500);
   }
-
-  /**
-   * Create "RESISTANCE!" text for revolution event
-   * @param {number} x - X position
-   * @param {number} y - Y position
-   * @param {number} width - Width
-   * @param {number} height - Height
-   * @param {HTMLElement} container - Parent container
-   */
   createResistanceText(x, y, width, height, container) {
     const text = document.createElement("div");
     text.className = "freedom-text";
-    text.textContent = "RESISTANCE!";
+    text.textContent = ".";
     text.style.position = "absolute";
     text.style.zIndex = FreedomManager.Z_INDEXES.TEXT;
-
+    
+    // MUCH larger text
+    text.style.fontSize = "1rem";
+    
+    // Thicker outline
+    text.style.webkitTextStroke = ".5px black";
+    text.style.textStroke = ".5px black";
+    
+    // More vibrant color
+    const hue = Math.floor(Math.random() * 60); // Randomize between red-yellow
+    text.style.color = `hsl(${hue}, 100%, 50%)`;
+    // text.style.fontFamily = "'Rock Salt', cursive, sans-serif";
+    text.style.fontWeight = "900";
+    
+    // Add more dramatic text shadow
+    // text.style.textShadow = "4px 4px 0 #000";
+    
     // Calculate center position
     const centerX = x + width / 2;
     const centerY = y + height / 2;
-
-    // Position text in the center
-    const textWidth = 120; // Approximate width of the text
-    text.style.left = `${centerX - textWidth / 2}px`;
-    text.style.top = `${centerY - 16}px`;
-
+  
+    // Position to allow for animation
+    const textWidth = 300; // Generous width estimate
+    text.style.width = `${textWidth}px`;
+    text.style.left = `${centerX - textWidth/2}px`;
+    text.style.top = `${centerY - 30}px`;
+    text.style.textAlign = "center";
+    
     container.appendChild(text);
-
-    // Remove text after animation
+    
+    // Random starting rotation for more dynamism
+    const startRotation = -10 + Math.random() * 20;
+    
+    // Create unique animation ID to avoid conflicts
+    const animationId = `resistance-text-${Date.now()}`;
+    
+    // Create custom keyframes for this specific instance
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes ${animationId} {
+        0% {
+          transform: scale(0.1) rotate(${startRotation - 15}deg);
+          opacity: 0;
+        }
+        15% {
+          transform: scale(1.6) rotate(${startRotation + 10}deg);
+          opacity: 1;
+        }
+        30% {
+          transform: scale(1.1) rotate(${startRotation - 8}deg);
+          opacity: 1;
+        }
+        45% {
+          transform: scale(1.4) rotate(${startRotation + 6}deg);
+          opacity: 1;
+        }
+        65% {
+          transform: scale(1.2) rotate(${startRotation - 4}deg);
+          opacity: 1;
+        }
+        80% {
+          transform: scale(1.3) rotate(${startRotation + 2}deg);
+          opacity: 0.9;
+        }
+        100% {
+          transform: scale(2.5) rotate(${startRotation}deg);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Apply the animation
+    text.style.animation = `${animationId} 2.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards`;
+  
+    // Remove text and style after animation
     setTimeout(() => {
       if (text.parentNode) {
         text.parentNode.removeChild(text);
       }
-    }, 2000);
+      if (style.parentNode) {
+        style.parentNode.removeChild(style);
+      }
+    }, 2500);
   }
 
   /**
@@ -395,121 +428,217 @@ class FreedomManager {
    * @param {HTMLElement} container - Parent container
    * @param {boolean} isLarger - Whether this piece should be larger
    */
-  createConfettiPiece(startX, startY, container, isLarger = false) {
-    if (!container) return;
+// Improvement 1: Better appearance animation for protestors without distortion
+showProtestors(countryId) {
+  // Clean up any existing protestors
+  this.hideProtestors(countryId);
+  
+  this.protestorHitboxManager.selectNewRandomSpawnLocation(countryId);
 
-    // Create confetti element
-    const confetti = document.createElement("div");
-    confetti.className = "freedom-confetti";
-
-    // Random confetti properties for more variety
-    const shapes = ["circle", "square", "rectangle", "triangle"];
-    const shape = shapes[Math.floor(Math.random() * shapes.length)];
-    confetti.classList.add(`confetti-${shape}`);
-
-    // Size - occasionally make some pieces larger for variety
-    const size = isLarger ? 8 + Math.random() * 8 : 4 + Math.random() * 6;
-    confetti.style.width = `${size}px`;
-    confetti.style.height = shape === "rectangle" ? `${size * 2}px` : `${size}px`;
-
-    // Random vibrant color with high saturation
-    const hue = Math.floor(Math.random() * 360);
-    const lightness = 50 + Math.random() * 30; // Brighter colors
-    confetti.style.backgroundColor = `hsl(${hue}, 100%, ${lightness}%)`;
-
-    // Add a slight border to make it pop
-    confetti.style.border = "0.5px solid rgba(0,0,0,0.3)";
-
-    // Random rotation
-    const rotation = Math.random() * 360;
-    confetti.style.transform = `rotate(${rotation}deg)`;
-
-    // Set the initial position
-    confetti.style.position = "absolute";
-    confetti.style.left = `${startX}px`;
-    confetti.style.top = `${startY}px`;
-    confetti.style.zIndex = FreedomManager.Z_INDEXES.CONFETTI;
-
-    // Add to container
-    container.appendChild(confetti);
-
-    // Store confetti reference for potential cleanup
-    const confettiRef = {
-      element: confetti,
-      startTime: performance.now(),
-      animationCompleted: false,
-    };
-    this.activeAnimations.confetti.push(confettiRef);
-
-    // Animation parameters
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 40 + Math.random() * 120;
-    const destinationX = startX + Math.cos(angle) * distance;
-    const destinationY = startY + Math.sin(angle) * distance;
-    const duration = 1200 + Math.random() * 1500;
-
-    // Control points for bezier curve
-    const cp1x = startX + (destinationX - startX) * 0.3 + (Math.random() * 30 - 15);
-    const cp1y = startY + (destinationY - startY) * 0.3 - Math.random() * 20;
-    const cp2x = startX + (destinationX - startX) * 0.6 + (Math.random() * 30 - 15);
-    const cp2y = destinationY - Math.random() * 50;
-
-    const animateConfetti = (timestamp) => {
-      if (confettiRef.animationCompleted) return;
-
-      const elapsed = timestamp - confettiRef.startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      if (progress < 1) {
-        // Cubic bezier calculations for smooth movement
-        const t = progress;
-        const t_ = 1 - t;
-
-        const currentX = Math.pow(t_, 3) * startX + 3 * Math.pow(t_, 2) * t * cp1x + 3 * t_ * Math.pow(t, 2) * cp2x + Math.pow(t, 3) * destinationX;
-
-        const currentY = Math.pow(t_, 3) * startY + 3 * Math.pow(t_, 2) * t * cp1y + 3 * t_ * Math.pow(t, 2) * cp2y + Math.pow(t, 3) * destinationY;
-
-        // Update position
-        confetti.style.left = `${currentX}px`;
-        confetti.style.top = `${currentY}px`;
-
-        // Add spin animation
-        const spin = rotation + progress * progress * 720 * (Math.random() > 0.5 ? 1 : -1);
-        confetti.style.transform = `rotate(${spin}deg)`;
-
-        // Fade out near the end
-        if (progress > 0.7) {
-          const fadeProgress = (progress - 0.7) / 0.3;
-          const easeOutFade = 1 - Math.pow(fadeProgress, 2);
-          confetti.style.opacity = easeOutFade.toString();
-        }
-
-        requestAnimationFrame(animateConfetti);
-      } else {
-        // Animation complete, clean up
-        confettiRef.animationCompleted = true;
-
-        if (confetti.parentNode) {
-          confetti.parentNode.removeChild(confetti);
-        }
-
-        // Remove from active animations
-        const index = this.activeAnimations.confetti.indexOf(confettiRef);
-        if (index !== -1) {
-          this.activeAnimations.confetti.splice(index, 1);
-        }
-      }
-    };
-
-    requestAnimationFrame(animateConfetti);
+  console.log(`Showing protestors for ${countryId}`);
+  
+  // Get the hitbox
+  const hitbox = this.protestorHitboxManager.showHitbox(countryId, this);
+  if (!hitbox) {
+    console.error(`Failed to create protestor hitbox for ${countryId}`);
+    return null;
   }
+  
+  // Get hitbox position and size directly from the style
+  const left = parseInt(hitbox.style.left) || 0;
+  const top = parseInt(hitbox.style.top) || 0;
+  const width = parseInt(hitbox.style.width) || 100;
+  const height = parseInt(hitbox.style.height) || 100;
+  
+  // Create a container for the protestor sprite
+  const gameContainer = document.getElementById("game-container");
+  
+  // Clean up any existing elements first
+  const existingElement = document.getElementById(`${countryId}-protestors-wrapper`);
+  if (existingElement && existingElement.parentNode) {
+    existingElement.parentNode.removeChild(existingElement);
+  }
+  
+  // Create wrapper element
+  const wrapper = document.createElement("div");
+  wrapper.id = `${countryId}-protestors-wrapper`;
+  wrapper.style.position = "absolute";
+  wrapper.style.left = `${left}px`;
+  wrapper.style.top = `${top}px`;
+  wrapper.style.width = `${width}px`;
+  wrapper.style.height = `${height}px`;
+  wrapper.style.pointerEvents = "none"; // Hitbox handles clicks
+  wrapper.style.zIndex = "10210"; // Just above the hitbox container
+  
+  // Create the protestors sprite element
+  const protestors = document.createElement("div");
+  protestors.id = `${countryId}-protestors`;
+  protestors.style.width = "100%";
+  protestors.style.height = "100%";
+  protestors.style.backgroundImage = "url('images/protest.png')";
+  protestors.style.backgroundSize = "400% 100%"; // For 4-frame sprite sheet
+  protestors.style.backgroundPosition = "0% 0%";
+  protestors.style.backgroundRepeat = "no-repeat";
+  protestors.style.opacity = "0"; // Start invisible for fade-in
+  protestors.style.transition = "opacity 0.3s ease-out"; // Smooth fade-in
+  
+  // Add protestors to wrapper
+  wrapper.appendChild(protestors);
+  
+  // Add wrapper to game container
+  gameContainer.appendChild(wrapper);
+  
+  // Store wrapper reference
+  this.countries[countryId].protestorWrapper = wrapper;
+  
+  // Initialize click counter
+  this.countries[countryId].clickCounter = 0;
+  this.countries[countryId].currentScale = 1.0; // For scaling when clicked
+  
+  // Animation for sprite sheet
+  let currentFrame = 0;
+  
+  const animationInterval = setInterval(() => {
+    const protestorElement = document.getElementById(`${countryId}-protestors`);
+    if (!protestorElement) {
+      clearInterval(animationInterval);
+      console.log(`Animation cleared for ${countryId} - element not found`);
+      return;
+    }
+    
+    // For 4-frame sprite sheet - cycle through frames
+    currentFrame = (currentFrame + 1) % 4;
+    const percentPosition = (currentFrame / 3) * 100;
+    protestorElement.style.backgroundPosition = `${percentPosition}% 0%`;
+    
+    console.log(`Updated ${countryId} protestor animation to frame ${currentFrame}`);
+  }, 300);
+  
+  // Store the interval for cleanup
+  this.activeAnimations.protestors[countryId] = animationInterval;
+  
+  // Add entrance animation using CSS animation instead of distorting with scale transform
+  // This avoids distortion while still creating a "rise up" effect
+  wrapper.style.animation = "protestor-appear 0.5s ease-out forwards";
+  
+  // Add the CSS animation to the document if it doesn't exist yet
+  if (!document.getElementById('protestor-animations')) {
+    const style = document.createElement('style');
+    style.id = 'protestor-animations';
+    style.textContent = `
+      @keyframes protestor-appear {
+        0% { transform: translateY(20px); }
+        70% { transform: translateY(-5px); }
+        100% { transform: translateY(0); }
+      }
+      @keyframes protestor-bounce {
+        0% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+        100% { transform: translateY(0); }
+      }
+      @keyframes protestor-disappear {
+        0% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(20px); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  // Fade in protestors after animation starts
+  setTimeout(() => {
+    protestors.style.opacity = "1";
+    
+    // Play protest sound on appearance
+    this.playProtestSound(countryId, 0.3); // Start with low volume
+  }, 100);
+  
+  // Set timeout for protestors to disappear if not clicked
+  this.countries[countryId].disappearTimeout = setTimeout(() => {
+    this.shrinkAndHideProtestors(countryId);
+  }, 7000); // 7 seconds timeout
+  
+  console.log(`Created protestors for ${countryId} at (${left}, ${top})`);
+  
+  return wrapper;
+}
 
-  /**
-   * Create firework effect
-   * @param {number} centerX - Center X position
-   * @param {number} centerY - Center Y position
-   * @param {HTMLElement} container - Parent container
-   */
+
+// Add this method to the FreedomManager class
+createAdditionalProtestors(countryId, clickCount) {
+  const wrapper = document.getElementById(`${countryId}-protestors-wrapper`);
+  if (!wrapper) return;
+  
+  // Remove any previous additional protestors
+  document.querySelectorAll(`.${countryId}-additional-protestor`).forEach(el => {
+    if (el.parentNode) el.parentNode.removeChild(el);
+  });
+  
+  // Only add additional protestors after first click
+  if (clickCount < 1) return;
+  
+  // Get the base protestor dimensions and position
+  const baseRect = wrapper.getBoundingClientRect();
+  const gameContainer = document.getElementById("game-container");
+  const containerRect = gameContainer.getBoundingClientRect();
+  
+  // Calculate relative position to game container
+  const left = parseInt(wrapper.style.left) || 0;
+  const top = parseInt(wrapper.style.top) || 0;
+  const width = parseInt(wrapper.style.width) || 100;
+  const height = parseInt(wrapper.style.height) || 100;
+  
+  // Create 1-2 additional protestors based on click count
+  const count = Math.min(clickCount, 2);
+  
+  for (let i = 0; i < count; i++) {
+    // Create a new protestor element
+    const additionalProtestor = document.createElement("div");
+    additionalProtestor.className = `${countryId}-additional-protestor`;
+    additionalProtestor.style.position = "absolute";
+    
+    // Slightly different position offsets for each protestor
+    // These offsets create a small group effect
+    const offsetX = -20 + (i * 30);  // Spreading out horizontally  
+    const offsetY = -10 - (i * 5);   // Slightly higher than the original
+    
+    additionalProtestor.style.left = `${left + offsetX}px`;
+    additionalProtestor.style.top = `${top + offsetY}px`;
+    additionalProtestor.style.width = `${width * 0.8}px`;     // Slightly smaller
+    additionalProtestor.style.height = `${height * 0.8}px`;   // Slightly smaller
+    additionalProtestor.style.zIndex = "10209";  // Below the main protestor
+    additionalProtestor.style.backgroundImage = "url('images/protest.png')";
+    additionalProtestor.style.backgroundSize = "400% 100%";
+    additionalProtestor.style.backgroundPosition = "0% 0%";
+    additionalProtestor.style.backgroundRepeat = "no-repeat";
+    additionalProtestor.style.pointerEvents = "none";
+    additionalProtestor.style.opacity = "0.9";
+    additionalProtestor.style.transformOrigin = "bottom center";
+    
+    // Add to game container
+    gameContainer.appendChild(additionalProtestor);
+    
+    // Start animation
+    let currentFrame = i % 4;  // Start on different frames for variety
+    
+    const animationInterval = setInterval(() => {
+      currentFrame = (currentFrame + 1) % 4;
+      const percentPosition = (currentFrame / 3) * 100;
+      additionalProtestor.style.backgroundPosition = `${percentPosition}% 0%`;
+    }, 350); // Slightly different timing from main protestor
+    
+    // Store interval for cleanup
+    this.activeAnimations.protestors[`${countryId}-additional-${i}`] = animationInterval;
+  }
+}
+
+
+
+
+
+
+
+
+
   createFireworkEffect(centerX, centerY, container) {
     const particleCount = 40;
 
@@ -521,98 +650,21 @@ class FreedomManager {
     }
   }
 
-  /**
-   * Create individual firework particle
-   * @param {number} centerX - Center X position
-   * @param {number} centerY - Center Y position
-   * @param {HTMLElement} container - Parent container
-   */
-  createFireworkParticle(centerX, centerY, container) {
-    if (!container) return;
 
-    const particle = document.createElement("div");
-    particle.className = "freedom-firework";
-
-    // Random color for each firework particle
-    const hue = Math.floor(Math.random() * 360);
-    particle.style.background = `radial-gradient(circle, hsl(${hue}, 100%, 70%) 10%, transparent 70%)`;
-    particle.style.boxShadow = `0 0 10px 5px hsla(${hue}, 100%, 70%, 0.8)`;
-
-    // Random size
-    const size = 5 + Math.random() * 15;
-    particle.style.width = `${size}px`;
-    particle.style.height = `${size}px`;
-
-    // Initial position
-    particle.style.position = "absolute";
-    particle.style.left = `${centerX}px`;
-    particle.style.top = `${centerY}px`;
-    particle.style.zIndex = FreedomManager.Z_INDEXES.FIREWORKS;
-
-    // Add to container
-    container.appendChild(particle);
-
-    // Store reference for potential cleanup
-    const fireworkRef = {
-      element: particle,
-      startTime: performance.now(),
-      animationCompleted: false,
-    };
-    this.activeAnimations.fireworks.push(fireworkRef);
-
-    // Random angle and distance
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 50 + Math.random() * 100;
-    const destinationX = centerX + Math.cos(angle) * distance;
-    const destinationY = centerY + Math.sin(angle) * distance;
-
-    // Animation parameters
-    const duration = 800 + Math.random() * 800;
-
-    const animateParticle = (timestamp) => {
-      if (fireworkRef.animationCompleted) return;
-
-      const elapsed = timestamp - fireworkRef.startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      if (progress < 1) {
-        // Easing function for more natural movement
-        const easedProgress = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-        // Position calculation with gravity effect
-        const currentX = centerX + (destinationX - centerX) * easedProgress;
-        const currentY = centerY + (destinationY - centerY) * easedProgress + 50 * progress * progress;
-
-        // Update position
-        particle.style.left = `${currentX}px`;
-        particle.style.top = `${currentY}px`;
-
-        // Update opacity (fade out at the end)
-        particle.style.opacity = (1 - progress * progress).toString();
-
-        requestAnimationFrame(animateParticle);
-      } else {
-        // Animation complete, clean up
-        fireworkRef.animationCompleted = true;
-
-        if (particle.parentNode) {
-          particle.parentNode.removeChild(particle);
-        }
-
-        // Remove from active animations
-        const index = this.activeAnimations.fireworks.indexOf(fireworkRef);
-        if (index !== -1) {
-          this.activeAnimations.fireworks.splice(index, 1);
-        }
-      }
-    };
-
-    requestAnimationFrame(animateParticle);
-  }
 
   triggerCountryResistance(countryId) {
     this.logger.info("freedom", `MAJOR RESISTANCE in ${countryId}!`);
-  
+    
+    // Stop any ongoing protestor sounds first
+    if (this.audioManager && typeof this.audioManager.stopProtestorSounds === "function") {
+      if (countryId === "canada") {
+        this.audioManager.stopProtestorSounds("eastCanada");
+        this.audioManager.stopProtestorSounds("westCanada");
+      } else {
+        this.audioManager.stopProtestorSounds(countryId);
+      }
+    }
+
     // Remove pulsing effect if it exists
     const countryElement = this.elements.countries[countryId];
     if (countryElement) {
@@ -648,6 +700,7 @@ class FreedomManager {
     // Hide protestors for this country
     this.hideProtestors(countryId);
   
+
     // Reset protestor state
     if (this.countries[countryId]) {
       this.countries[countryId].protestorsShown = false;
@@ -662,58 +715,554 @@ class FreedomManager {
     return true;
   }
 
-  /**
- * Create freedom celebration at the protestor hitbox location
- * @param {string} countryId - Country identifier
- * @param {HTMLElement} element - Protestor wrapper or hitbox element
- */
-createFreedomCelebrationAtHitbox(countryId, element) {
-  // Get the game container
-  const gameContainer = document.getElementById("game-container");
-  if (!gameContainer) return;
 
-  // Get the element's position and dimensions
-  const rect = element.getBoundingClientRect();
-  const containerRect = gameContainer.getBoundingClientRect();
 
-  // Calculate positions relative to the game container
-  const left = rect.left - containerRect.left;
-  const top = rect.top - containerRect.top;
-  const width = rect.width;
-  const height = rect.height;
+  // createConfettiPiece(startX, startY, container, isLarger = false) {
+  //   if (!container) return;
+  
+  //   // Create confetti element
+  //   const confetti = document.createElement("div");
+  //   confetti.className = "freedom-confetti";
+  
+  //   // Focus more on streamers, fewer shape types
+  //   const shapes = ["streamer", "rectangle", "square"];
+  //   const shape = Math.random() < 0.6 ? "streamer" : shapes[1 + Math.floor(Math.random() * 2)];
+  //   confetti.classList.add(`confetti-${shape}`);
+  
+  //   // Larger size for better visibility
+  //   const size = isLarger ? 15 + Math.random() * 20 : 10 + Math.random() * 15;
+    
+  //   // Make streamers long and thin
+  //   if (shape === "streamer") {
+  //     confetti.style.width = `${4 + Math.random() * 3}px`;
+  //     confetti.style.height = `${size * (2.5 + Math.random())}px`; // Longer streamers
+  //     confetti.style.borderRadius = "40%";
+  //   } else {
+  //     confetti.style.width = `${size}px`;
+  //     confetti.style.height = shape === "rectangle" ? `${size * 1.5}px` : `${size}px`;
+  //   }
+  
+  //   // Bold, vibrant colors
+  //   const hue = Math.floor(Math.random() * 360);
+  //   confetti.style.backgroundColor = `hsl(${hue}, 100%, 60%)`;
+    
+  //   // Always add a clean black border
+  //   confetti.style.border = `1.5px solid black`;
+    
+  //   // Add slight 3D effect
+  //   confetti.style.boxShadow = "inset -1px -1px 0 rgba(0,0,0,0.3)";
+    
+  //   // Random initial rotation
+  //   const rotation = Math.random() * 360;
+  //   confetti.style.transform = `rotate(${rotation}deg)`;
+  
+  //   // Set the initial position
+  //   confetti.style.position = "absolute";
+  //   confetti.style.left = `${startX}px`;
+  //   confetti.style.top = `${startY}px`;
+  //   confetti.style.zIndex = FreedomManager.Z_INDEXES.CONFETTI;
+  
+  //   // Add to container
+  //   container.appendChild(confetti);
+  
+  //   // Store confetti reference for potential cleanup
+  //   const confettiRef = {
+  //     element: confetti,
+  //     startTime: performance.now(),
+  //     animationCompleted: false,
+  //   };
+  //   this.activeAnimations.confetti.push(confettiRef);
+  
+  //   // MUCH wider spread
+  //   const angle = Math.random() * Math.PI * 2;
+  //   const distance = 100 + Math.random() * 200; // Wider spread
+  //   const destinationX = startX + Math.cos(angle) * distance;
+  //   const destinationY = startY + Math.sin(angle) * distance;
+    
+  //   // Longer duration for slower movement
+  //   const duration = 1800 + Math.random() * 1200;
+  
+  //   // Wider arc control points for more spread
+  //   const cp1x = startX + (destinationX - startX) * 0.3 + (Math.random() * 80 - 40);
+  //   const cp1y = startY - (40 + Math.random() * 80);
+  //   const cp2x = destinationX - (Math.random() * 80 - 40);
+  //   const cp2y = destinationY - (Math.random() * 80);
+  
+  //   const animateConfetti = (timestamp) => {
+  //     if (confettiRef.animationCompleted) return;
+  
+  //     const elapsed = timestamp - confettiRef.startTime;
+  //     const progress = Math.min(elapsed / duration, 1);
+  
+  //     if (progress < 1) {
+  //       // Cubic bezier calculations for movement
+  //       const t = progress;
+  //       const t_ = 1 - t;
+  
+  //       const currentX = Math.pow(t_, 3) * startX + 3 * Math.pow(t_, 2) * t * cp1x + 3 * t_ * Math.pow(t, 2) * cp2x + Math.pow(t, 3) * destinationX;
+  //       const currentY = Math.pow(t_, 3) * startY + 3 * Math.pow(t_, 2) * t * cp1y + 3 * t_ * Math.pow(t, 2) * cp2y + Math.pow(t, 3) * destinationY;
+  
+  //       // Update position
+  //       confetti.style.left = `${currentX}px`;
+  //       confetti.style.top = `${currentY}px`;
+  
+  //       // MUCH slower spin - only 40-90 degrees total depending on shape
+  //       const spinSpeed = shape === "streamer" ? 90 : 40;
+  //       const spin = rotation + progress * spinSpeed * (Math.random() > 0.5 ? 1 : -1);
+        
+  //       // Very gentle wobble
+  //       const wobble = Math.sin(progress * Math.PI * 2) * 5;
+        
+  //       confetti.style.transform = `rotate(${spin + wobble}deg)`;
+  
+  //       // Simple exit - fade out
+  //       if (progress > 0.8) {
+  //         const exitScale = 1 - ((progress - 0.8) / 0.2);
+  //         confetti.style.opacity = exitScale.toString();
+  //       }
+  
+  //       requestAnimationFrame(animateConfetti);
+  //     } else {
+  //       // Animation complete, clean up
+  //       confettiRef.animationCompleted = true;
+  
+  //       if (confetti.parentNode) {
+  //         confetti.parentNode.removeChild(confetti);
+  //       }
+  
+  //       // Remove from active animations
+  //       const index = this.activeAnimations.confetti.indexOf(confettiRef);
+  //       if (index !== -1) {
+  //         this.activeAnimations.confetti.splice(index, 1);
+  //       }
+  //     }
+  //   };
+  
+  //   requestAnimationFrame(animateConfetti);
+  // }
 
-  // Screen shake effect if enabled
-  if (this.config.effectsEnabled.screenShake) {
-    this.addScreenShake(gameContainer);
+  createConfettiPiece(startX, startY, container, isLarger = false) {
+    if (!container) return;
+  
+    // Create confetti element
+    const confetti = document.createElement("div");
+    confetti.className = "freedom-confetti";
+  
+    // Random confetti properties for more variety
+    const shapes = ["circle", "square", "rectangle", "triangle"];
+    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+    confetti.classList.add(`confetti-${shape}`);
+  
+    // Size - occasionally make some pieces larger for variety
+    const size = isLarger ? 8 + Math.random() * 8 : 4 + Math.random() * 6;
+    confetti.style.width = `${size}px`;
+    confetti.style.height = shape === "rectangle" ? `${size * 2}px` : `${size}px`;
+  
+    // Random vibrant color with high saturation
+    const hue = Math.floor(Math.random() * 360);
+    const lightness = 50 + Math.random() * 30; // Brighter colors
+    confetti.style.backgroundColor = `hsl(${hue}, 100%, ${lightness}%)`;
+  
+    // Add black border for cartoon look (this is the main change you liked)
+    confetti.style.border = "1px solid black";
+  
+    // Random rotation
+    const rotation = Math.random() * 360;
+    confetti.style.transform = `rotate(${rotation}deg)`;
+  
+    // Set the initial position
+    confetti.style.position = "absolute";
+    confetti.style.left = `${startX}px`;
+    confetti.style.top = `${startY}px`;
+    confetti.style.zIndex = FreedomManager.Z_INDEXES.CONFETTI;
+  
+    // Add to container
+    container.appendChild(confetti);
+  
+    // Store confetti reference for potential cleanup
+    const confettiRef = {
+      element: confetti,
+      startTime: performance.now(),
+      animationCompleted: false,
+    };
+    this.activeAnimations.confetti.push(confettiRef);
+  
+    // Animation parameters
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 40 + Math.random() * 120;
+    const destinationX = startX + Math.cos(angle) * distance;
+    const destinationY = startY + Math.sin(angle) * distance;
+    const duration = 1200 + Math.random() * 1500;
+  
+    // Control points for bezier curve
+    const cp1x = startX + (destinationX - startX) * 0.3 + (Math.random() * 30 - 15);
+    const cp1y = startY + (destinationY - startY) * 0.3 - Math.random() * 20;
+    const cp2x = startX + (destinationX - startX) * 0.6 + (Math.random() * 30 - 15);
+    const cp2y = destinationY - Math.random() * 50;
+  
+    const animateConfetti = (timestamp) => {
+      if (confettiRef.animationCompleted) return;
+  
+      const elapsed = timestamp - confettiRef.startTime;
+      const progress = Math.min(elapsed / duration, 1);
+  
+      if (progress < 1) {
+        // Cubic bezier calculations for smooth movement
+        const t = progress;
+        const t_ = 1 - t;
+  
+        const currentX = Math.pow(t_, 3) * startX + 3 * Math.pow(t_, 2) * t * cp1x + 3 * t_ * Math.pow(t, 2) * cp2x + Math.pow(t, 3) * destinationX;
+        const currentY = Math.pow(t_, 3) * startY + 3 * Math.pow(t_, 2) * t * cp1y + 3 * t_ * Math.pow(t, 2) * cp2y + Math.pow(t, 3) * destinationY;
+  
+        // Update position
+        confetti.style.left = `${currentX}px`;
+        confetti.style.top = `${currentY}px`;
+  
+        // Add spin animation
+        const spin = rotation + progress * progress * 720 * (Math.random() > 0.5 ? 1 : -1);
+        confetti.style.transform = `rotate(${spin}deg)`;
+  
+        // Instead of fading out, shrink at the end
+        if (progress > 0.7) {
+          const scale = 1 - ((progress - 0.7) / 0.3) * 0.7; // Don't scale all the way to 0
+          confetti.style.transform = `rotate(${spin}deg) scale(${scale})`;
+        }
+  
+        requestAnimationFrame(animateConfetti);
+      } else {
+        // Animation complete, clean up
+        confettiRef.animationCompleted = true;
+  
+        if (confetti.parentNode) {
+          confetti.parentNode.removeChild(confetti);
+        }
+  
+        // Remove from active animations
+        const index = this.activeAnimations.confetti.indexOf(confettiRef);
+        if (index !== -1) {
+          this.activeAnimations.confetti.splice(index, 1);
+        }
+      }
+    };
+  
+    requestAnimationFrame(animateConfetti);
+  }
+  
+  createFireworkParticle(centerX, centerY, container) {
+    if (!container) return;
+  
+    const particle = document.createElement("div");
+    particle.className = "freedom-firework";
+  
+    // Focus on streamers and simple shapes
+    const particleTypes = ["spark", "circle", "spark"]; // More sparks
+    const particleType = particleTypes[Math.floor(Math.random() * particleTypes.length)];
+  
+    // Vibrant colors
+    const hue = Math.floor(Math.random() * 360);
+    
+    // Particle styling
+    if (particleType === "circle") {
+      particle.style.backgroundColor = `hsl(${hue}, 100%, 60%)`;
+      particle.style.borderRadius = "50%";
+    } 
+    else if (particleType === "spark") {
+      // Elongated spark - streamer-like
+      const sparkAngle = Math.random() * 360;
+      particle.style.backgroundColor = `hsl(${hue}, 100%, 65%)`;
+      particle.style.borderRadius = "40% 40% 5% 5%";
+      particle.style.transform = `rotate(${sparkAngle}deg)`;
+    }
+  
+    // Always add black border
+    particle.style.border = "2px solid black";
+    
+    // Larger size
+    const size = particleType === "spark" ? 6 + Math.random() * 12 : 10 + Math.random() * 15;
+    
+    particle.style.width = `${size}px`;
+    if (particleType === "spark") {
+      // Sparks are elongated like streamers
+      particle.style.height = `${size * (3 + Math.random())}px`;
+    } else {
+      particle.style.height = `${size}px`;
+    }
+  
+    // Initial position
+    particle.style.position = "absolute";
+    particle.style.left = `${centerX}px`;
+    particle.style.top = `${centerY}px`;
+    particle.style.zIndex = FreedomManager.Z_INDEXES.FIREWORKS;
+  
+    // Add to container
+    container.appendChild(particle);
+  
+    // Store reference for potential cleanup
+    const fireworkRef = {
+      element: particle,
+      startTime: performance.now(),
+      animationCompleted: false,
+    };
+    this.activeAnimations.fireworks.push(fireworkRef);
+  
+    // MUCH wider spread
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 80 + Math.random() * 180; // Wider distribution
+    const destinationX = centerX + Math.cos(angle) * distance;
+    const destinationY = centerY + Math.sin(angle) * distance;
+  
+    // Longer duration for slower movement
+    const duration = 1500 + Math.random() * 1000;
+    
+    // Use gentle arc paths for more natural movement
+    const useArc = true;
+  
+    const animateParticle = (timestamp) => {
+      if (fireworkRef.animationCompleted) return;
+  
+      const elapsed = timestamp - fireworkRef.startTime;
+      const progress = Math.min(elapsed / duration, 1);
+  
+      if (progress < 1) {
+        let currentX, currentY;
+        
+        if (useArc) {
+          // Arc path with gentle gravity
+          const easedProgress = progress;
+          currentX = centerX + (destinationX - centerX) * easedProgress;
+          
+          // Arc effect - gentler, wider arc
+          const verticalOffset = Math.sin(progress * Math.PI) * 60; // Higher arc
+          const gravity = Math.pow(progress, 2) * 40; // Very gentle gravity
+          currentY = centerY + (destinationY - centerY) * easedProgress - verticalOffset + gravity;
+        } else {
+          // Straight path (not really used now)
+          const easedProgress = Math.pow(progress, 0.8);
+          currentX = centerX + (destinationX - centerX) * easedProgress;
+          currentY = centerY + (destinationY - centerY) * easedProgress;
+        }
+  
+        // Update position
+        particle.style.left = `${currentX}px`;
+        particle.style.top = `${currentY}px`;
+  
+        // Very minimal rotation - mostly just follow the arc path
+        if (particleType === "spark") {
+          // Calculate angle based on movement direction
+          const dx = currentX - parseFloat(particle.style.left || centerX);
+          const dy = currentY - parseFloat(particle.style.top || centerY);
+          let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+          
+          // Add very slight wobble
+          angle += Math.sin(progress * Math.PI * 2) * 5;
+          
+          particle.style.transform = `rotate(${angle}deg)`;
+        } else {
+          // Almost no rotation for circles
+          const rotation = progress * 30 * (Math.random() > 0.5 ? 1 : -1);
+          particle.style.transform = `rotate(${rotation}deg)`;
+        }
+        
+        // Simple exit - just fade
+        if (progress > 0.8) {
+          const exitScale = 1 - ((progress - 0.8) / 0.2);
+          particle.style.opacity = exitScale.toString();
+        }
+  
+        requestAnimationFrame(animateParticle);
+      } else {
+        // Animation complete, clean up
+        fireworkRef.animationCompleted = true;
+  
+        if (particle.parentNode) {
+          particle.parentNode.removeChild(particle);
+        }
+  
+        // Remove from active animations
+        const index = this.activeAnimations.fireworks.indexOf(fireworkRef);
+        if (index !== -1) {
+          this.activeAnimations.fireworks.splice(index, 1);
+        }
+      }
+    };
+  
+    requestAnimationFrame(animateParticle);
+  }
+  
+  // Function to create the celebration with fewer particles
+  createFreedomCelebration(countryId) {
+    // Get the flag overlay to determine position
+    const flagOverlay = document.getElementById(`${countryId}-flag-overlay`);
+    if (!flagOverlay) {
+      this.logger.error("freedom", `Flag overlay for ${countryId} not found for freedom celebration!`);
+      return;
+    }
+  
+    // Get the game container
+    const gameContainer = document.getElementById("game-container");
+    if (!gameContainer) return;
+  
+    // Get flag position and dimensions relative to the game container
+    const flagRect = flagOverlay.getBoundingClientRect();
+    const containerRect = gameContainer.getBoundingClientRect();
+  
+    // Calculate positions
+    const flagLeft = flagRect.left - containerRect.left;
+    const flagTop = flagRect.top - containerRect.top;
+    const flagWidth = flagRect.width;
+    const flagHeight = flagRect.height;
+  
+    // Screen shake effect if enabled
+    if (this.config.effectsEnabled.screenShake) {
+      this.addScreenShake(gameContainer);
+    }
+  
+    // Create flash effect
+    this.createFlashEffect(flagLeft, flagTop, flagWidth, flagHeight, gameContainer);
+  
+    // Create "RESISTANCE!" text
+    this.createResistanceText(flagLeft, flagTop, flagWidth, flagHeight, gameContainer);
+  
+    // Create confetti if enabled - FEWER BUT BIGGER CONFETTI
+    if (this.config.effectsEnabled.confetti) {
+      // Reduce confetti count significantly
+      const confettiCount = 60; // Fewer, more impactful pieces
+      
+      // Create confetti from multiple points with WIDER spread
+      const points = [
+        { x: flagLeft + flagWidth * 0.2, y: flagTop + flagHeight * 0.3 },
+        { x: flagLeft + flagWidth * 0.5, y: flagTop + flagHeight * 0.5 },
+        { x: flagLeft + flagWidth * 0.8, y: flagTop + flagHeight * 0.4 }
+      ];
+      
+      // Distribute confetti across the points with longer delay
+      for (let i = 0; i < confettiCount; i++) {
+        // Stagger creation for better visual effect
+        setTimeout(() => {
+          // Choose a random point from our defined points
+          const point = points[Math.floor(Math.random() * points.length)];
+          
+          // Add more random variation around the point for wider spread
+          const startX = point.x + (Math.random() * 50 - 25);
+          const startY = point.y + (Math.random() * 50 - 25);
+  
+          this.createConfettiPiece(startX, startY, gameContainer, i % 2 === 0); // More large pieces
+        }, i * 15); // Slightly slower creation rate
+      }
+    }
+    
+    // Add firework bursts - FEWER BUT MORE SPREAD OUT
+    if (this.config.effectsEnabled.fireworks) {
+      // Just a few strategic burst locations with wide spread
+      const burstLocations = [
+        { x: flagLeft + flagWidth * 0.3, y: flagTop + flagHeight * 0.3, delay: 0 },
+        { x: flagLeft + flagWidth * 0.7, y: flagTop + flagHeight * 0.4, delay: 300 },
+        { x: flagLeft + flagWidth * 0.5, y: flagTop + flagHeight * 0.2, delay: 600 }
+      ];
+      
+      burstLocations.forEach(burst => {
+        setTimeout(() => {
+          // Fewer particles per burst, but each one more impactful
+          const particleCount = 15 + Math.floor(Math.random() * 10);
+          for (let i = 0; i < particleCount; i++) {
+            setTimeout(() => {
+              this.createFireworkParticle(burst.x, burst.y, gameContainer);
+            }, i * 15); // Slower creation for less overwhelming
+          }
+        }, burst.delay);
+      });
+    }
+  }
+  
+  // And the hitbox version with same parameters
+  createFreedomCelebrationAtHitbox(countryId, element) {
+    // Get the game container
+    const gameContainer = document.getElementById("game-container");
+    if (!gameContainer) return;
+  
+    // Get the element's position and dimensions
+    const rect = element.getBoundingClientRect();
+    const containerRect = gameContainer.getBoundingClientRect();
+  
+    // Calculate positions relative to the game container
+    const left = rect.left - containerRect.left;
+    const top = rect.top - containerRect.top;
+    const width = rect.width;
+    const height = rect.height;
+  
+    // Screen shake effect if enabled
+    if (this.config.effectsEnabled.screenShake) {
+      this.addScreenShake(gameContainer);
+    }
+  
+    // Create flash effect
+    this.createFlashEffect(left, top, width, height, gameContainer);
+  
+    // Create "RESISTANCE!" text
+    this.createResistanceText(left, top, width, height, gameContainer);
+  
+    // Create confetti if enabled - FEWER BUT BIGGER CONFETTI
+    if (this.config.effectsEnabled.confetti) {
+      // Reduce confetti count
+      const confettiCount = 20; // Fewer, more impactful pieces
+      
+      // Create confetti from multiple points with WIDER spread
+      const points = [
+        { x: left + width * 0.2, y: top + height * 0.3 },
+        { x: left + width * 0.5, y: top + height * 0.5 },
+        { x: left + width * 0.8, y: top + height * 0.4 }
+      ];
+      
+      // Distribute confetti across the points
+      for (let i = 0; i < confettiCount; i++) {
+        // Stagger creation for better visual effect
+        setTimeout(() => {
+          // Choose a random point from our defined points
+          const point = points[Math.floor(Math.random() * points.length)];
+          
+          // Add more random variation around the point for wider spread
+          const startX = point.x + (Math.random() * 50 - 25);
+          const startY = point.y + (Math.random() * 50 - 25);
+  
+          this.createConfettiPiece(startX, startY, gameContainer, i % 2 === 0); // More large pieces
+        }, i * 15); // Slightly slower creation rate
+      }
+    }
+    
+    // Add firework bursts - FEWER BUT MORE SPREAD OUT
+    if (this.config.effectsEnabled.fireworks) {
+      // Just a few strategic burst locations with wide spread
+      const burstLocations = [
+        { x: left + width * 0.3, y: top + height * 0.3, delay: 0 },
+        { x: left + width * 0.7, y: top + height * 0.4, delay: 300 },
+        { x: left + width * 0.5, y: top + height * 0.2, delay: 600 }
+      ];
+      
+      burstLocations.forEach(burst => {
+        setTimeout(() => {
+          // Fewer particles per burst, but each one more impactful
+          const particleCount = 15 + Math.floor(Math.random() * 10);
+          for (let i = 0; i < particleCount; i++) {
+            setTimeout(() => {
+              this.createFireworkParticle(burst.x, burst.y, gameContainer);
+            }, i * 15); // Slower creation for less overwhelming
+          }
+        }, burst.delay);
+      });
+    }
   }
 
-  // Create flash effect
-  this.createFlashEffect(left, top, width, height, gameContainer);
 
-  // Create "RESISTANCE!" text
-  this.createResistanceText(left, top, width, height, gameContainer);
-
-  // Create confetti if enabled
-  if (this.config.effectsEnabled.confetti) {
-    this.createConfettiBurst(left, top, width, height, gameContainer);
-  }
-
-  // Add some firework effects for more emphasis
-  if (this.config.effectsEnabled.fireworks) {
-    // Create fireworks at the center of the hitbox
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
-    this.createFireworkEffect(centerX, centerY, gameContainer);
-  }
-}
-
-  /**
-   * Play resistance sounds with proper error handling
-   * @param {string} countryId - Country identifier
-   */
   playResistanceSounds(countryId) {
-    // Play main resistance sound
-    this.playSound("resistance", countryId);
+   // Stop any ongoing sounds first to avoid overlapping
+  if (this.audioManager) {
+    if (typeof this.audioManager.stopProtestorSounds === "function") {
+      this.audioManager.stopProtestorSounds(countryId);
+    }
+  }
+
+  // Play main resistance sound
+  this.playSound("resistance", countryId);
 
     // Play protest sound with slight delay
     setTimeout(() => {
@@ -886,6 +1435,29 @@ createFreedomCelebrationAtHitbox(countryId, element) {
     });
   }
 
+  playProtestSound(countryId, volume = 0.5) {
+    try {
+      // Determine which country sound to use
+      let soundCountry = countryId;
+      if (countryId === "canada") {
+        // Randomly choose east or west Canada
+        soundCountry = Math.random() < 0.5 ? "eastCanada" : "westCanada";
+        console.log(`Selected ${soundCountry} for canada protest sound`);
+      }
+      
+      // Use the protestor-specific sounds in AudioManager
+      if (this.audioManager && typeof this.audioManager.playProtestorSound === "function") {
+        console.log(`Trying to play protestor sound for ${soundCountry} at volume ${volume}`);
+        this.audioManager.playProtestorSound(soundCountry, 0, volume);
+      } else {
+        // Fallback to regular sound method
+        this.playSound("defense", "protest", soundCountry, volume);
+      }
+    } catch (error) {
+      this.logger.warn("freedom", `Error playing protest sound: ${error.message}`);
+    }
+  }
+
   /**
    * Debug method to set country claims
    * @param {string} countryId - Country identifier
@@ -928,7 +1500,244 @@ initProtestorHitboxManager() {
   this.logger.info("freedom", "Protestor Hitbox Manager initialized");
 }
 
+// Modified handleProtestorClick method for more protestors with specific positioning
+handleProtestorClick(countryId) {
+  const country = this.countries[countryId];
+  if (!country) {
+    this.logger.error("freedom", `Click handler called but country ${countryId} not found in data`);
+    return;
+  }
+  
+  // Log the click event
+  this.logger.info("freedom", `[CLICK EVENT] Protestor clicked in ${countryId}`);
+  
+  // Clear any existing timeout
+  if (country.disappearTimeout) {
+    clearTimeout(country.disappearTimeout);
+  }
+  
+  // Increment click counter
+  const oldClickCount = country.clickCounter || 0;
+  country.clickCounter = oldClickCount + 1;
+  
+  // Get a fresh reference to the protestor wrapper and sprite elements
+  const protestorWrapper = document.getElementById(`${countryId}-protestors-wrapper`);
+  const protestorSprite = document.getElementById(`${countryId}-protestors`);
+  
+  if (!protestorWrapper || !protestorSprite) {
+    this.logger.error("freedom", `Protestor elements not found for ${countryId}`);
+    return;
+  }
+  
+  // Store the wrapper reference in country data
+  country.protestorWrapper = protestorWrapper;
+  
+  // Calculate volume based on click count
+  const volume = Math.min(0.5 + (country.clickCounter * 0.2), 1.0);
+  
+  // Play click sound with increasing volume
+  this.playProtestSound(countryId, volume);
+  
+  // Create additional protestors
+  const gameContainer = document.getElementById("game-container");
+  if (gameContainer && protestorWrapper) {
+    // Clean up any previous additional protestors
+    document.querySelectorAll(`.additional-protestor-${countryId}`).forEach(el => {
+      if (el && el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    });
+    
+    // Clean up previous animation intervals
+    if (this.activeAnimations.extraProtestors) {
+      for (let key in this.activeAnimations.extraProtestors) {
+        if (key.startsWith(`${countryId}-`)) {
+          clearInterval(this.activeAnimations.extraProtestors[key]);
+          delete this.activeAnimations.extraProtestors[key];
+        }
+      }
+    }
+    
+    // Calculate position relative to the main protestor
+    const rect = protestorWrapper.getBoundingClientRect();
+    const containerRect = gameContainer.getBoundingClientRect();
+    const left = rect.left - containerRect.left;
+    const top = rect.top - containerRect.top;
+    const width = rect.width;
+    const height = rect.height;
+    
+    if (country.clickCounter === 1) {
+      // First click: Add 2 protestors widely spread from the original
+      const positions = [
+        { offsetX: -60, offsetY: -25, scale: 0.8 },  // Far left
+        { offsetX: 60, offsetY: -25, scale: 0.8 }    // Far right
+      ];
+      
+      createAdditionalProtestors(positions);
+    } 
+    else if (country.clickCounter === 2) {
+      // Second click: Add 4 protestors in a very clear pattern
+      const positions = [
+        { offsetX: -70, offsetY: -30, scale: 0.8 },   // Far upper left
+        { offsetX: 70, offsetY: -30, scale: 0.8 },    // Far upper right
+        { offsetX: -40, offsetY: 25, scale: 0.75 },   // Lower left
+        { offsetX: 40, offsetY: 25, scale: 0.75 }     // Lower right
+      ];
+      
+      createAdditionalProtestors(positions);
+    }
+    
 
+    // Helper function to create the additional protestors
+    function createAdditionalProtestors(positions) {
+      positions.forEach((pos, i) => {
+        // Create the protestor element
+        const additionalProtestor = document.createElement("div");
+        additionalProtestor.id = `${countryId}-additional-protestor-${i}`;
+        additionalProtestor.className = `additional-protestor-${countryId}`;
+        additionalProtestor.style.position = "absolute";
+        
+        // Position with specified offsets
+        additionalProtestor.style.left = `${left + pos.offsetX}px`;
+        additionalProtestor.style.top = `${top + pos.offsetY}px`;
+        additionalProtestor.style.width = `${width * pos.scale}px`;
+        additionalProtestor.style.height = `${height * pos.scale}px`;
+        additionalProtestor.style.backgroundImage = "url('images/protest.png')";
+        additionalProtestor.style.backgroundSize = "400% 100%";
+        additionalProtestor.style.backgroundPosition = `${(i % 4) * 33}% 0%`;
+        additionalProtestor.style.backgroundRepeat = "no-repeat";
+        additionalProtestor.style.zIndex = "10209";
+        additionalProtestor.style.pointerEvents = "none";
+        
+        // Add to game container
+        gameContainer.appendChild(additionalProtestor);
+        
+        // Set up animation
+        let frame = i % 4;
+        const interval = setInterval(() => {
+          frame = (frame + 1) % 4;
+          const percentPosition = (frame / 3) * 100;
+          
+          // Get a fresh reference to the specific protestor
+          const el = document.getElementById(`${countryId}-additional-protestor-${i}`);
+          if (el) {
+            el.style.backgroundPosition = `${percentPosition}% 0%`;
+          } else {
+            clearInterval(interval);
+          }
+        }, 300 + (i * 40)); // Slight timing variation
+        
+        // Store interval for cleanup
+        if (!this.activeAnimations.extraProtestors) {
+          this.activeAnimations.extraProtestors = {};
+        }
+        this.activeAnimations.extraProtestors[`${countryId}-${i}`] = interval;
+      });
+    }
+  }
+  
+  // CRITICAL CHANGE: Stop all CSS animations and transitions before applying transform
+  protestorWrapper.style.animation = "none";
+  protestorWrapper.style.transition = "none";
+  void protestorWrapper.offsetWidth; // Force browser reflow to apply style changes
+  
+  // Get original position values
+  const originalPosition = {
+    left: protestorWrapper.style.left,
+    top: protestorWrapper.style.top,
+    width: protestorWrapper.style.width,
+    height: protestorWrapper.style.height
+  };
+  
+  // KEY FIX: Set transform-origin to bottom center so it grows upward
+  protestorWrapper.style.transformOrigin = "bottom center";
+  
+  if (country.clickCounter >= 3) {
+    // Trigger liberation after 3 clicks
+    this.triggerCountryResistance(countryId);
+    country.clickCounter = 0;
+  } else if (country.clickCounter === 2) {
+    // Change sprite to heart version on second click
+    protestorSprite.style.backgroundImage = "url('images/protestHeart.png')";
+    this.logger.info("freedom", `[SPRITE CHANGE] Changed protestor sprite to protestHeart.png for ${countryId}`);
+    
+    // Apply dramatic scaling (1.75x) with bounce effect
+    protestorWrapper.style.transition = "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
+    protestorWrapper.style.transform = "scale(1.75)";
+    
+    // Set timeout for protestors to disappear if not clicked
+    country.disappearTimeout = setTimeout(() => {
+      this.shrinkAndHideProtestors(countryId);
+    }, 7000);
+  } else {
+    // First click behavior
+    // Apply moderate scaling (1.4x)
+    protestorWrapper.style.transition = "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
+    protestorWrapper.style.transform = "scale(1.4)";
+    
+    // Set timeout for protestors to disappear if not clicked
+    country.disappearTimeout = setTimeout(() => {
+      this.shrinkAndHideProtestors(countryId);
+    }, 7000);
+  }
+  
+  // Ensure the wrapper remains correctly positioned
+  protestorWrapper.style.position = "absolute";
+  protestorWrapper.style.left = originalPosition.left;
+  protestorWrapper.style.top = originalPosition.top;
+  protestorWrapper.style.width = originalPosition.width;
+  protestorWrapper.style.height = originalPosition.height;
+  protestorWrapper.style.zIndex = "10210"; // Keep above hitbox
+}
+
+shrinkAndHideProtestors(countryId) {
+  const protestorWrapper = document.getElementById(`${countryId}-protestors-wrapper`);
+  if (!protestorWrapper) return;
+
+  this.logger.info("freedom", `Protestors timed out in ${countryId}, disappearing`);
+  
+  // Clear any existing transitions/animations first
+  protestorWrapper.style.animation = "none";
+  protestorWrapper.style.transition = "none";
+  void protestorWrapper.offsetWidth; // Force reflow
+  
+  // Get original position
+  const originalPosition = {
+    left: protestorWrapper.style.left,
+    top: protestorWrapper.style.top,
+    width: protestorWrapper.style.width,
+    height: protestorWrapper.style.height
+  };
+  
+  // Set transform-origin to bottom center for shrinking back into ground
+  protestorWrapper.style.transformOrigin = "bottom center";
+  
+  // Set up transitions for smooth disappearance
+  protestorWrapper.style.transition = "transform 0.5s ease-out, opacity 0.5s ease-out";
+  protestorWrapper.style.opacity = "0";
+  
+  // Scale vertically more than horizontally to simulate sinking into ground
+  protestorWrapper.style.transform = "scale(1, 0.2) translateY(10px)";
+  
+  // Ensure correct positioning is maintained
+  protestorWrapper.style.position = "absolute";
+  protestorWrapper.style.left = originalPosition.left;
+  protestorWrapper.style.top = originalPosition.top;
+  protestorWrapper.style.width = originalPosition.width;
+  protestorWrapper.style.height = originalPosition.height;
+  
+  // Hide after animation completes
+  setTimeout(() => {
+    this.hideProtestors(countryId);
+    
+    // Reset click counter
+    if (this.countries[countryId]) {
+      this.countries[countryId].clickCounter = 0;
+    }
+  }, 500);
+}
+
+// Also update the showProtestors method to ensure consistency
 showProtestors(countryId) {
   // Clean up any existing protestors
   this.hideProtestors(countryId);
@@ -969,6 +1778,7 @@ showProtestors(countryId) {
   wrapper.style.height = `${height}px`;
   wrapper.style.pointerEvents = "none"; // Hitbox handles clicks
   wrapper.style.zIndex = "10210"; // Just above the hitbox container
+  wrapper.style.transformOrigin = "bottom center"; // Key addition: set grow from bottom
   
   // Create the protestors sprite element
   const protestors = document.createElement("div");
@@ -979,7 +1789,8 @@ showProtestors(countryId) {
   protestors.style.backgroundSize = "400% 100%"; // For 4-frame sprite sheet
   protestors.style.backgroundPosition = "0% 0%";
   protestors.style.backgroundRepeat = "no-repeat";
-  protestors.style.opacity = "1"; // Make fully visible immediately
+  protestors.style.opacity = "0"; // Start invisible for fade-in
+  protestors.style.transition = "opacity 0.3s ease-out"; // Smooth fade-in
   
   // Add protestors to wrapper
   wrapper.appendChild(protestors);
@@ -1016,6 +1827,20 @@ showProtestors(countryId) {
   // Store the interval for cleanup
   this.activeAnimations.protestors[countryId] = animationInterval;
   
+  // Add grow-from-ground animation
+  wrapper.style.transform = "scale(1, 0.2) translateY(10px)"; // Start small from ground
+  
+  // Fade in protestors after a short delay
+  setTimeout(() => {
+    // Now grow up with transition
+    wrapper.style.transition = "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out";
+    wrapper.style.transform = "scale(1, 1)"; // Grow to full size
+    protestors.style.opacity = "1"; // Fade in the sprite
+    
+    // Play protest sound on appearance
+    this.playProtestSound(countryId, 0.3); // Start with low volume
+  }, 100);
+  
   // Set timeout for protestors to disappear if not clicked
   this.countries[countryId].disappearTimeout = setTimeout(() => {
     this.shrinkAndHideProtestors(countryId);
@@ -1027,6 +1852,7 @@ showProtestors(countryId) {
 }
 
 
+// Corrected handleProtestorClick method
 handleProtestorClick(countryId) {
   const country = this.countries[countryId];
   if (!country) {
@@ -1046,64 +1872,187 @@ handleProtestorClick(countryId) {
   const oldClickCount = country.clickCounter || 0;
   country.clickCounter = oldClickCount + 1;
   
-  // Get the protestor wrapper
-  const protestorWrapper = country.protestorWrapper || document.getElementById(`${countryId}-protestors-wrapper`);
-  if (!protestorWrapper) {
-    this.logger.error("freedom", `Protestor wrapper element not found for ${countryId}`);
-    return;
-  }
-  
-  // Get the protestor sprite element
+  // Get a fresh reference to the protestor wrapper and sprite elements
+  const protestorWrapper = document.getElementById(`${countryId}-protestors-wrapper`);
   const protestorSprite = document.getElementById(`${countryId}-protestors`);
-  if (!protestorSprite) {
-    this.logger.error("freedom", `Protestor sprite element not found for ${countryId}`);
+  
+  if (!protestorWrapper || !protestorSprite) {
+    this.logger.error("freedom", `Protestor elements not found for ${countryId}`);
     return;
   }
   
-  // Play click sound
-  this.playSound("protest", countryId, 0.5);
+  // Store the wrapper reference in country data
+  country.protestorWrapper = protestorWrapper;
+  
+  // Calculate volume based on click count
+  const volume = Math.min(0.5 + (country.clickCounter * 0.2), 1.0);
+  
+  // Play click sound with increasing volume
+  this.playProtestSound(countryId, volume);
+  
+  // Create additional protestors
+  const gameContainer = document.getElementById("game-container");
+  if (gameContainer && protestorWrapper) {
+    // Clean up any previous additional protestors
+    document.querySelectorAll(`.additional-protestor-${countryId}`).forEach(el => {
+      if (el && el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    });
+    
+    // Clean up previous animation intervals
+    if (this.activeAnimations.extraProtestors) {
+      for (let key in this.activeAnimations.extraProtestors) {
+        if (key.startsWith(`${countryId}-`)) {
+          clearInterval(this.activeAnimations.extraProtestors[key]);
+          delete this.activeAnimations.extraProtestors[key];
+        }
+      }
+    }
+    
+    // Calculate position relative to the main protestor
+    const rect = protestorWrapper.getBoundingClientRect();
+    const containerRect = gameContainer.getBoundingClientRect();
+    const left = rect.left - containerRect.left;
+    const top = rect.top - containerRect.top;
+    const width = rect.width;
+    const height = rect.height;
+    
+    // Only add additional protestors after first click
+    const count = Math.min(country.clickCounter, 2);
+    
+    for (let i = 0; i < count; i++) {
+      // Create the protestor element
+      const additionalProtestor = document.createElement("div");
+      additionalProtestor.id = `${countryId}-additional-protestor-${i}`;
+      additionalProtestor.className = `additional-protestor-${countryId}`;
+      additionalProtestor.style.position = "absolute";
+      
+      // Position with offsets
+      const offsetX = -20 + (i * 30);
+      const offsetY = -15;
+      
+      additionalProtestor.style.left = `${left + offsetX}px`;
+      additionalProtestor.style.top = `${top + offsetY}px`;
+      additionalProtestor.style.width = `${width * 0.85}px`;
+      additionalProtestor.style.height = `${height * 0.85}px`;
+      additionalProtestor.style.backgroundImage = "url('images/protest.png')";
+      additionalProtestor.style.backgroundSize = "400% 100%";
+      additionalProtestor.style.backgroundPosition = `${(i % 4) * 33}% 0%`;
+      additionalProtestor.style.backgroundRepeat = "no-repeat";
+      additionalProtestor.style.zIndex = "10209";
+      additionalProtestor.style.pointerEvents = "none";
+      
+      // Add to game container
+      gameContainer.appendChild(additionalProtestor);
+      
+      // Set up animation
+      let frame = i % 4;
+      const interval = setInterval(() => {
+        frame = (frame + 1) % 4;
+        const percentPosition = (frame / 3) * 100;
+        
+        // Get a fresh reference to the specific protestor
+        const el = document.getElementById(`${countryId}-additional-protestor-${i}`);
+        if (el) {
+          el.style.backgroundPosition = `${percentPosition}% 0%`;
+        } else {
+          clearInterval(interval);
+        }
+      }, 300 + (i * 50));
+      
+      // Store interval for cleanup
+      if (!this.activeAnimations.extraProtestors) {
+        this.activeAnimations.extraProtestors = {};
+      }
+      this.activeAnimations.extraProtestors[`${countryId}-${i}`] = interval;
+    }
+  }
+  
+  // CRITICAL CHANGE: Stop all CSS animations and transitions before applying transform
+  protestorWrapper.style.animation = "none";
+  protestorWrapper.style.transition = "none";
+  void protestorWrapper.offsetWidth; // Force browser reflow to apply style changes
+  
+  // Get original position values
+  const originalPosition = {
+    left: protestorWrapper.style.left,
+    top: protestorWrapper.style.top,
+    width: protestorWrapper.style.width,
+    height: protestorWrapper.style.height
+  };
+  
+  // KEY FIX: Set transform-origin to bottom center so it grows upward
+  protestorWrapper.style.transformOrigin = "bottom center";
   
   if (country.clickCounter >= 3) {
     // Trigger liberation after 3 clicks
     this.triggerCountryResistance(countryId);
     country.clickCounter = 0;
   } else if (country.clickCounter === 2) {
-    // Change sprite to heart version after second click
+    // Change sprite to heart version on second click
     protestorSprite.style.backgroundImage = "url('images/protestHeart.png')";
     this.logger.info("freedom", `[SPRITE CHANGE] Changed protestor sprite to protestHeart.png for ${countryId}`);
     
-    // Store the scale factor
-    const oldScale = country.currentScale || 1;
-    country.currentScale = oldScale * 1.25;
+    // Apply dramatic scaling (1.75x) with bounce effect
+    protestorWrapper.style.transition = "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
+    protestorWrapper.style.transform = "scale(1.75)";
     
-    // Apply the scale using transform
-    protestorWrapper.style.transition = "transform 0.3s ease"; // Add smooth transition
-    protestorWrapper.style.transform = `scale(${country.currentScale})`;
-    
-    // Set new timeout
+    // Set timeout for protestors to disappear if not clicked
     country.disappearTimeout = setTimeout(() => {
       this.shrinkAndHideProtestors(countryId);
     }, 7000);
   } else {
-    // First click behavior (original sprite)
+    // First click behavior
+    // Apply moderate scaling (1.4x)
+    protestorWrapper.style.transition = "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
+    protestorWrapper.style.transform = "scale(1.4)";
     
-    // Store the scale factor
-    const oldScale = country.currentScale || 1;
-    country.currentScale = oldScale * 1.25;
-    
-    // Apply the scale using transform
-    protestorWrapper.style.transition = "transform 0.3s ease"; // Add smooth transition
-    protestorWrapper.style.transform = `scale(${country.currentScale})`;
-    
-    // Set new timeout
+    // Set timeout for protestors to disappear if not clicked
     country.disappearTimeout = setTimeout(() => {
       this.shrinkAndHideProtestors(countryId);
     }, 7000);
   }
+  
+  // Ensure the wrapper remains correctly positioned
+  protestorWrapper.style.position = "absolute";
+  protestorWrapper.style.left = originalPosition.left;
+  protestorWrapper.style.top = originalPosition.top;
+  protestorWrapper.style.width = originalPosition.width;
+  protestorWrapper.style.height = originalPosition.height;
+  protestorWrapper.style.zIndex = "10210"; // Keep above hitbox
 }
 
 hideProtestors(countryId) {
   this.logger.info("freedom", `[HIDE] Hiding protestors for ${countryId}`);
+  
+  // Clean up additional protestors
+  document.querySelectorAll(`.additional-protestor-${countryId}`).forEach(el => {
+    if (el && el.parentNode) {
+      el.parentNode.removeChild(el);
+    }
+  });
+
+  // Stop sounds with correct country variants
+  if (this.audioManager && typeof this.audioManager.stopProtestorSounds === "function") {
+    if (countryId === "canada") {
+      // For Canada, we need to stop both eastCanada and westCanada sounds
+      this.audioManager.stopProtestorSounds("eastCanada");
+      this.audioManager.stopProtestorSounds("westCanada");
+    } else {
+      this.audioManager.stopProtestorSounds(countryId);
+    }
+  }
+  
+  // Clean up animation intervals for additional protestors
+  if (this.activeAnimations.extraProtestors) {
+    for (let key in this.activeAnimations.extraProtestors) {
+      if (key.startsWith(`${countryId}-`)) {
+        clearInterval(this.activeAnimations.extraProtestors[key]);
+        delete this.activeAnimations.extraProtestors[key];
+      }
+    }
+  }
   
   // Clear animation interval
   if (this.activeAnimations.protestors[countryId]) {
@@ -1140,10 +2089,62 @@ hideProtestors(countryId) {
   }
 }
 
-/**
- * Modified cleanupAllProtestors to work with ProtestorHitboxManager
- * This replaces the existing cleanupAllProtestors method in FreedomManager
- */
+// Also update shrinkAndHideProtestors to animate the additional protestors
+shrinkAndHideProtestors(countryId) {
+  const protestorWrapper = document.getElementById(`${countryId}-protestors-wrapper`);
+  if (!protestorWrapper) return;
+
+  this.logger.info("freedom", `Protestors timed out in ${countryId}, disappearing`);
+  
+  // Clear any existing transitions/animations first
+  protestorWrapper.style.animation = "none";
+  protestorWrapper.style.transition = "none";
+  void protestorWrapper.offsetWidth; // Force reflow
+  
+  // Get original position
+  const originalPosition = {
+    left: protestorWrapper.style.left,
+    top: protestorWrapper.style.top,
+    width: protestorWrapper.style.width,
+    height: protestorWrapper.style.height
+  };
+  
+  // Set transform-origin to bottom center for shrinking back into ground
+  protestorWrapper.style.transformOrigin = "bottom center";
+  
+  // Set up transitions for smooth disappearance
+  protestorWrapper.style.transition = "transform 0.5s ease-out, opacity 0.5s ease-out";
+  protestorWrapper.style.opacity = "0";
+  
+  // Scale vertically more than horizontally to simulate sinking into ground
+  protestorWrapper.style.transform = "scale(1, 0.2) translateY(10px)";
+  
+  // Also animate additional protestors
+  document.querySelectorAll(`.additional-protestor-${countryId}`).forEach(el => {
+    el.style.transition = "opacity 0.4s ease-out, transform 0.4s ease-out";
+    el.style.opacity = "0";
+    el.style.transform = "scale(1, 0.2) translateY(10px)";
+  });
+  
+  // Ensure correct positioning is maintained
+  protestorWrapper.style.position = "absolute";
+  protestorWrapper.style.left = originalPosition.left;
+  protestorWrapper.style.top = originalPosition.top;
+  protestorWrapper.style.width = originalPosition.width;
+  protestorWrapper.style.height = originalPosition.height;
+  
+  // Hide after animation completes
+  setTimeout(() => {
+    this.hideProtestors(countryId);
+    
+    // Reset click counter
+    if (this.countries[countryId]) {
+      this.countries[countryId].clickCounter = 0;
+    }
+  }, 500);
+}
+
+// Also update cleanupAllProtestors method to clean up additional protestors
 cleanupAllProtestors() {
   // Clear all animation intervals
   Object.keys(this.activeAnimations.protestors).forEach(countryId => {
@@ -1152,6 +2153,26 @@ cleanupAllProtestors() {
     }
   });
   this.activeAnimations.protestors = {};
+  
+  // Stop all protestor sounds
+  if (this.audioManager && typeof this.audioManager.stopAllProtestorSounds === "function") {
+    this.audioManager.stopAllProtestorSounds();
+  }
+
+  // Clean up all extraProtestors animation intervals
+  if (this.activeAnimations.extraProtestors) {
+    for (let key in this.activeAnimations.extraProtestors) {
+      clearInterval(this.activeAnimations.extraProtestors[key]);
+    }
+    this.activeAnimations.extraProtestors = {};
+  }
+  
+  // Remove all additional protestor elements
+  document.querySelectorAll('[class^="additional-protestor-"]').forEach(el => {
+    if (el && el.parentNode) {
+      el.parentNode.removeChild(el);
+    }
+  });
   
   // Clean up all hitboxes if we have a hitbox manager
   if (this.protestorHitboxManager) {
@@ -1171,6 +2192,7 @@ cleanupAllProtestors() {
   
   this.logger.info("freedom", "All protestors cleaned up");
 }
+
 
 resetProtestors() {
   // Clean up all protestors
@@ -1283,6 +2305,16 @@ destroy() {
       this.countries[countryId].disappearTimeout = null;
     }
   });
+
+  if (this.audioManager) {
+    if (typeof this.audioManager.stopAllProtestorSounds === "function") {
+      this.audioManager.stopAllProtestorSounds();
+    }
+    // If you have a general stopAll method, this would be a good place to call it
+    if (typeof this.audioManager.stopAll === "function") {
+      this.audioManager.stopAll();
+    }
+  }
   
   // Clean up all visual effects and animations
   this.cleanupAllEffects();
