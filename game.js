@@ -491,60 +491,62 @@ function createTrumpSprite() {
     if (audioManager) {
       audioManager.resumeAudioContext().then(() => {
         audioManager.ensureSoundsAreLoaded();
-
+  
         audioManager.stopBackgroundMusic();
-
+  
         // Start background music after context is resumed
         audioManager.startBackgroundMusic();
-
-        // Begin loading remaining sounds gradually
+        
+        // Play start game sound immediately
+        audioManager.play("ui", "start");
+        
+        // Delay the first grab attempt to avoid sound overlap
         setTimeout(() => {
+          // Begin first grab sequence after start sound has played
+          startAnimationLoop();
+          
+          // Begin loading remaining sounds gradually
           audioManager.loadRemainingSounds();
           audioManager.preloadAllCatchphrases();
           audioManager.preloadAllProtestSounds();
-        }, 2000); // Wait 2 seconds after game start before loading more sounds
+        }, 1000); // Wait 1 second after game start before first grab
+        
+        return;
       });
     }
-
-    // If debug manager is active, reset any edit mode
-    if (debugManager) {
-      // Remove any editing UI elements
-      if (debugManager.doneEditingBtn) {
-        debugManager.doneEditingBtn.remove();
-        debugManager.doneEditingBtn = null;
-      }
-    }
-
+  
     // Hide intro screen, show game screen
     elements.screens.intro.classList.add("hidden");
     elements.screens.game.classList.remove("hidden");
-
+  
     // Make sure the map is loaded before positioning
     if (elements.game.map.complete) {
       resetGameState();
       gameState.isPlaying = true;
-
+  
       // Position elements now that game is visible
       positionElements();
-
+  
       // Start timers after positioning is done
       gameState.countdownTimer = setInterval(updateCountdown, 1000);
-      startAnimationLoop();
+      
+      // Don't start animation loop here anymore - it will be started after the delay
     } else {
       // Wait for the map to load
       elements.game.map.onload = function () {
         resetGameState();
         gameState.isPlaying = true;
-
+  
         // Position elements when map loads
         positionElements();
-
+  
         // Start timers after positioning is done
         gameState.countdownTimer = setInterval(updateCountdown, 1000);
-        startAnimationLoop();
+        
+        // Don't start animation loop here anymore - it will be started after the delay
       };
     }
-
+  
     addStarsToGameScreen();
   }
 

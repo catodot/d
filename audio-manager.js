@@ -70,11 +70,11 @@ class AudioManager {
         resistance: "resistance.mp3",
       },
       trump: {
-        grab: ["grab1.mp3", "grab2.mp3", "grab3.mp3"],
+        grab: ["grab1.mp3"],
         success: ["success1.mp3", "success2.mp3", "success3.mp3"],
         annex: ["annex1.mp3", "annex2.mp3", "annex3.mp3"],
-        victory: ["victory1.mp3", "victory2.mp3", "victory3.mp3"],
-        sob: ["sob1.mp3", "sob2.mp3", "sob3.mp3"],
+        victory: ["victory1.mp3"],
+        sob: ["sob1.mp3", "sob2.mp3"],
       },
       defense: {
         slap: ["slap1.mp3", "slap2.mp3", "slap3.mp3", "slap4.mp3"],
@@ -130,7 +130,7 @@ class AudioManager {
             "protestGreen5.mp3",
             "protestGreen6.mp3",
             "protestGreen7.mp3",
-            "protestGreen8.mp3"          ],
+            ],
         },
         protestors: {
           eastCanada: ["protestorsEastCan1.mp3"],
@@ -148,15 +148,15 @@ class AudioManager {
         greenland: ["greenlandResist1.mp3", "greenlandResist2.mp3"],
       },
       particles: {
-        freedom: ["freedomSpark1.mp3", "freedomSpark2.mp3", "freedomSpark3.mp3"],
+        freedom: ["freedomSpark1.mp3", "freedomSpark2.mp3", "freedomSpark3.mp3", "freedomSpark4.mp3"],
       },
     };
 
     // Catchphrase sound files
     this.catchphraseFiles = {
-      canada: ["canada1.mp3", "canada2.mp3", "canada3.mp3"],
+      canada: ["canada1.mp3", "canada2.mp3", "canada3.mp3", "canada4.mp3"],
       mexico: ["mexico1.mp3", "mexico2.mp3", "mexico3.mp3"],
-      greenland: ["greenland1.mp3", "greenland2.mp3", "greenland3.mp3", "greenland4.mp3", "greenland5.mp3"],
+      greenland: ["greenland1.mp3", "greenland2.mp3", "greenland3.mp3", "greenland4.mp3"],
       generic: ["catchphrase1.mp3", "catchphrase2.mp3", "catchphrase3.mp3"],
     };
 
@@ -215,6 +215,7 @@ class AudioManager {
     // Preload essential sounds that need to be available immediately
     this.loadSound("ui", "click");
     this.loadSound("ui", "start");
+    this.loadSound("ui", "warning");
     this.loadSound("defense", "slap", 0);
     this.loadSound("trump", "grab", 0);
     this.loadSound("trump", "success", 0);
