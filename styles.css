@@ -1030,7 +1030,6 @@ body.debug-mode #trump-hand-hitbox {
   background: var(--overlay-light);
   border-radius: 10px;
 }
-
 /* Speed notification */
 .speed-notification {
   pointer-events: none;
@@ -1052,21 +1051,47 @@ body.debug-mode #trump-hand-hitbox {
   border: 5px solid #000;
   border-radius: 15px;
   padding: 5px 10px;
-  animation: speed-drop 1.5s cubic-bezier(0.25, 0.1, 0.25, 1) 1 forwards;
+  animation: speed-drop 3s cubic-bezier(0.25, 0.1, 0.25, 1) 1 forwards;
+}
+
+@media (max-width: 768px) {
+  .speed-notification {
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    padding: 4px 8px;
+    border: 3px solid #000;
+    border-radius: 10px;
+    text-shadow: 
+      1px 1px 0 #000,
+      2px 2px 0 #000,
+      -1px -1px 0 #000;
+  }
+}
+
+@media (max-width: 480px) {
+  .speed-notification {
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    padding: 3px 6px;
+    border-width: 2px;
+    max-width: 85%;
+  }
 }
 
 @keyframes speed-drop {
   0% { 
     transform: translateX(-50%) translateY(-100%) rotate(-15deg);
   }
-  50% { 
-    transform: translateX(-50%) translateY(70%) rotate(5deg);
+  10% { /* Quickly move to visible position */
+    transform: translateX(-50%) translateY(80%) rotate(5deg);
   }
-  100% { 
-    transform: translateX(50%) translateY(-100%) rotate(15deg);
+  70% { /* Stay in the center for a long time */
+    transform: translateX(-50%) translateY(80%) rotate(-16deg);
+  }
+  100% { /* Quickly move out */
+    transform: translateX(50%) translateY(-150%) rotate(15deg);
   }
 }
-
 /* Freedom effects */
 .freedom-particles {
   position: absolute;

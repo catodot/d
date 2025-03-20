@@ -68,6 +68,11 @@ class AudioManager {
         lose: "lose.mp3",
         warning: "warning.mp3",
         resistance: "resistance.mp3",
+        speedup: "speedup.mp3",
+        // Add new instruction audio files - simple naming
+        instruction1: "instruction1.mp3",
+        instruction2: "instruction2.mp3",
+        instruction3: "instruction3.mp3"
       },
       trump: {
         grab: ["grab1.mp3"],
@@ -271,6 +276,12 @@ class AudioManager {
    */
   loadRemainingSounds() {
     if (!this.initialized) return;
+  
+    // Load instruction sounds first
+    this.loadSound("ui", "instruction1");
+    this.loadSound("ui", "instruction2");
+    this.loadSound("ui", "instruction3");
+    this.loadSound("ui", "speedup");
 
     // Trump sounds
     for (let category in this.soundFiles.trump) {

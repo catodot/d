@@ -122,8 +122,8 @@ class UfoManager {
     // Create image element with sprite sheet
     this.elements.elon = document.createElement("div");
     this.elements.elon.id = "elon-sprite";
-    this.elements.elon.style.width = "100%";
-    this.elements.elon.style.height = "100%";
+    this.elements.elon.style.width = "90%";
+    this.elements.elon.style.height = "90%";
     this.elements.elon.style.backgroundImage = 'url("images/musk.png")';
     this.elements.elon.style.backgroundSize = "200% 100%";
     this.elements.elon.style.backgroundPosition = "0% 0%";
