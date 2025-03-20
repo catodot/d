@@ -16,7 +16,7 @@ class GameSpeedManager {
     ];
     
     this.instructionMessages = [
-      { text: "SMACK HIS HAND AWAY!", audio: "instruction1" },
+      { text: "STOP HIM!", audio: "instruction1" },
       { text: "SMACK THAT HAND!", audio: "instruction1" },
       { text: "CLICK ON THE HAND!", audio: "instruction2" },
       { text: "STOP HIM!", audio: "instruction3" },

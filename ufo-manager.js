@@ -68,7 +68,7 @@ class UfoManager {
 
     this.addToDebugPanel();
     
-    console.log("UFO Manager initialized");
+    // console.log("UFO Manager initialized");
     return this;
   }
 
@@ -92,7 +92,7 @@ class UfoManager {
     const gameScreen = document.getElementById("game-screen");
     gameScreen.appendChild(this.elements.ufo);
 
-    console.log("UFO element created");
+    // console.log("UFO element created");
   }
 
   createElonElement() {
@@ -626,9 +626,7 @@ finishUfoAnimation() {
       const controls = this.createDebugControls();
       debugPanel.appendChild(controls.heading);
       debugPanel.appendChild(controls.container);
-      
-      console.log("UFO debug controls added to debug panel");
-    }, 1000);
+          }, 1000);
   }
   
 

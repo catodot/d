@@ -28,7 +28,7 @@ const DeviceUtils = {
       // Add resize listener to update dimensions
       window.addEventListener('resize', this.handleResize.bind(this));
       
-      console.log(`Device detected: Mobile=${this.isMobileDevice}, Touch=${this.isTouchDevice}, Viewport=${this.viewportWidth}x${this.viewportHeight}`);
+      // console.log(`Device detected: Mobile=${this.isMobileDevice}, Touch=${this.isTouchDevice}, Viewport=${this.viewportWidth}x${this.viewportHeight}`);
       
       return this;
     },

@@ -189,7 +189,7 @@ class AudioManager {
     this.maxGrabVolume = 1.0;
     this.grabVolumeStep = 0.05; // Amount to increase volume per interval
 
-    console.log("Audio Manager initialized");
+    // console.log("Audio Manager initialized");
   }
 
   /**
@@ -250,23 +250,84 @@ class AudioManager {
     return Promise.resolve();
   }
 
-  /**
-   * Preload all game sounds in a managed way
-   */
   preloadGameSounds() {
-    // First wave: UI sounds and critical gameplay sounds
+    // First wave: Only the most critical gameplay sounds (minimal set)
     this.loadSound("ui", "click");
     this.loadSound("ui", "start");
-    this.loadSound("music", "background");
-    this.loadSound("defense", "slap", 0);
-    this.loadSound("trump", "grab", 0);
-    this.loadSound("trump", "success", 0);
-    this.loadSound("trump", "sob", 0);
-
-    // Second wave (deferred): Additional sounds
+    this.loadSound("defense", "slap", 0);  // Just one slap sound
+    this.loadSound("trump", "grab", 0);    // Just one grab sound
+    this.loadSound("trump", "success", 0); // Just one success sound
+  
+    // Second wave (after a delay): Important gameplay sounds
     setTimeout(() => {
-      this.loadRemainingSounds();
+      this.loadSound("ui", "warning");
+      this.loadSound("ui", "instruction1");
+      this.loadSound("ui", "instruction2");
+      this.loadSound("ui", "instruction3");
+      this.loadSound("music", "background");
+      this.loadSound("trump", "sob", 0);
     }, 1000);
+  
+    // Third wave: Additional sounds with longer staggered timing
+    setTimeout(() => {
+      this.loadSoundsProgressively();
+    }, 5000);  // Start loading the rest 5 seconds after game start
+  }
+  
+  loadSoundsProgressively() {
+    // Create a queue of sounds to load
+    const soundQueue = [];
+    
+    // Add trump sounds to queue (with priorities)
+    for (let category in this.soundFiles.trump) {
+      const files = this.soundFiles.trump[category];
+      for (let i = 0; i < files.length; i++) {
+        // Skip index 0 for categories we already loaded
+        if (i === 0 && (category === "grab" || category === "success" || category === "sob")) continue;
+        
+        soundQueue.push({
+          type: "regular",
+          load: () => this.loadSound("trump", category, i),
+          priority: category === "annex" ? 2 : 1  // Higher priority for annex sounds
+        });
+      }
+    }
+    
+    // Add remaining UI sounds
+    for (const name in this.soundFiles.ui) {
+      // Skip already loaded sounds
+      if (["click", "start", "warning", "instruction1", "instruction2", "instruction3"].includes(name)) continue;
+      
+      soundQueue.push({
+        type: "regular",
+        load: () => this.loadSound("ui", name),
+        priority: name === "speedup" ? 2 : 1
+      });
+    }
+    
+    // Add lower priority sounds
+    const loadProtests = () => {
+      setTimeout(() => this.preloadAllProtestSounds(), 100);
+    };
+    
+    const loadCatchphrases = () => {
+      setTimeout(() => this.preloadAllCatchphrases(), 100);
+    };
+    
+    soundQueue.push({ type: "batch", load: loadProtests, priority: 0 });
+    soundQueue.push({ type: "batch", load: loadCatchphrases, priority: 0 });
+    
+    // Sort the queue by priority (highest first)
+    soundQueue.sort((a, b) => b.priority - a.priority);
+    
+    // Load sounds with staggered timing
+    soundQueue.forEach((item, index) => {
+      const delay = item.type === "regular" 
+        ? 200 + (index * 150)  // Regular sounds: spread out loading
+        : 8000 + (index * 1000);  // Batch loaders: much later
+        
+      setTimeout(item.load, delay);
+    });
   }
 
   /**

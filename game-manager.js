@@ -38,7 +38,7 @@ class GameManager {
   }
 
   init(gameState, elements) {
-    console.log("yo");
+    // console.log("yo");
 
     this.gameState = gameState;
     this.elements = elements;
@@ -58,14 +58,14 @@ class GameManager {
     this.smackManager = window.smackManager;
 
     // Log after assigning managers
-    console.log("GameManager Initialized Managers:", {
-      hasAudioManager: !!this.audioManager,
-      hasAnimationManager: !!this.animationManager,
-      hasElements: !!this.elements,
-      hasScreens: !!(this.elements && this.elements.screens),
-      hasIntroScreen: !!(this.elements && this.elements.screens && this.elements.screens.intro),
-      hasGameScreen: !!(this.elements && this.elements.screens && this.elements.screens.game),
-    });
+    // console.log("GameManager Initialized Managers:", {
+    //   hasAudioManager: !!this.audioManager,
+    //   hasAnimationManager: !!this.animationManager,
+    //   hasElements: !!this.elements,
+    //   hasScreens: !!(this.elements && this.elements.screens),
+    //   hasIntroScreen: !!(this.elements && this.elements.screens && this.elements.screens.intro),
+    //   hasGameScreen: !!(this.elements && this.elements.screens && this.elements.screens.game),
+    // });
 
     // Rest of the method remains the same
     this.setupAccessibility();
