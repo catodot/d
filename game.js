@@ -601,6 +601,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   };
 
+  
+
   // Initialize game when page loads
   init();
 });
