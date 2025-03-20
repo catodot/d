@@ -23,42 +23,40 @@
 
     <meta name="author" content="Cato Döt" />
     <meta name="description" content="Shout! Smack! Fight back!" />
-     <!-- Open Graph / Yuck -->
-     <meta property="og:type" content="website" />
-     <meta property="og:url" content="https://catodot.github.io/d/" />
-     <meta property="og:title" content="Shout! Smack! Fight back!" />
-     <meta
-       property="og:description"
-       content="Smack Trump's grabby hands, rally protesters, and join the resistance in this depressingly realistic game where you battle a delusional despot desperately clinging to power as his empire crumbles into his own corruption." />
-     <meta property="og:image" content="https://catodot.github.io/d/images/grab.png" />
- 
-     <!-- Eewww Card Tags  -->
-     <meta name="twitter:card" content="summary_large_image" />
-     <meta name="twitter:title" content="Shout! Smack! Fight back!" />
-     <meta
-       name="twitter:description"
-       content="Smack Trump's grabby hands, rally protesters, and join the resistance in this depressingly realistic game where you battle a delusional despot desperately clinging to power as his empire crumbles into his own corruption." />
-     <meta name="twitter:image" content="https://catodot.github.io/d/images/grab.png" />
- 
-     <link rel="me" href="https://mastodon.social/@freedom" />
- 
-     <!-- Bluesky/AT Protocol -->
-     <meta property="bsky:title" content="Shout! Smack! Fight back!" />
-     <meta
-       property="bsky:description"
-       content="Smack Trump's grabby hands, rally protesters, and join the resistance in this depressingly realistic game where you battle a delusional despot desperately clinging to power as his empire crumbles into his own corruption." />
-     <meta property="bsky:image" content="https://catodot.github.io/d/images/grab.png" />
- 
-     <meta
-       name="description"
-       content="Smack Trump's grabby hands, rally protesters, and join the resistance in this depressingly realistic game where you battle a delusional despot desperately clinging to power as his empire crumbles into his own corruption." />
- 
- 
-  
-       <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-       <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
-       <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
-       <link rel="manifest" href="./site.webmanifest">
+    <!-- Open Graph / Yuck -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://catodot.github.io/d/" />
+    <meta property="og:title" content="Shout! Smack! Fight back!" />
+    <meta
+      property="og:description"
+      content="Smack Trump's grabby hands, rally protesters, and join the resistance in this depressingly realistic game where you battle a delusional despot desperately clinging to power as his empire crumbles into his own corruption." />
+    <meta property="og:image" content="https://catodot.github.io/d/images/grab.png" />
+
+    <!-- Eewww Card Tags  -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Shout! Smack! Fight back!" />
+    <meta
+      name="twitter:description"
+      content="Smack Trump's grabby hands, rally protesters, and join the resistance in this depressingly realistic game where you battle a delusional despot desperately clinging to power as his empire crumbles into his own corruption." />
+    <meta name="twitter:image" content="https://catodot.github.io/d/images/grab.png" />
+
+    <link rel="me" href="https://mastodon.social/@freedom" />
+
+    <!-- Bluesky/AT Protocol -->
+    <meta property="bsky:title" content="Shout! Smack! Fight back!" />
+    <meta
+      property="bsky:description"
+      content="Smack Trump's grabby hands, rally protesters, and join the resistance in this depressingly realistic game where you battle a delusional despot desperately clinging to power as his empire crumbles into his own corruption." />
+    <meta property="bsky:image" content="https://catodot.github.io/d/images/grab.png" />
+
+    <meta
+      name="description"
+      content="Smack Trump's grabby hands, rally protesters, and join the resistance in this depressingly realistic game where you battle a delusional despot desperately clinging to power as his empire crumbles into his own corruption." />
+
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+    <link rel="manifest" href="./site.webmanifest" />
   </head>
 
   <body>
@@ -78,9 +76,8 @@
 
       <div id="game-hud">
         <div id="term-progress-container">
-
           <div id="term-progress-bar"></div>
-                    <!-- <marquee behavior="alternate" scrollamount="1" id="term-progress-label">UNLESS WE DO SOMETHING</marquee> -->
+          <!-- <marquee behavior="alternate" scrollamount="1" id="term-progress-label">UNLESS WE DO SOMETHING</marquee> -->
 
           <div id="term-progress-label">UNLESS WE DO SOMETHING</div>
         </div>
@@ -123,7 +120,10 @@
       <!-- Game Container -->
       <div id="game-container">
         <!-- Map Background -->
-        <img id="map-background" src="images/world-map.png" alt="Interactive world map showing Canada, Mexico, and Greenland for the resistance game" />
+        <img
+          id="map-background"
+          src="images/world-map.png"
+          alt="Interactive world map showing Canada, Mexico, and Greenland for the resistance game" />
 
         <div id="canada-flag-overlay" class="country-flag-overlay" aria-label="Canadian flag overlay with USA flag"></div>
         <div id="mexico-flag-overlay" class="country-flag-overlay" aria-label="Mexican flag overlay with USA flag"></div>
@@ -145,19 +145,32 @@
       </div>
     </div>
 
-
     <div id="game-over-screen" class="screen hidden">
       <div class="game-over-content">
         <h1 id="game-result">Game Over</h1>
         <h2>Resistance Score: <span id="final-score">0</span></h2>
         <div class="game-over-stats-container">
-          <p class="stats-text game-over-stat-value">YOU BLOCKED <span id="blocks-stat">0 attacks</span> AND SURVIVED <span id="time-stat">10 months</span></p>
-          <p><a href="https://docs.google.com/forms/d/1SuNDqRFRY3NxZYYjb78tk8uBCQs1Gn5M1Sj8PMXPx4o" target="_blank" class="voice">Join the resistance! Add your voice to this game</a>
-            </p>
-          </div>
+          <p class="stats-text game-over-stat-value">
+            YOU BLOCKED <span id="blocks-stat">0 attacks</span> AND SURVIVED <span id="time-stat">10 months</span>
+          </p>
+          <p>
+            <a href="https://docs.google.com/forms/d/1SuNDqRFRY3NxZYYjb78tk8uBCQs1Gn5M1Sj8PMXPx4o" target="_blank" class="voice"
+              >Join the resistance!</a
+            >
+          </p>
+        </div>
         <div id="trump-game-over-animation" class="trump-victory-animation"></div>
         <div class="game-over-button-container">
-          <!-- <button id="share-button" class="hand-drawn-button" href="https://vote.gov" target="_blank">share</button> -->
+          <button 
+              id="share-button" 
+              class="hand-drawn-button" 
+              data-link="https://docs.google.com/forms/d/1SuNDqRFRY3NxZYYjb78tk8uBCQs1Gn5M1Sj8PMXPx4o"
+              data-action="external-link"
+          >
+              add your voice
+          </button>
+
+          <!-- <button id="share-button" class="hand-drawn-button" data-action="record-voice">Record Voice</button> -->
         </div>
         <!-- New social share buttons -->
         <div class="social-buttons-row">
@@ -171,8 +184,29 @@
       </div>
     </div>
 
+    <div id="voice-recorder-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div id="voice-recorder-container" class="bg-white p-6 rounded-lg w-96 max-w-full relative">
+        <button id="close-recorder" class="absolute top-2 right-2 text-xl font-bold text-gray-600 hover:text-gray-900">
+          ✕
+        </button>
+        <!-- VoiceRecorder will dynamically add content here -->
+      </div>
+    </div>
+    <div id="thank-you-message" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 hidden">
+      <div class="container">
+        <h2>Thank You!</h2>
+        <p>Your voice helps spread awareness about the struggle for freedom.</p>
+        <button id="close-thank-you">
+          Close
+        </button>
+      </div>
+    </div>
+
     <script src="audio-manager.js"></script>
     <script src="game-logger.js" defer></script>
+
+    <script src="debug-util.js"></script>
+    <script src="device-utils.js"></script>
 
     <script src="animation-manager.js"></script>
     <script src="smack-manager.js"></script>
@@ -180,7 +214,6 @@
 
     <script src="html2canvas.js" defer></script>
     <script src="screen-shot-share.js" defer></script>
-
 
     <script src="protestor-hitbox-manager.js"></script>
 
@@ -190,7 +223,9 @@
     <script src="freedom-manager.js" defer></script>
     <script src="handhitbox-manager.js"></script>
     <script src="game-speed-manager.js"></script>
+    <script src="voice-recorder.js"></script>
 
+    <script src="game-manager.js"></script>
     <script src="game.js"></script>
   </body>
 </html>

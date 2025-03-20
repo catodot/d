@@ -177,9 +177,7 @@ class AudioManager {
     this.backgroundMusicPlaying = false;
     this.loadedSounds = new Set(); // Track loaded sounds
 
-    // Detect mobile device once
-    this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
+    
     // Music state
     this.musicIntensity = 0; // 0 = normal, 1-3 = increasing intensity levels
     this.musicRateInterval = null;
@@ -210,7 +208,7 @@ class AudioManager {
     }
 
     // Adjust sound path for mobile devices
-    if (this.isMobile) {
+    if (window.DeviceUtils.isMobileDevice) {
       const baseUrl = window.location.origin + window.location.pathname;
       this.soundPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/";
     }
@@ -378,6 +376,28 @@ class AudioManager {
     return this.soundPath + filename;
   }
 
+
+  handleError(context, error, fallback = null) {
+    // Log the error
+    console.warn(`Audio error (${context}): ${error.message}`);
+    
+    // Track error for analytics if needed
+    if (window.logger && typeof window.logger.error === 'function') {
+      window.logger.error('audio', `${context}: ${error.message}`);
+    }
+    
+    // Execute fallback if provided
+    if (typeof fallback === 'function') {
+      try {
+        return fallback();
+      } catch (fallbackError) {
+        console.warn(`Fallback error (${context}): ${fallbackError.message}`);
+      }
+    }
+    
+    return null;
+  }
+
   /**
    * Universal method to play a sound directly with a new Audio element
    * This is more reliable on mobile devices
@@ -542,65 +562,64 @@ class AudioManager {
     return audio;
   }
 
-  /**
-   * Play a UI sound by name
-   */
   play(category, name) {
     if (!this.initialized || this.muted) return Promise.resolve(null);
-
+  
     // Always ensure AudioContext is resumed (crucial for mobile)
     return this.resumeAudioContext().then(() => {
-      // On mobile, use direct approach for reliability
-      if (this.isMobile) {
-        const soundPath = this.soundFiles[category][name];
-        if (soundPath) {
-          const audio = this.playDirect(soundPath);
-          return Promise.resolve(audio);
-        }
-      }
-
-      // Otherwise, check if the sound exists in our cache
-      if (!this.sounds[category][name]) {
-        this.loadSound(category, name);
-
-        // Try direct play after a short delay
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            const soundPath = this.soundFiles[category][name];
-            const audio = this.playDirect(soundPath);
-            resolve(audio);
-          }, 100);
-        });
-      }
-
-      const sound = this.sounds[category][name];
-
-      // Make sure it's a valid audio element
-      if (!sound || typeof sound.play !== "function") {
-        console.warn(`Invalid sound object for ${category}.${name}`);
-        return Promise.resolve(null);
-      }
-
-      // Reset and play
-      sound.currentTime = 0;
-      sound.volume = this.volume;
-
       try {
+        // On mobile, use direct approach for reliability
+        if (window.DeviceUtils.isMobileDevice) {
+          const soundPath = this.soundFiles[category][name];
+          if (soundPath) {
+            const audio = this.playDirect(soundPath);
+            return Promise.resolve(audio);
+          }
+        }
+  
+        // Otherwise, check if the sound exists in our cache
+        if (!this.sounds[category][name]) {
+          this.loadSound(category, name);
+  
+          // Try direct play after a short delay
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              const soundPath = this.soundFiles[category][name];
+              const audio = this.playDirect(soundPath);
+              resolve(audio);
+            }, 100);
+          });
+        }
+  
+        const sound = this.sounds[category][name];
+  
+        // Make sure it's a valid audio element
+        if (!sound || typeof sound.play !== "function") {
+          return Promise.reject(new Error(`Invalid sound object for ${category}.${name}`));
+        }
+  
+        // Reset and play
+        sound.currentTime = 0;
+        sound.volume = this.volume;
+  
         const playPromise = sound.play();
         if (playPromise !== undefined) {
           return playPromise.catch((error) => {
-            console.warn(`Audio playback prevented: ${error}, trying direct method`);
-            // Fall back to direct method if regular play fails
-            return this.playDirect(this.soundFiles[category][name]);
+            // Use our standardized error handler with a fallback
+            return this.handleError(`Playing ${category}.${name}`, error, () => {
+              // Fall back to direct method if regular play fails
+              return this.playDirect(this.soundFiles[category][name]);
+            });
           });
         }
-      } catch (e) {
-        console.warn(`Error playing sound: ${e.message}`);
-        // Fall back to direct method if regular play fails
-        return Promise.resolve(this.playDirect(this.soundFiles[category][name]));
+        
+        return Promise.resolve(sound);
+      } catch (error) {
+        return this.handleError(`Playing ${category}.${name}`, error, () => {
+          // Fall back to direct method
+          return this.playDirect(this.soundFiles[category][name]);
+        });
       }
-
-      return Promise.resolve(sound);
     });
   }
 
@@ -679,7 +698,7 @@ class AudioManager {
     }
 
     // If we're on mobile, just use the first sound for reliability
-    if (this.isMobile) {
+    if (window.DeviceUtils.isMobileDevice) {
       return soundArray[0];
     }
 
@@ -1081,12 +1100,9 @@ class AudioManager {
     return annexSound;
   }
 
-  /**
-   * Start background music
-   */
   startBackgroundMusic() {
     if (!this.initialized || this.muted) return Promise.resolve(false);
-
+  
     // Resume AudioContext first (mobile requirement)
     return this.resumeAudioContext().then(() => {
       try {
@@ -1094,7 +1110,7 @@ class AudioManager {
         const music = new Audio(this.getSoundPath(this.soundFiles.music.background));
         music.loop = true;
         music.volume = this.volume * 0.9;
-
+  
         // Play the music
         const playPromise = music.play();
         if (playPromise !== undefined) {
@@ -1106,18 +1122,16 @@ class AudioManager {
               return true;
             })
             .catch((error) => {
-              console.warn(`Background music prevented: ${error}`);
-              return false;
+              return this.handleError("Starting background music", error, () => false);
             });
         }
-
+  
         // Store reference to the background music
         this.backgroundMusic = music;
         this.backgroundMusicPlaying = true;
         return Promise.resolve(true);
       } catch (e) {
-        console.warn(`Error starting background music: ${e.message}`);
-        return Promise.resolve(false);
+        return this.handleError("Creating background music", e, () => false);
       }
     });
   }
@@ -1195,7 +1209,7 @@ class AudioManager {
    */
   ensureSoundsAreLoaded() {
     // Check if any sounds are loaded
-    if (this.loadedSounds.size === 0 && this.isMobile) {
+    if (this.loadedSounds.size === 0 && window.DeviceUtils.isMobileDevice) {
       // Try with a different path approach for mobile
       const baseUrl = window.location.origin + window.location.pathname;
       const altPath = baseUrl.endsWith("/") ? baseUrl + "sounds/" : baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/";
@@ -1356,6 +1370,114 @@ class AudioManager {
       }
     }
   }
+
+  reset() {
+  // Stop all currently playing sounds
+  this.stopAll();
+
+  // Reset volume to default
+  this.volume = 1.0;
+  this.muted = false;
+
+  // Stop background music
+  this.stopBackgroundMusic();
+
+  // Clear music intensity and related intervals
+  this.musicIntensity = 0;
+  if (this.musicRateInterval) {
+    clearInterval(this.musicRateInterval);
+    this.musicRateInterval = null;
+  }
+
+  // Reset grab sound state
+  this.stopGrabSound();
+  this.currentGrabVolume = 0.2;
+
+  // Clear tracking of currently playing sounds
+  this.currentlyPlaying = [];
+
+  // Clear protestor sound tracking
+  if (this.activeProtestorSounds) {
+    Object.keys(this.activeProtestorSounds).forEach(country => {
+      this.stopProtestorSounds(country);
+    });
+  }
+
+  // Reinitialize audio system
+  this.initialized = false;
+  this.init();
+}
+
+destroy() {
+  // Comprehensive cleanup
+  
+  // Stop all sounds and clear references
+  this.stopAll();
+  this.stopBackgroundMusic();
+  this.stopAllProtestorSounds();
+
+  // Clear all sound references
+  this.sounds = {
+    ui: {}, 
+    trump: { grab: [], success: [], annex: [], victory: [], sob: [] },
+    resistance: { canada: [], mexico: [], greenland: [] },
+    particles: { freedom: [] },
+    defense: { 
+      slap: [],
+      protest: { eastCanada: [], westCanada: [], mexico: [], greenland: [] },
+      protestors: { eastCanada: null, westCanada: null, mexico: null, greenland: null }
+    },
+    music: {}
+  };
+
+  // Clear shuffled sound tracking
+  this.shuffledSoundIndexes = {};
+  this.shuffledSoundArrays = {};
+  this.shuffledCatchphraseIndexes = {};
+  this.shuffledCatchphraseArrays = {};
+
+  // Clear catchphrases
+  this.catchphrases = {
+    canada: [],
+    mexico: [],
+    greenland: [],
+    generic: []
+  };
+
+  // Reset audio context
+  if (this.audioContext) {
+    try {
+      this.audioContext.close();
+    } catch (e) {
+      console.warn("Error closing AudioContext:", e);
+    }
+    this.audioContext = null;
+  }
+
+  // Reset tracking sets and states
+  this.loadedSounds.clear();
+  this.currentlyPlaying = [];
+  this.backgroundMusic = null;
+  this.activeGrabSound = null;
+
+  // Clear intervals
+  if (this.grabVolumeInterval) {
+    clearInterval(this.grabVolumeInterval);
+    this.grabVolumeInterval = null;
+  }
+  if (this.musicRateInterval) {
+    clearInterval(this.musicRateInterval);
+    this.musicRateInterval = null;
+  }
+
+  // Reset state variables
+  this.initialized = false;
+  this.muted = false;
+  this.volume = 1.0;
+  this.backgroundMusicPlaying = false;
+  this.musicIntensity = 0;
+  this.currentGrabVolume = 0.2;
+}
 }
 
 window.AudioManager = AudioManager;

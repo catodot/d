@@ -421,146 +421,8 @@ class FreedomManager {
     }
   }
 
-  /**
-   * Create individual confetti piece
-   * @param {number} startX - Starting X position
-   * @param {number} startY - Starting Y position
-   * @param {HTMLElement} container - Parent container
-   * @param {boolean} isLarger - Whether this piece should be larger
-   */
-// Improvement 1: Better appearance animation for protestors without distortion
-showProtestors(countryId) {
-  // Clean up any existing protestors
-  this.hideProtestors(countryId);
   
-  this.protestorHitboxManager.selectNewRandomSpawnLocation(countryId);
 
-  console.log(`Showing protestors for ${countryId}`);
-  
-  // Get the hitbox
-  const hitbox = this.protestorHitboxManager.showHitbox(countryId, this);
-  if (!hitbox) {
-    console.error(`Failed to create protestor hitbox for ${countryId}`);
-    return null;
-  }
-  
-  // Get hitbox position and size directly from the style
-  const left = parseInt(hitbox.style.left) || 0;
-  const top = parseInt(hitbox.style.top) || 0;
-  const width = parseInt(hitbox.style.width) || 100;
-  const height = parseInt(hitbox.style.height) || 100;
-  
-  // Create a container for the protestor sprite
-  const gameContainer = document.getElementById("game-container");
-  
-  // Clean up any existing elements first
-  const existingElement = document.getElementById(`${countryId}-protestors-wrapper`);
-  if (existingElement && existingElement.parentNode) {
-    existingElement.parentNode.removeChild(existingElement);
-  }
-  
-  // Create wrapper element
-  const wrapper = document.createElement("div");
-  wrapper.id = `${countryId}-protestors-wrapper`;
-  wrapper.style.position = "absolute";
-  wrapper.style.left = `${left}px`;
-  wrapper.style.top = `${top}px`;
-  wrapper.style.width = `${width}px`;
-  wrapper.style.height = `${height}px`;
-  wrapper.style.pointerEvents = "none"; // Hitbox handles clicks
-  wrapper.style.zIndex = "10210"; // Just above the hitbox container
-  
-  // Create the protestors sprite element
-  const protestors = document.createElement("div");
-  protestors.id = `${countryId}-protestors`;
-  protestors.style.width = "100%";
-  protestors.style.height = "100%";
-  protestors.style.backgroundImage = "url('images/protest.png')";
-  protestors.style.backgroundSize = "400% 100%"; // For 4-frame sprite sheet
-  protestors.style.backgroundPosition = "0% 0%";
-  protestors.style.backgroundRepeat = "no-repeat";
-  protestors.style.opacity = "0"; // Start invisible for fade-in
-  protestors.style.transition = "opacity 0.3s ease-out"; // Smooth fade-in
-  
-  // Add protestors to wrapper
-  wrapper.appendChild(protestors);
-  
-  // Add wrapper to game container
-  gameContainer.appendChild(wrapper);
-  
-  // Store wrapper reference
-  this.countries[countryId].protestorWrapper = wrapper;
-  
-  // Initialize click counter
-  this.countries[countryId].clickCounter = 0;
-  this.countries[countryId].currentScale = 1.0; // For scaling when clicked
-  
-  // Animation for sprite sheet
-  let currentFrame = 0;
-  
-  const animationInterval = setInterval(() => {
-    const protestorElement = document.getElementById(`${countryId}-protestors`);
-    if (!protestorElement) {
-      clearInterval(animationInterval);
-      console.log(`Animation cleared for ${countryId} - element not found`);
-      return;
-    }
-    
-    // For 4-frame sprite sheet - cycle through frames
-    currentFrame = (currentFrame + 1) % 4;
-    const percentPosition = (currentFrame / 3) * 100;
-    protestorElement.style.backgroundPosition = `${percentPosition}% 0%`;
-    
-    console.log(`Updated ${countryId} protestor animation to frame ${currentFrame}`);
-  }, 300);
-  
-  // Store the interval for cleanup
-  this.activeAnimations.protestors[countryId] = animationInterval;
-  
-  // Add entrance animation using CSS animation instead of distorting with scale transform
-  // This avoids distortion while still creating a "rise up" effect
-  wrapper.style.animation = "protestor-appear 0.5s ease-out forwards";
-  
-  // Add the CSS animation to the document if it doesn't exist yet
-  if (!document.getElementById('protestor-animations')) {
-    const style = document.createElement('style');
-    style.id = 'protestor-animations';
-    style.textContent = `
-      @keyframes protestor-appear {
-        0% { transform: translateY(20px); }
-        70% { transform: translateY(-5px); }
-        100% { transform: translateY(0); }
-      }
-      @keyframes protestor-bounce {
-        0% { transform: translateY(0); }
-        50% { transform: translateY(-5px); }
-        100% { transform: translateY(0); }
-      }
-      @keyframes protestor-disappear {
-        0% { transform: translateY(0); opacity: 1; }
-        100% { transform: translateY(20px); opacity: 0; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-  
-  // Fade in protestors after animation starts
-  setTimeout(() => {
-    protestors.style.opacity = "1";
-    
-    // Play protest sound on appearance
-    this.playProtestSound(countryId, 0.3); // Start with low volume
-  }, 100);
-  
-  // Set timeout for protestors to disappear if not clicked
-  this.countries[countryId].disappearTimeout = setTimeout(() => {
-    this.shrinkAndHideProtestors(countryId);
-  }, 7000); // 7 seconds timeout
-  
-  console.log(`Created protestors for ${countryId} at (${left}, ${top})`);
-  
-  return wrapper;
-}
 
 
 // Add this method to the FreedomManager class
@@ -715,132 +577,6 @@ createAdditionalProtestors(countryId, clickCount) {
     return true;
   }
 
-
-
-  // createConfettiPiece(startX, startY, container, isLarger = false) {
-  //   if (!container) return;
-  
-  //   // Create confetti element
-  //   const confetti = document.createElement("div");
-  //   confetti.className = "freedom-confetti";
-  
-  //   // Focus more on streamers, fewer shape types
-  //   const shapes = ["streamer", "rectangle", "square"];
-  //   const shape = Math.random() < 0.6 ? "streamer" : shapes[1 + Math.floor(Math.random() * 2)];
-  //   confetti.classList.add(`confetti-${shape}`);
-  
-  //   // Larger size for better visibility
-  //   const size = isLarger ? 15 + Math.random() * 20 : 10 + Math.random() * 15;
-    
-  //   // Make streamers long and thin
-  //   if (shape === "streamer") {
-  //     confetti.style.width = `${4 + Math.random() * 3}px`;
-  //     confetti.style.height = `${size * (2.5 + Math.random())}px`; // Longer streamers
-  //     confetti.style.borderRadius = "40%";
-  //   } else {
-  //     confetti.style.width = `${size}px`;
-  //     confetti.style.height = shape === "rectangle" ? `${size * 1.5}px` : `${size}px`;
-  //   }
-  
-  //   // Bold, vibrant colors
-  //   const hue = Math.floor(Math.random() * 360);
-  //   confetti.style.backgroundColor = `hsl(${hue}, 100%, 60%)`;
-    
-  //   // Always add a clean black border
-  //   confetti.style.border = `1.5px solid black`;
-    
-  //   // Add slight 3D effect
-  //   confetti.style.boxShadow = "inset -1px -1px 0 rgba(0,0,0,0.3)";
-    
-  //   // Random initial rotation
-  //   const rotation = Math.random() * 360;
-  //   confetti.style.transform = `rotate(${rotation}deg)`;
-  
-  //   // Set the initial position
-  //   confetti.style.position = "absolute";
-  //   confetti.style.left = `${startX}px`;
-  //   confetti.style.top = `${startY}px`;
-  //   confetti.style.zIndex = FreedomManager.Z_INDEXES.CONFETTI;
-  
-  //   // Add to container
-  //   container.appendChild(confetti);
-  
-  //   // Store confetti reference for potential cleanup
-  //   const confettiRef = {
-  //     element: confetti,
-  //     startTime: performance.now(),
-  //     animationCompleted: false,
-  //   };
-  //   this.activeAnimations.confetti.push(confettiRef);
-  
-  //   // MUCH wider spread
-  //   const angle = Math.random() * Math.PI * 2;
-  //   const distance = 100 + Math.random() * 200; // Wider spread
-  //   const destinationX = startX + Math.cos(angle) * distance;
-  //   const destinationY = startY + Math.sin(angle) * distance;
-    
-  //   // Longer duration for slower movement
-  //   const duration = 1800 + Math.random() * 1200;
-  
-  //   // Wider arc control points for more spread
-  //   const cp1x = startX + (destinationX - startX) * 0.3 + (Math.random() * 80 - 40);
-  //   const cp1y = startY - (40 + Math.random() * 80);
-  //   const cp2x = destinationX - (Math.random() * 80 - 40);
-  //   const cp2y = destinationY - (Math.random() * 80);
-  
-  //   const animateConfetti = (timestamp) => {
-  //     if (confettiRef.animationCompleted) return;
-  
-  //     const elapsed = timestamp - confettiRef.startTime;
-  //     const progress = Math.min(elapsed / duration, 1);
-  
-  //     if (progress < 1) {
-  //       // Cubic bezier calculations for movement
-  //       const t = progress;
-  //       const t_ = 1 - t;
-  
-  //       const currentX = Math.pow(t_, 3) * startX + 3 * Math.pow(t_, 2) * t * cp1x + 3 * t_ * Math.pow(t, 2) * cp2x + Math.pow(t, 3) * destinationX;
-  //       const currentY = Math.pow(t_, 3) * startY + 3 * Math.pow(t_, 2) * t * cp1y + 3 * t_ * Math.pow(t, 2) * cp2y + Math.pow(t, 3) * destinationY;
-  
-  //       // Update position
-  //       confetti.style.left = `${currentX}px`;
-  //       confetti.style.top = `${currentY}px`;
-  
-  //       // MUCH slower spin - only 40-90 degrees total depending on shape
-  //       const spinSpeed = shape === "streamer" ? 90 : 40;
-  //       const spin = rotation + progress * spinSpeed * (Math.random() > 0.5 ? 1 : -1);
-        
-  //       // Very gentle wobble
-  //       const wobble = Math.sin(progress * Math.PI * 2) * 5;
-        
-  //       confetti.style.transform = `rotate(${spin + wobble}deg)`;
-  
-  //       // Simple exit - fade out
-  //       if (progress > 0.8) {
-  //         const exitScale = 1 - ((progress - 0.8) / 0.2);
-  //         confetti.style.opacity = exitScale.toString();
-  //       }
-  
-  //       requestAnimationFrame(animateConfetti);
-  //     } else {
-  //       // Animation complete, clean up
-  //       confettiRef.animationCompleted = true;
-  
-  //       if (confetti.parentNode) {
-  //         confetti.parentNode.removeChild(confetti);
-  //       }
-  
-  //       // Remove from active animations
-  //       const index = this.activeAnimations.confetti.indexOf(confettiRef);
-  //       if (index !== -1) {
-  //         this.activeAnimations.confetti.splice(index, 1);
-  //       }
-  //     }
-  //   };
-  
-  //   requestAnimationFrame(animateConfetti);
-  // }
-
   createConfettiPiece(startX, startY, container, isLarger = false) {
     if (!container) return;
   
@@ -848,6 +584,9 @@ createAdditionalProtestors(countryId, clickCount) {
     const confetti = document.createElement("div");
     confetti.className = "freedom-confetti";
   
+    // Performance optimization: use CSS properties that are cheap to animate
+    confetti.style.willChange = "transform, opacity";
+    
     // Random confetti properties for more variety
     const shapes = ["circle", "square", "rectangle", "triangle"];
     const shape = shapes[Math.floor(Math.random() * shapes.length)];
@@ -863,12 +602,8 @@ createAdditionalProtestors(countryId, clickCount) {
     const lightness = 50 + Math.random() * 30; // Brighter colors
     confetti.style.backgroundColor = `hsl(${hue}, 100%, ${lightness}%)`;
   
-    // Add black border for cartoon look (this is the main change you liked)
+    // Add black border for cartoon look
     confetti.style.border = "1px solid black";
-  
-    // Random rotation
-    const rotation = Math.random() * 360;
-    confetti.style.transform = `rotate(${rotation}deg)`;
   
     // Set the initial position
     confetti.style.position = "absolute";
@@ -899,6 +634,14 @@ createAdditionalProtestors(countryId, clickCount) {
     const cp1y = startY + (destinationY - startY) * 0.3 - Math.random() * 20;
     const cp2x = startX + (destinationX - startX) * 0.6 + (Math.random() * 30 - 15);
     const cp2y = destinationY - Math.random() * 50;
+    
+    // Initial rotation
+    const rotation = Math.random() * 360;
+    confetti.style.transform = `rotate(${rotation}deg)`;
+
+    
+    // Use simpler animation path on mobile
+    const simplifiedPath = window.DeviceUtils.isMobileDevice;
   
     const animateConfetti = (timestamp) => {
       if (confettiRef.animationCompleted) return;
@@ -907,28 +650,48 @@ createAdditionalProtestors(countryId, clickCount) {
       const progress = Math.min(elapsed / duration, 1);
   
       if (progress < 1) {
-        // Cubic bezier calculations for smooth movement
-        const t = progress;
-        const t_ = 1 - t;
+        let currentX, currentY;
+        
+        if (simplifiedPath) {
+          // Linear path for mobile (more efficient)
+          currentX = startX + (destinationX - startX) * progress;
+          currentY = startY + (destinationY - startY) * progress;
+        } else {
+          // Cubic bezier calculations for smooth movement on desktop
+          const t = progress;
+          const t_ = 1 - t;
   
-        const currentX = Math.pow(t_, 3) * startX + 3 * Math.pow(t_, 2) * t * cp1x + 3 * t_ * Math.pow(t, 2) * cp2x + Math.pow(t, 3) * destinationX;
-        const currentY = Math.pow(t_, 3) * startY + 3 * Math.pow(t_, 2) * t * cp1y + 3 * t_ * Math.pow(t, 2) * cp2y + Math.pow(t, 3) * destinationY;
+          currentX = Math.pow(t_, 3) * startX + 3 * Math.pow(t_, 2) * t * cp1x + 3 * t_ * Math.pow(t, 2) * cp2x + Math.pow(t, 3) * destinationX;
+          currentY = Math.pow(t_, 3) * startY + 3 * Math.pow(t_, 2) * t * cp1y + 3 * t_ * Math.pow(t, 2) * cp2y + Math.pow(t, 3) * destinationY;
+        }
   
         // Update position
         confetti.style.left = `${currentX}px`;
         confetti.style.top = `${currentY}px`;
   
-        // Add spin animation
-        const spin = rotation + progress * progress * 720 * (Math.random() > 0.5 ? 1 : -1);
-        confetti.style.transform = `rotate(${spin}deg)`;
+        // Simplified rotation on mobile
+        if (simplifiedPath) {
+          const spin = rotation + progress * 360 * (Math.random() > 0.5 ? 1 : -1);
+          confetti.style.transform = `rotate(${spin}deg)`;
+        } else {
+          // Add spin animation
+          const spin = rotation + progress * progress * 720 * (Math.random() > 0.5 ? 1 : -1);
+          confetti.style.transform = `rotate(${spin}deg)`;
   
-        // Instead of fading out, shrink at the end
-        if (progress > 0.7) {
-          const scale = 1 - ((progress - 0.7) / 0.3) * 0.7; // Don't scale all the way to 0
-          confetti.style.transform = `rotate(${spin}deg) scale(${scale})`;
+          // Instead of fading out, shrink at the end
+          if (progress > 0.7) {
+            const scale = 1 - ((progress - 0.7) / 0.3) * 0.7; // Don't scale all the way to 0
+            confetti.style.transform = `rotate(${spin}deg) scale(${scale})`;
+          }
         }
   
-        requestAnimationFrame(animateConfetti);
+        // Optimize animation frame rate on mobile
+        if (simplifiedPath && progress % 0.1 !== 0) {
+          // Skip some frames on mobile
+          setTimeout(() => requestAnimationFrame(animateConfetti), 16);
+        } else {
+          requestAnimationFrame(animateConfetti);
+        }
       } else {
         // Animation complete, clean up
         confettiRef.animationCompleted = true;
@@ -1737,19 +1500,19 @@ shrinkAndHideProtestors(countryId) {
   }, 500);
 }
 
-// Also update the showProtestors method to ensure consistency
+// Keep this implementation and remove the duplicate
 showProtestors(countryId) {
   // Clean up any existing protestors
   this.hideProtestors(countryId);
   
   this.protestorHitboxManager.selectNewRandomSpawnLocation(countryId);
 
-  console.log(`Showing protestors for ${countryId}`);
+  this.logger.info("freedom", `Showing protestors for ${countryId}`);
   
   // Get the hitbox
   const hitbox = this.protestorHitboxManager.showHitbox(countryId, this);
   if (!hitbox) {
-    console.error(`Failed to create protestor hitbox for ${countryId}`);
+    this.logger.error("freedom", `Failed to create protestor hitbox for ${countryId}`);
     return null;
   }
   
@@ -1812,7 +1575,7 @@ showProtestors(countryId) {
     const protestorElement = document.getElementById(`${countryId}-protestors`);
     if (!protestorElement) {
       clearInterval(animationInterval);
-      console.log(`Animation cleared for ${countryId} - element not found`);
+      this.logger.debug("freedom", `Animation cleared for ${countryId} - element not found`);
       return;
     }
     
@@ -1820,8 +1583,6 @@ showProtestors(countryId) {
     currentFrame = (currentFrame + 1) % 4;
     const percentPosition = (currentFrame / 3) * 100;
     protestorElement.style.backgroundPosition = `${percentPosition}% 0%`;
-    
-    console.log(`Updated ${countryId} protestor animation to frame ${currentFrame}`);
   }, 300);
   
   // Store the interval for cleanup
@@ -1846,13 +1607,12 @@ showProtestors(countryId) {
     this.shrinkAndHideProtestors(countryId);
   }, 7000); // 7 seconds timeout
   
-  console.log(`Created protestors for ${countryId} at (${left}, ${top})`);
+  this.logger.debug("freedom", `Created protestors for ${countryId} at (${left}, ${top})`);
   
   return wrapper;
 }
 
 
-// Corrected handleProtestorClick method
 handleProtestorClick(countryId) {
   const country = this.countries[countryId];
   if (!country) {

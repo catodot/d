@@ -50,51 +50,56 @@ class HandHitboxManager {
     }
   }
 
-// In the setupHoverEffects method of HandHitboxManager
-setupHoverEffects() {
-  if (!this.trumpHandHitBox || !this.trumpHandHitBoxVisual) return;
-  
-  const hitbox = this.trumpHandHitBox;
-  const visual = this.trumpHandHitBoxVisual;
-  
-  // Remove existing listeners to prevent duplicates
-  if (this._hoverHandlers) {
-    hitbox.removeEventListener("mouseenter", this._hoverHandlers.enter);
-    hitbox.removeEventListener("mouseleave", this._hoverHandlers.leave);
+  setupHoverEffects() {
+    if (!this.trumpHandHitBox || !this.trumpHandHitBoxVisual) return;
+    
+    const hitbox = this.trumpHandHitBox;
+    const visual = this.trumpHandHitBoxVisual;
+    
+    // Remove existing listeners to prevent duplicates
+    this.removeHoverEffects();
+    
+    // Define event handlers with improved state checking
+    const onMouseEnter = () => {
+      // Only apply hover effect if in hittable state and not in animation
+      if (hitbox.classList.contains("hittable") && 
+          !visual.classList.contains("hit") && 
+          !visual.classList.contains("grab-success")) {
+        
+        visual.style.transform = "scale(1.2)"; 
+        visual.style.opacity = "0.4";
+      }
+    };
+    
+    const onMouseLeave = () => {
+      // Only reset if in hittable state and not in animation
+      if (hitbox.classList.contains("hittable") && 
+          !visual.classList.contains("hit") && 
+          !visual.classList.contains("grab-success")) {
+        
+        visual.style.transform = "scale(1.0)";
+        visual.style.opacity = "0.3";
+      }
+    };
+    
+    // Add the event listeners
+    hitbox.addEventListener("mouseenter", onMouseEnter);
+    hitbox.addEventListener("mouseleave", onMouseLeave);
+    
+    // Store the handlers for later removal
+    this._hoverHandlers = { enter: onMouseEnter, leave: onMouseLeave };
   }
-  
-  // Define event handlers with improved state checking
-  const onMouseEnter = () => {
-    // Only apply hover effect if in hittable state and not in animation
-    if (hitbox.classList.contains("hittable") && 
-        !visual.classList.contains("hit") && 
-        !visual.classList.contains("grab-success")) {
-      
-      console.log("Mouse enter - setting opacity to 0.4"); // Debug log
-      visual.style.transform = "scale(1.2)"; 
-      visual.style.opacity = "0.4";
-    }
-  };
-  
-  const onMouseLeave = () => {
-    // Only reset if in hittable state and not in animation
-    if (hitbox.classList.contains("hittable") && 
-        !visual.classList.contains("hit") && 
-        !visual.classList.contains("grab-success")) {
-      
-      console.log("Mouse leave - setting opacity to 0.3"); // Debug log
-      visual.style.transform = "scale(1.0)";
-      visual.style.opacity = "0.3";
-    }
-  };
-  
-  // Add the event listeners
-  hitbox.addEventListener("mouseenter", onMouseEnter);
-  hitbox.addEventListener("mouseleave", onMouseLeave);
-  
-  // Store the handlers for potential later removal
-  this._hoverHandlers = { enter: onMouseEnter, leave: onMouseLeave };
-}
+
+  removeHoverEffects() {
+    if (!this.trumpHandHitBox || !this._hoverHandlers) return;
+    
+    // Remove the stored event listeners
+    this.trumpHandHitBox.removeEventListener("mouseenter", this._hoverHandlers.enter);
+    this.trumpHandHitBox.removeEventListener("mouseleave", this._hoverHandlers.leave);
+    
+    // Clear the stored handlers
+    this._hoverHandlers = null;
+  }
 
   // Method to set reference to animations data
   setAnimationsData(animations) {
@@ -172,8 +177,7 @@ setupHoverEffects() {
       return;
     }
 
-    // Determine if we're on mobile
-    const isMobile = this.isMobileDevice();
+    const isMobile = window.DeviceUtils.isMobileDevice
 
     // Choose the right coordinates based on device type
     let coords = this.getCoordinatesForDevice(animation, isMobile);
@@ -186,18 +190,6 @@ setupHoverEffects() {
 
     // Position the hitbox
     this.positionHitbox(coords, isMobile);
-  }
-
-  // Helper method to determine if on mobile device
-  isMobileDevice() {
-    // Check if it's an actual mobile device by user agent
-    const isMobileUserAgent = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    // Also check if the viewport is mobile-sized (e.g., less than 768px width)
-    const isMobileViewport = window.innerWidth < 768;
-    
-    // Consider it mobile if either condition is true
-    return isMobileUserAgent || isMobileViewport;
   }
 
   // Helper method to get coordinates based on device type
@@ -312,13 +304,34 @@ scaleCoordinates(baseCoords, scaleFactor, touchFactor = 1.0) {
     logger.trace("hitbox", `Positioned hand hitbox at (${coords.x}, ${coords.y}) with dimensions ${coords.width}x${coords.height}`);
   }
 
-  // Hide the hitbox
   hideHitbox() {
     if (this.trumpHandHitBox) {
       this.trumpHandHitBox.style.display = "none";
       this.trumpHandHitBox.style.pointerEvents = "none";
       this.isVisible = false;
+      
+      // Also hide the visual element
+      if (this.trumpHandHitBoxVisual) {
+        this.trumpHandHitBoxVisual.style.opacity = "0";
+      }
+      
+      // Remove event listeners when hiding the hitbox
+      this.removeHoverEffects();
     }
+  }
+
+  destroy() {
+    // Remove event listeners
+    this.removeHoverEffects();
+    
+    // Hide and detach elements
+    this.hideHitbox();
+    
+    // Null out references to DOM elements
+    this.trumpHandHitBox = null;
+    this.trumpHandHitBoxVisual = null;
+    
+    logger.debug("hitbox", "HandHitboxManager destroyed");
   }
 
   // Method to set debug mode

@@ -281,7 +281,8 @@
     
       // If paused, don't start animation
       if (this.isPaused) return;
-    
+        
+      
       // Calculate frame duration based on game speed
       let frameDuration;
       if (animation.frameDuration) {
@@ -290,6 +291,11 @@
         frameDuration = Math.max(50, animation.frameDuration / this.gameSpeed);
       } else {
         frameDuration = Math.max(50, this.baseFrameDuration / this.gameSpeed);
+      }
+    
+      // Apply slight framerate reduction for mobile devices to preserve performance
+      if (window.DeviceUtils.isMobileDevice) {
+        frameDuration = Math.max(frameDuration, 80); // Minimum 80ms per frame on mobile
       }
     
       logger.debug(
@@ -333,6 +339,24 @@
         this.updateFrame(this.currentFrame);
       }, frameDuration);
     }
+
+    destroy() {
+      // Stop all animations
+      this.stop();
+      
+      // Clean up hand hitbox manager
+      if (this.handHitboxManager && typeof this.handHitboxManager.destroy === 'function') {
+        this.handHitboxManager.destroy();
+      }
+      
+      // Clean up any other resources
+      this.trumpSprite = null;
+      this.currentState = "";
+      this.onAnimationEnd = null;
+      
+      logger.debug("animation", "Animation Manager destroyed");
+    }
+    
 
     stop() {
       if (this.animationInterval) {
@@ -477,5 +501,7 @@
       return this.handHitboxManager.getHitboxInfo();
     }
   }
+
+
 
   window.AnimationManager = AnimationManager;

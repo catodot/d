@@ -485,7 +485,38 @@ hitbox.setAttribute("aria-label", `Support ${countryId.charAt(0).toUpperCase() +
   
       logger.info("protestor-hitbox", "Cleaned up all protestor hitboxes");
     }
+
+    reset() {
+      // Clean up existing hitboxes
+      this.cleanupAll();
+      
+      // Reselect random spawn locations
+      this.selectRandomSpawnLocations();
+      
+      // Reset state variables
+      this.freedomManager = null;
+      
+      // Reinitialize core functionality
+      this.init();
+    }
+    
+    destroy() {
+      // Comprehensive cleanup
+      this.cleanupAll();
+      
+      // Remove container if it exists
+      if (this.container && this.container.parentNode) {
+        this.container.parentNode.removeChild(this.container);
+      }
+      
+      // Reset all tracking variables
+      this.container = null;
+      this.currentCoordinates = {};
+      this.freedomManager = null;
+    }
   }
+
+  
   
   // Make available to window
   window.ProtestorHitboxManager = ProtestorHitboxManager;

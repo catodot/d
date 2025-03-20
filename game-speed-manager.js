@@ -275,12 +275,24 @@ class GameSpeedManager {
   }
   
   reset() {
-    this.stopSpeedProgression();
-    this.currentSpeedIndex = 0;
-    this.setSpeed(this.speedLevels[0].multiplier);
+    this.stopSpeedProgression(); // Stop all timers and notifications
+    this.currentSpeedIndex = 0; // Reset to initial speed
+    this.setSpeed(this.speedLevels[0].multiplier); // Set to base speed
     this.initialInstructionsShown = false;
     this.currentInstructionIndex = 0;
     this.tutorialCompleted = false;
     this.initialBlockCount = 0;
+  }
+  
+  destroy() {
+    // Instead of full destruction, just do a comprehensive reset
+    this.reset();
+    
+    // Remove any lingering UI elements
+    const gameScreen = document.getElementById("game-screen");
+    if (gameScreen) {
+      const notifications = gameScreen.querySelectorAll(".speed-notification");
+      notifications.forEach(notification => notification.remove());
+    }
   }
 }

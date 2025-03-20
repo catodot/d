@@ -19,6 +19,32 @@ class SmackManager {
     // Delegate to the animationManager's playSmackAnimation method
     this.animationManager.playSmackAnimation(countryName, onCompleteCallback);
   }
+
+  /**
+   * Reset the Smack Manager to its initial state
+   */
+  reset() {
+    logger.info('animation', 'Resetting Smack Manager');
+    // If there are any ongoing smack animations, stop them
+    if (this.animationManager && typeof this.animationManager.stopSmackAnimations === 'function') {
+      this.animationManager.stopSmackAnimations();
+    }
+  }
+
+  /**
+   * Completely destroy the Smack Manager
+   */
+  destroy() {
+    logger.info('animation', 'Destroying Smack Manager');
+    
+    // Stop any ongoing animations
+    if (this.animationManager && typeof this.animationManager.stopSmackAnimations === 'function') {
+      this.animationManager.stopSmackAnimations();
+    }
+
+    // Clear references
+    this.animationManager = null;
+  }
 }
 
 // Export the class to the global scope
