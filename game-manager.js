@@ -17,7 +17,6 @@ class GameManager {
     this.speedManager = null;
     this.protestorHitboxManager = null;
     this.smackManager = null;
-    this.trumpHandEffects = null; // Reference to hand effects controller
 
     // Bind methods to maintain context
     this.initiateGrab = this.initiateGrab.bind(this);
@@ -32,13 +31,23 @@ class GameManager {
     this.positionElements = this.positionElements.bind(this);
     this.positionCountryFlagOverlays = this.positionCountryFlagOverlays.bind(this);
     this.positionTrumpCharacter = this.positionTrumpCharacter.bind(this);
+    this.applyGrabSuccessEffect = this.applyGrabSuccessEffect.bind(this);
+    this.applyCartoonyHitEffect = this.applyCartoonyHitEffect.bind(this);
     this.showFasterNotification = this.showFasterNotification.bind(this);
     this.restartGame = this.restartGame.bind(this);
   }
 
   init(gameState, elements) {
+    // console.log("yo");
+
     this.gameState = gameState;
     this.elements = elements;
+
+    // Log before assigning managers
+    console.log("Global Managers Before Assignment:", {
+      audioManager: window.audioManager,
+      animationManager: window.animationManager,
+    });
 
     // Store manager references directly from window object
     this.audioManager = window.audioManager;
@@ -47,9 +56,18 @@ class GameManager {
     this.speedManager = window.speedManager;
     this.protestorHitboxManager = window.protestorHitboxManager;
     this.smackManager = window.smackManager;
-    this.trumpHandEffects = window.trumpHandEffects;
 
-    // Set up accessibility features
+    // Log after assigning managers
+    // console.log("GameManager Initialized Managers:", {
+    //   hasAudioManager: !!this.audioManager,
+    //   hasAnimationManager: !!this.animationManager,
+    //   hasElements: !!this.elements,
+    //   hasScreens: !!(this.elements && this.elements.screens),
+    //   hasIntroScreen: !!(this.elements && this.elements.screens && this.elements.screens.intro),
+    //   hasGameScreen: !!(this.elements && this.elements.screens && this.elements.screens.game),
+    // });
+
+    // Rest of the method remains the same
     this.setupAccessibility();
 
     if (this.DEBUG_MODE) {
@@ -108,12 +126,13 @@ class GameManager {
    * Start the game
    */
   startGame() {
-    console.log("GameManager.startGame called");
+    console.log("GameManager.startGame called start");
 
     // Always try to resume AudioContext on game start (user interaction)
     if (this.audioManager) {
       this.audioManager.resumeAudioContext().then(() => {
         this.audioManager.ensureSoundsAreLoaded();
+
         this.audioManager.stopBackgroundMusic();
 
         // Start background music after context is resumed
@@ -138,14 +157,21 @@ class GameManager {
           this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
 
           // Delay the first grab sequence to give player time to get oriented
+          // and see the first instruction
           setTimeout(() => {
             // Begin first grab sequence after delay
             this.initiateGrab();
 
-            // Begin loading remaining sounds using the optimized preload method
-            this.audioManager.preloadGameSounds();
-          }, 5000); // 5 second delay before first grab to allow for instructions
-        } else {
+        //     // Begin loading remaining sounds gradually
+        //     this.audioManager.loadRemainingSounds();
+        //     this.audioManager.preloadAllCatchphrases();
+        //     this.audioManager.preloadAllProtestSounds();
+        //   }, 5000); // 5 second delay before first grab to allow for instructions
+        // } else {
+         // Begin loading remaining sounds using the optimized preload method
+         this.audioManager.preloadGameSounds();
+        }, 5000); // 5 second delay before first grab to allow for instructions
+      } else {
           // Wait for the map to load
           this.elements.game.map.onload = () => {
             this.resetGameState();
@@ -162,9 +188,15 @@ class GameManager {
               // Begin first grab sequence after delay
               this.initiateGrab();
 
-              // Begin loading remaining sounds using the optimized preload method
-              this.audioManager.preloadGameSounds();
-            }, 5000); // 5 second delay before first grab
+                // Begin loading remaining sounds using the optimized preload method
+            this.audioManager.preloadGameSounds();
+          }, 5000); // 5 second delay before first grab to allow for instructions
+   
+            //   // Begin loading remaining sounds gradually
+            //   this.audioManager.loadRemainingSounds();
+            //   this.audioManager.preloadAllCatchphrases();
+            //   this.audioManager.preloadAllProtestSounds();
+            // }, 5000); // 5 second delay before first grab
           };
         }
 
@@ -310,18 +342,14 @@ class GameManager {
     this.gameState.isPaused = !this.gameState.isPaused;
 
     const pauseButton = document.getElementById("pause-button");
-    if (pauseButton) {
-      // Update aria-pressed based on current state
-      pauseButton.setAttribute("aria-pressed", this.gameState.isPaused ? "true" : "false");
 
-      // Also update the aria-label to match the current action
-      pauseButton.setAttribute("aria-label", this.gameState.isPaused ? "Resume game" : "Pause game");
+    // Update aria-pressed based on current state
+    pauseButton.setAttribute("aria-pressed", this.gameState.isPaused ? "true" : "false");
 
-      const iconElement = pauseButton.querySelector(".icon");
-      if (iconElement) {
-        iconElement.textContent = this.gameState.isPaused ? "▶️" : "⏸️";
-      }
-    }
+    // Also update the aria-label to match the current action
+    pauseButton.setAttribute("aria-label", this.gameState.isPaused ? "Resume game" : "Pause game");
+
+    pauseButton.querySelector(".icon").textContent = this.gameState.isPaused ? "▶️" : "⏸️";
 
     if (this.gameState.isPaused) {
       // Stop timers when paused
@@ -480,269 +508,482 @@ class GameManager {
     trumpSprite.style.top = "0"; // Reset position to top
   }
 
-  /**
-   * Start a grab sequence
-   */
-  initiateGrab() {
-    if (!this.gameState.isPlaying || this.gameState.isPaused) {
-      return;
-    }
 
-    // Select a country to grab
-    const availableCountries = Object.keys(this.gameState.countries).filter((country) => {
-      return this.gameState.countries[country].claims < this.gameState.countries[country].maxClaims;
-    });
-
-    if (availableCountries.length === 0) {
-      this.initiateGrab(); // Restart loop if no countries left
-      return;
-    }
-
-    // Select random country and animation
-    const targetCountry = availableCountries[Math.floor(Math.random() * availableCountries.length)];
-    const possibleAnimations = this.gameState.countryAnimations[targetCountry];
-    const animationName = possibleAnimations[Math.floor(Math.random() * possibleAnimations.length)];
-
-    // Set necessary state flags
-    this.gameState.currentTarget = targetCountry;
-    this.gameState.isEastCanadaGrab = animationName === "grabEastCanada";
-    this.gameState.isWestCanadaGrab = animationName === "grabWestCanada";
-
-    // Play warning sound
-    this.audioManager.playGrabWarning();
-
-    // Announce for screen readers
-    this.announceForScreenReaders(`Trump is trying to grab ${targetCountry}! Smack his hand!`);
-
-    // Handle visual effects using the controller
-    const isFirstBlock = this.gameState.stats.successfulBlocks === 0;
-    
-    if (this.trumpHandEffects) {
-      // Use the new API method for grab start
-      this.trumpHandEffects.handleGrabStart(targetCountry, isFirstBlock);
-    }
-
-    // Play the grab animation
-    this.animationManager.changeState(animationName, () => {
-      // This runs when grab completes without being blocked
-      if (this.gameState.currentTarget === targetCountry && this.gameState.isPlaying && !this.gameState.isPaused) {
-        // Handle successful grab
-        this.grabSuccess(targetCountry);
-      } else if (this.gameState.isPlaying && !this.gameState.isPaused) {
-        // Grab was interrupted or blocked - start next cycle
-        this.initiateGrab();
-      }
-    });
-
-    // Play grab sound
-    this.audioManager.playGrabAttempt(targetCountry);
+/**
+ * Start a grab sequence
+ */
+initiateGrab() {
+  if (!this.gameState.isPlaying || this.gameState.isPaused) {
+    return;
   }
 
-  /**
-   * Stop the grab (player successfully blocked)
-   */
-  stopGrab(event) {
-    const targetCountry = this.gameState.currentTarget;
+  // Select a country to grab
+  const availableCountries = Object.keys(this.gameState.countries).filter((country) => {
+    return this.gameState.countries[country].claims < this.gameState.countries[country].maxClaims;
+  });
+
+  if (availableCountries.length === 0) {
+    this.initiateGrab(); // Restart loop if no countries left
+    return;
+  }
+
+  // Select random country and animation
+  const targetCountry = availableCountries[Math.floor(Math.random() * availableCountries.length)];
+  const possibleAnimations = this.gameState.countryAnimations[targetCountry];
+  const animationName = possibleAnimations[Math.floor(Math.random() * possibleAnimations.length)];
+
+  // Set necessary state flags
+  this.gameState.currentTarget = targetCountry;
+  this.gameState.isEastCanadaGrab = animationName === "grabEastCanada";
+  this.gameState.isWestCanadaGrab = animationName === "grabWestCanada";
+
+  // Play warning sound
+  this.audioManager.playGrabWarning();
+
+  // Announce for screen readers
+  this.announceForScreenReaders(`Trump is trying to grab ${targetCountry}! Smack his hand!`);
+
+  // Get visual and hitbox elements
+  const visual = document.getElementById("trump-hand-visual");
+  const hitbox = document.getElementById("trump-hand-hitbox");
+
+  // Check if this is before the first successful block
+  const isBeforeFirstBlock = this.gameState.stats.successfulBlocks === 0;
+
+  // Use the effects controller if available, otherwise use legacy approach
+  if (window.trumpHandEffects) {
+    window.trumpHandEffects.makeHittable(isBeforeFirstBlock);
+    window.trumpHandEffects.highlightTargetCountry(targetCountry, true);
+  } else {
+    // Legacy approach - direct DOM manipulation
+    if (visual) {
+      visual.classList.add("hittable");
+      visual.style.display = "block";
+      
+      if (isBeforeFirstBlock) {
+        visual.style.opacity = "0.6";
+        visual.style.border = "5px dashed black";
+        visual.style.borderRadius = "50%";
+      } else {
+        visual.style.opacity = "0.3";
+        visual.style.border = "none";
+      }
+      
+      visual.style.backgroundColor = "transparent";
+      visual.style.transform = "scale(1.0)";
+    }
     
-    // Handle visual effects using the controller
-    if (this.trumpHandEffects) {
-      // Use the new API method for grab block
-      this.trumpHandEffects.handleGrabBlocked();
-    }
-
-    if (!targetCountry) {
-      return;
-    }
-
-    // Determine specific grab region
-    const smackCountry =
-      targetCountry === "canada"
-        ? this.gameState.isEastCanadaGrab
-          ? "eastCanada"
-          : this.gameState.isWestCanadaGrab
-          ? "westCanada"
-          : targetCountry
-        : targetCountry;
-
-    // Reset target immediately to prevent double-handling
-    this.gameState.currentTarget = null;
-    this.gameState.isEastCanadaGrab = false;
-    this.gameState.isWestCanadaGrab = false;
-
-    // DIRECT APPROACH: Play the slap sound directly if on mobile
-    if (window.DeviceUtils && window.DeviceUtils.isMobileDevice) {
-      try {
-        // Create a direct path to the sound file
-        const baseUrl = window.location.origin + window.location.pathname;
-        const soundPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/slap1.mp3";
-
-        // Create and play a new Audio element directly - bypassing the audio manager
-        const directSlap = new Audio(soundPath);
-        directSlap.volume = 1.0; // Full volume
-        directSlap.play();
-      } catch (e) {
-        // Error handling
+    if (hitbox) {
+      hitbox.classList.add("hittable");
+      
+      if (isBeforeFirstBlock) {
+        const handleMouseEnter = () => {
+          if (visual) {
+            visual.style.opacity = "0.6";
+          }
+        };
+        
+        const handleMouseLeave = () => {
+          if (visual) {
+            visual.style.opacity = "0.4";
+          }
+        };
+        
+        hitbox.addEventListener("mouseenter", handleMouseEnter);
+        hitbox.addEventListener("mouseleave", handleMouseLeave);
+        
+        hitbox._enterHandler = handleMouseEnter;
+        hitbox._leaveHandler = handleMouseLeave;
       }
     }
+  }
 
-    // Also use the audioManager (both approaches for redundancy)
-    if (this.audioManager) {
-      this.audioManager.playSuccessfulBlock(smackCountry);
+  // Play the grab animation
+  this.animationManager.changeState(animationName, () => {
+    // This runs when grab completes without being blocked
+    if (this.gameState.currentTarget === targetCountry && this.gameState.isPlaying && !this.gameState.isPaused) {
+      // Handle successful grab
+      this.grabSuccess(targetCountry);
+    } else if (this.gameState.isPlaying && !this.gameState.isPaused) {
+      // Grab was interrupted or blocked - start next cycle
+      this.initiateGrab();
     }
 
-    // Increase score
-    this.gameState.score += 10;
+    // Clean up event listeners
+    if (hitbox && isBeforeFirstBlock) {
+      if (hitbox._enterHandler) hitbox.removeEventListener("mouseenter", hitbox._enterHandler);
+      if (hitbox._leaveHandler) hitbox.removeEventListener("mouseleave", hitbox._leaveHandler);
+      hitbox._enterHandler = null;
+      hitbox._leaveHandler = null;
+    }
 
-    // Track consecutive hits and stats
-    this.gameState.consecutiveHits++;
-    this.gameState.stats.successfulBlocks++;
+    // IMPORTANT: Hide the visual completely when animation completes
+    if (visual && !window.trumpHandEffects) {
+      visual.style.display = "none";
+      visual.style.opacity = "0";
+      visual.style.border = "none";
+      visual.classList.remove("hittable");
+    }
+  });
 
-    // Update HUD
-    this.updateHUD();
+  // Play grab sound
+  this.audioManager.playGrabAttempt(targetCountry);
+}
 
-    // Announce for screen readers
-    this.announceForScreenReaders(`Hand blocked! +10 points. Total score: ${this.gameState.score}`);
+/**
+ * Stop the grab (player successfully blocked)
+ */
+stopGrab(event) {
+  const targetCountry = this.gameState.currentTarget;
 
-    // Handle animation sequence with clear transitions
-    if (window.smackManager) {
-      this.smackManager.playSmackAnimation(smackCountry, () => {
-        // After smack completes, play slapped animation
-        this.animationManager.changeState("slapped", () => {
-          // After slapped completes, restart animation loop
-          this.initiateGrab();
-        });
-      });
-    } else {
-      // Fallback path if no smack manager
+  const visual = document.getElementById("trump-hand-visual");
+  const hitbox = document.getElementById("trump-hand-hitbox");
+
+  // Use the effects controller if available, otherwise use legacy approach
+  if (window.trumpHandEffects) {
+    window.trumpHandEffects.applyHitEffect();
+    window.trumpHandEffects.highlightTargetCountry(targetCountry, false);
+  } else {
+    // Legacy approach - direct DOM manipulation
+    if (visual) {
+      visual.classList.remove("hittable");
+      visual.style.opacity = "1"; // Force full opacity when hit starts
+      visual.style.border = "none"; // Remove border when blocked
+      visual.classList.add("hit");
+
+      // Apply the effect setup
+      this.applyCartoonyHitEffect();
+
+      setTimeout(() => {
+        visual.classList.remove("hit");
+        visual.classList.add("animation-completed");
+
+        // Remove the class and HIDE the visual after a short delay
+        setTimeout(() => {
+          visual.classList.remove("animation-completed");
+          visual.style.display = "none";
+          visual.style.opacity = "0";
+        }, 100);
+      }, 650);
+    }
+  }
+
+  // Clean up event listeners if they exist
+  if (hitbox) {
+    if (hitbox._enterHandler) hitbox.removeEventListener("mouseenter", hitbox._enterHandler);
+    if (hitbox._leaveHandler) hitbox.removeEventListener("mouseleave", hitbox._leaveHandler);
+    hitbox._enterHandler = null;
+    hitbox._leaveHandler = null;
+  }
+
+  if (hitbox) {
+    hitbox.classList.remove("hittable"); // Remove cursor style
+  }
+
+  if (!targetCountry) {
+    return;
+  }
+
+  // Determine specific grab region
+  const smackCountry =
+    targetCountry === "canada"
+      ? this.gameState.isEastCanadaGrab
+        ? "eastCanada"
+        : this.gameState.isWestCanadaGrab
+        ? "westCanada"
+        : targetCountry
+      : targetCountry;
+
+  // Reset target immediately to prevent double-handling
+  this.gameState.currentTarget = null;
+  this.gameState.isEastCanadaGrab = false;
+  this.gameState.isWestCanadaGrab = false;
+
+  // DIRECT APPROACH: Play the slap sound directly if on mobile
+  if (window.DeviceUtils && window.DeviceUtils.isMobileDevice) {
+    try {
+      // Create a direct path to the sound file
+      const baseUrl = window.location.origin + window.location.pathname;
+      const soundPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/slap1.mp3";
+
+      // Create and play a new Audio element directly - bypassing the audio manager
+      const directSlap = new Audio(soundPath);
+      directSlap.volume = 1.0; // Full volume
+      directSlap.play();
+    } catch (e) {
+      // Error handling
+    }
+  }
+
+  // Also use the audioManager (both approaches for redundancy)
+  if (this.audioManager) {
+    this.audioManager.playSuccessfulBlock(smackCountry);
+  }
+
+  // Increase score
+  this.gameState.score += 10;
+
+  // Track consecutive hits and stats
+  this.gameState.consecutiveHits++;
+  this.gameState.stats.successfulBlocks++;
+
+  // Update HUD
+  this.updateHUD();
+
+  // Announce for screen readers
+  this.announceForScreenReaders(`Hand blocked! +10 points. Total score: ${this.gameState.score}`);
+
+  // Handle animation sequence with clear transitions
+  if (window.smackManager) {
+    this.smackManager.playSmackAnimation(smackCountry, () => {
+      // After smack completes, play slapped animation
       this.animationManager.changeState("slapped", () => {
+        // After slapped completes, restart animation loop
         this.initiateGrab();
       });
-    }
-  }
-
-  /**
-   * Handle successful grab by Trump
-   */
-  grabSuccess(country) {
-    // Reset consecutive hits
-    this.gameState.consecutiveHits = 0;
-
-    // Handle visual effects using the controller
-    if (this.trumpHandEffects) {
-      // Use the new API method for grab success
-      this.trumpHandEffects.handleGrabSuccess();
-    }
-
-    // Reset current target
-    this.gameState.currentTarget = null;
-
-    // Handle East/West Canada special case
-    if (country === "eastCanada" || country === "westCanada") {
-      // Increment claim on the shared Canada entity
-      this.gameState.countries.canada.claims = Math.min(this.gameState.countries.canada.claims + 1, this.gameState.countries.canada.maxClaims);
-
-      // Get current claim count from the shared Canada entity
-      const claimCount = this.gameState.countries.canada.claims;
-
-      // Play appropriate sounds based on grab count
-      if (claimCount < this.gameState.countries.canada.maxClaims) {
-        // First and second grabs - success sound
-        this.audioManager.playSuccessfulGrab("canada");
-      } else {
-        // Final grab (complete annexation) - annexation sound
-        this.audioManager.playCountryAnnexed("canada");
-      }
-
-      // Update flag overlay
-      const flagOverlay = document.getElementById(`canada-flag-overlay`);
-      if (flagOverlay) {
-        // Remove previous opacity classes
-        flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100");
-
-        if (claimCount === 1) {
-          flagOverlay.classList.add("opacity-33");
-        } else if (claimCount === 2) {
-          flagOverlay.classList.add("opacity-66");
-        } else if (claimCount === 3) {
-          flagOverlay.classList.add("opacity-100");
-        }
-      }
-
-      // Announce for screen readers
-      this.announceForScreenReaders(`Trump has claimed part of Canada! ${claimCount} out of 3 parts taken.`);
-    } else {
-      // Normal processing for other countries
-      this.gameState.countries[country].claims = Math.min(this.gameState.countries[country].claims + 1, this.gameState.countries[country].maxClaims);
-
-      // Get current claim count
-      const claimCount = this.gameState.countries[country].claims;
-
-      // Play appropriate sounds based on grab count
-      if (claimCount < this.gameState.countries[country].maxClaims) {
-        // First and second grabs - success sound
-        this.audioManager.playSuccessfulGrab(country);
-      } else {
-        // Final grab (complete annexation) - annexation sound
-        this.audioManager.playCountryAnnexed(country);
-      }
-
-      // Update flag overlay
-      const flagOverlay = document.getElementById(`${country}-flag-overlay`);
-      if (flagOverlay) {
-        // Remove previous opacity classes
-        flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100");
-
-        if (claimCount === 1) {
-          flagOverlay.classList.add("opacity-33");
-        } else if (claimCount === 2) {
-          flagOverlay.classList.add("opacity-66");
-        } else if (claimCount === 3) {
-          flagOverlay.classList.add("opacity-100");
-        }
-      }
-
-      // Announce for screen readers
-      this.announceForScreenReaders(`Trump has claimed part of ${country}! ${claimCount} out of 3 parts taken.`);
-    }
-
-    // Check if country is fully claimed
-    let checkCountry = country;
-    if (country === "eastCanada" || country === "westCanada") {
-      checkCountry = "canada";
-    }
-
-    const claimCount = this.gameState.countries[checkCountry].claims;
-    if (claimCount >= this.gameState.countries[checkCountry].maxClaims) {
-      // Count total annexed countries
-      const annexedCount = Object.keys(this.gameState.countries).filter(
-        (c) => this.gameState.countries[c].claims >= this.gameState.countries[c].maxClaims
-      ).length;
-
-      // Update music intensity
-      this.audioManager.updateMusicIntensity(annexedCount);
-
-      // Announce for screen readers
-      this.announceForScreenReaders(`${checkCountry} has been completely annexed by Trump!`);
-
-      // Check if all countries are claimed (lose condition)
-      const countriesToCheck = ["canada", "mexico", "greenland"];
-      const claimedCountries = countriesToCheck.filter((c) => this.gameState.countries[c].claims >= this.gameState.countries[c].maxClaims);
-
-      if (claimedCountries.length >= countriesToCheck.length) {
-        this.endGame(false); // Game over, player lost
-        return;
-      }
-    }
-
-    this.animationManager.changeState("victory", () => {
-      // Continue animation loop
+    });
+  } else {
+    // Fallback path if no smack manager
+    this.animationManager.changeState("slapped", () => {
       this.initiateGrab();
     });
   }
+}
+
+/**
+ * Handle successful grab by Trump
+ */
+grabSuccess(country) {
+  // Reset consecutive hits
+  this.gameState.consecutiveHits = 0;
+
+  const visual = document.getElementById("trump-hand-visual");
+  const hitbox = document.getElementById("trump-hand-hitbox");
+
+  // Use the effects controller if available, otherwise use legacy approach
+  if (window.trumpHandEffects) {
+    window.trumpHandEffects.applyGrabSuccessEffect();
+    window.trumpHandEffects.highlightTargetCountry(country, false);
+  } else {
+    // Legacy approach - direct DOM manipulation
+    if (visual) {
+      visual.classList.remove("hittable");
+
+      // IMPORTANT: Make sure the visual is visible before applying effects
+      visual.style.display = "block";
+      visual.style.opacity = "1"; // Full opacity for the animation to be visible
+
+      // Add the class AFTER ensuring visibility
+      visual.classList.add("grab-success");
+
+      // Apply the effect setup
+      this.applyGrabSuccessEffect();
+
+      // This timing matches stopGrab
+      setTimeout(() => {
+        visual.classList.remove("grab-success");
+        visual.classList.add("animation-completed");
+
+        // Remove the class and HIDE the visual after a short delay
+        setTimeout(() => {
+          visual.classList.remove("animation-completed");
+          visual.style.display = "none";
+          visual.style.opacity = "0";
+        }, 100);
+      }, 650);
+    }
+  }
+
+  if (hitbox) {
+    hitbox.classList.remove("hittable");
+  }
+
+  // Reset current target
+  this.gameState.currentTarget = null;
+
+  // Handle East/West Canada special case
+  if (country === "eastCanada" || country === "westCanada") {
+    // Increment claim on the shared Canada entity
+    this.gameState.countries.canada.claims = Math.min(this.gameState.countries.canada.claims + 1, this.gameState.countries.canada.maxClaims);
+
+    // Get current claim count from the shared Canada entity
+    const claimCount = this.gameState.countries.canada.claims;
+
+    // Play appropriate sounds based on grab count
+    if (claimCount < this.gameState.countries.canada.maxClaims) {
+      // First and second grabs - success sound
+      this.audioManager.playSuccessfulGrab("canada");
+    } else {
+      // Final grab (complete annexation) - annexation sound
+      this.audioManager.playCountryAnnexed("canada");
+    }
+
+    // Update flag overlay
+    const flagOverlay = document.getElementById(`canada-flag-overlay`);
+    if (flagOverlay) {
+      // Remove previous opacity classes
+      flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100");
+
+      if (claimCount === 1) {
+        flagOverlay.classList.add("opacity-33");
+      } else if (claimCount === 2) {
+        flagOverlay.classList.add("opacity-66");
+      } else if (claimCount === 3) {
+        flagOverlay.classList.add("opacity-100");
+      }
+    }
+
+    // Announce for screen readers
+    this.announceForScreenReaders(`Trump has claimed part of Canada! ${claimCount} out of 3 parts taken.`);
+  } else {
+    // Normal processing for other countries
+    this.gameState.countries[country].claims = Math.min(this.gameState.countries[country].claims + 1, this.gameState.countries[country].maxClaims);
+
+    // Get current claim count
+    const claimCount = this.gameState.countries[country].claims;
+
+    // Play appropriate sounds based on grab count
+    if (claimCount < this.gameState.countries[country].maxClaims) {
+      // First and second grabs - success sound
+      this.audioManager.playSuccessfulGrab(country);
+    } else {
+      // Final grab (complete annexation) - annexation sound
+      this.audioManager.playCountryAnnexed(country);
+    }
+
+    // Update flag overlay
+    const flagOverlay = document.getElementById(`${country}-flag-overlay`);
+    if (flagOverlay) {
+      // Remove previous opacity classes
+      flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100");
+
+      if (claimCount === 1) {
+        flagOverlay.classList.add("opacity-33");
+      } else if (claimCount === 2) {
+        flagOverlay.classList.add("opacity-66");
+      } else if (claimCount === 3) {
+        flagOverlay.classList.add("opacity-100");
+      }
+    }
+
+    // Announce for screen readers
+    this.announceForScreenReaders(`Trump has claimed part of ${country}! ${claimCount} out of 3 parts taken.`);
+  }
+
+  // Check if country is fully claimed
+  let checkCountry = country;
+  if (country === "eastCanada" || country === "westCanada") {
+    checkCountry = "canada";
+  }
+
+  const claimCount = this.gameState.countries[checkCountry].claims;
+  if (claimCount >= this.gameState.countries[checkCountry].maxClaims) {
+    // Count total annexed countries
+    const annexedCount = Object.keys(this.gameState.countries).filter(
+      (c) => this.gameState.countries[c].claims >= this.gameState.countries[c].maxClaims
+    ).length;
+
+    // Update music intensity
+    this.audioManager.updateMusicIntensity(annexedCount);
+
+    // Announce for screen readers
+    this.announceForScreenReaders(`${checkCountry} has been completely annexed by Trump!`);
+
+    // Check if all countries are claimed (lose condition)
+    const countriesToCheck = ["canada", "mexico", "greenland"];
+    const claimedCountries = countriesToCheck.filter((c) => this.gameState.countries[c].claims >= this.gameState.countries[c].maxClaims);
+
+    if (claimedCountries.length >= countriesToCheck.length) {
+      this.endGame(false); // Game over, player lost
+      return;
+    }
+  }
+
+  this.animationManager.changeState("victory", () => {
+    // Continue animation loop
+    this.initiateGrab();
+  });
+}
 
   /**
-   * Restart the game
+   * Add cartoon hit effect when player successfully blocks
    */
+  applyCartoonyHitEffect() {
+    const visual = document.getElementById("trump-hand-visual");
+
+    if (!visual) return;
+
+    // Make sure the visual element has position relative or absolute
+    const currentPosition = window.getComputedStyle(visual).position;
+    if (currentPosition === "static") {
+      visual.style.position = "absolute";
+    }
+
+    // Ensure the visual is fully opaque for the animation
+    visual.style.opacity = "1";
+
+    // Add a small screen shake
+    const gameContainer = document.getElementById("game-container") || document.body;
+    gameContainer.classList.add("screen-shake");
+
+    // Force layout recalculation to ensure animations are applied
+    void visual.offsetWidth;
+
+    // Clean up screen shake after animations complete
+    setTimeout(() => {
+      gameContainer.classList.remove("screen-shake");
+    }, 700);
+  }
+
+  /**
+   * Add grab success effect when Trump successfully grabs a country
+   */
+  applyGrabSuccessEffect() {
+    const visual = document.getElementById("trump-hand-visual");
+
+    if (!visual) return;
+
+    // Ensure full opacity
+    visual.style.opacity = "1";
+
+    // Make sure the visual element has position relative or absolute
+    const currentPosition = window.getComputedStyle(visual).position;
+    if (currentPosition === "static") {
+      visual.style.position = "absolute";
+    }
+
+    // Add success class
+    visual.classList.add("grab-success");
+
+    // Create additional shards
+    for (let i = 3; i <= 8; i++) {
+      const shard = document.createElement("div");
+      shard.className = `shard${i}`;
+      visual.appendChild(shard);
+    }
+
+    // Add a small screen shake (reduced intensity)
+    const gameContainer = document.getElementById("game-container") || document.body;
+    gameContainer.classList.add("grab-screen-shake");
+
+    // Force layout recalculation to ensure animations are applied
+    void visual.offsetWidth;
+
+    // Clean up screen shake after animations complete
+    setTimeout(() => {
+      gameContainer.classList.remove("grab-screen-shake");
+
+      // Remove shard elements after animation completes
+      setTimeout(() => {
+        for (let i = 3; i <= 8; i++) {
+          const shard = visual.querySelector(`.shard${i}`);
+          if (shard) visual.removeChild(shard);
+        }
+        visual.classList.remove("grab-success");
+      }, 100);
+    }, 700);
+  }
+
   restartGame() {
     // Play UI click sound
     this.audioManager.play("ui", "click");
@@ -923,18 +1164,19 @@ class GameManager {
       initializeShareButtonsOnGameOver();
     }
 
-    // Auto-restart after delay if no interaction with the voice recorder
-    setTimeout(() => {
-      const recorderModal = document.getElementById("voice-recorder-modal");
-      const thankYouModal = document.getElementById("thank-you-message");
-      
-      // Check if both modals are hidden AND no interaction occurred
-      if ((!recorderModal || recorderModal.classList.contains('hidden')) && 
-          (!thankYouModal || thankYouModal.classList.contains('hidden')) &&
-          (!window.voiceRecorder || !window.voiceRecorder.hasUserInteracted())) {
-          this.restartGame();
-      }
-    }, 20000); // 20 seconds
+    // Auto-restart after delay
+    // Auto-restart after delay
+setTimeout(() => {
+  const recorderModal = document.getElementById("voice-recorder-modal");
+  const thankYouModal = document.getElementById("thank-you-message");
+  
+  // Check if both modals are hidden AND no interaction occurred
+  if ((!recorderModal || recorderModal.classList.contains('hidden')) && 
+      (!thankYouModal || thankYouModal.classList.contains('hidden')) &&
+      (!window.voiceRecorder || !window.voiceRecorder.hasUserInteracted())) {
+      this.restartGame();
+  }
+}, 20000); // 20 seconds
   }
 
   /**

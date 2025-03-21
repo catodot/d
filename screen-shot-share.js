@@ -27,10 +27,9 @@ function initializeSocialSharing() {
 }
 
 function openVoiceRecordingInterface() {
-  const recorderModal = document.getElementById("voice-recorder-modal");
-  const recorderContainer = document.getElementById("voice-recorder-container");
+  const recorderModal = document.getElementById('voice-recorder-modal');
   
-  if (recorderModal && recorderContainer) {
+  if (recorderModal) {
     console.log("Showing voice recorder modal"); // Debug log
     
     // Explicitly remove hidden class and set display
@@ -39,21 +38,17 @@ function openVoiceRecordingInterface() {
     recorderModal.style.opacity = '1';
     recorderModal.style.visibility = 'visible';
 
-    // Ensure container is visible
-    recorderContainer.style.display = 'block';
-    recorderContainer.style.opacity = '1';
-
     // Create voice recorder if not exists
     if (!window.voiceRecorder) {
       window.voiceRecorder = new VoiceRecorder();
+      
+      // Just pass the modal ID - the VoiceRecorder class will handle finding
+      // the elements inside it
+      window.voiceRecorder.init("voice-recorder-modal");
     }
-    
-    // Initialize with container
-    window.voiceRecorder.init("voice-recorder-container");
   } else {
-    console.error("Recorder modal or container not found!");
+    console.error("Recorder modal not found!");
     console.log("Recorder Modal:", recorderModal);
-    console.log("Recorder Container:", recorderContainer);
   }
 }
 

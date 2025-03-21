@@ -975,6 +975,8 @@ class AudioManager {
           `[SOUND CLEANUP] Removed ended sound ${audioId} from tracking. ${this.activeProtestorSounds[country].length} sounds remain for ${country}`
         );
       }
+      this.stopAllPlayback();
+
     };
 
     return audio;

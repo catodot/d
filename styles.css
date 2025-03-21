@@ -1612,6 +1612,36 @@ body.debug-mode .protestor-hitbox {
 
 
 
+
+
+
+
+
+
+
+
+.show-recorder-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: linear-gradient(145deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.show-recorder-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
 /* Voice Recorder Modal */
 #voice-recorder-modal {
   position: fixed;
@@ -1619,188 +1649,399 @@ body.debug-mode .protestor-hitbox {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: var(--overlay-dark);
+  background-color: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  opacity: 1;
-  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 #voice-recorder-modal.hidden {
-  display: none;
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
 }
 
-#voice-recorder-container {
+.voice-recorder-container {
   width: 100%;
-  max-width: 400px;
-  background-color: var(--background-dark);
-  border-radius: 10px;
-  padding: 24px;
-  box-shadow: 0 10px 30px var(--overlay-medium);
+  max-width: 380px;
+  background-color: #151730;
+  border-radius: 16px;
+  overflow: hidden;
   position: relative;
-  max-height: 90vh;
-  overflow-y: auto;
-  color: var(--text-light);
-  border: 1px solid var(--secondary-color);
+  color: #fff;
+  border: 1px solid #d32f2f;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
-#voice-recorder-modal .close-button {
+/* Header */
+.header {
+  text-align: center;
+  padding: 24px 24px 16px;
+  position: relative;
+}
+
+.header h2 {
+  font-family: "Rock Salt", sans-serif;
+  font-size: 28px;
+  color: #e74c3c;
+  margin: 0 0 10px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.header p {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Close button */
+.close-button {
   position: absolute;
   top: 16px;
   right: 16px;
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  font-size: 24px;
-  transition: var(--transition-standard);
-}
-
-#voice-recorder-modal .close-button:hover {
-  color: var(--text-light);
-  transform: scale(1.1);
-}
-
-#voice-recorder-modal .header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-#voice-recorder-modal .header h2 {
-  font-family: "Rock Salt", sans-serif;
-  font-size: 24px;
-  color: var(--secondary-color);
-  margin-bottom: 8px;
-}
-
-#voice-recorder-modal .header p {
-  color: var(--text-muted);
-  font-size: 16px;
-}
-
-#voice-recorder-modal .record-button {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background-color: var(--secondary-color);
-  border: 3px solid white;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.close-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+/* Recorder section */
+.recorder-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  position: relative;
+}
+
+.record-button {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e74c3c, #c0392b);
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: var(--transition-standard);
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  color: white;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4),
+              inset 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 
-#voice-recorder-modal .record-button:hover {
-  transform: rotate(1deg) scale(1.05);
+.record-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(231, 76, 60, 0.5),
+              inset 0 1px 2px rgba(255, 255, 255, 0.4);
 }
 
-#voice-recorder-modal .record-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-#voice-recorder-modal .record-button.recording {
-  background-color: #db4437;
+.record-button.recording {
+  background: linear-gradient(145deg, #2ecc71, #27ae60);
   animation: pulse 1.5s infinite;
 }
 
-#voice-recorder-modal .recordings-list {
-  margin-bottom: 20px;
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(46, 204, 113, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+  }
 }
 
-#voice-recorder-modal .recording-item {
-  display: flex;
-  align-items: center;
-  background-color: var(--background-darker);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 10px;
-  border: 1px solid var(--primary-color);
-}
-
-#voice-recorder-modal .recording-item .play-btn,
-#voice-recorder-modal .recording-item .delete-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: var(--transition-standard);
-}
-
-#voice-recorder-modal .recording-item .play-btn:hover,
-#voice-recorder-modal .recording-item .delete-btn:hover {
-  transform: scale(1.1);
-}
-
-#voice-recorder-modal .recording-item .recording-details {
-  flex-grow: 1;
-  color: var(--text-light);
-}
-
-#voice-recorder-modal .recording-item .recording-waveform {
-  height: 8px;
-  background-color: var(--primary-color);
-  border-radius: 4px;
+.mic-icon {
+  width: 32px;
+  height: 32px;
   margin-bottom: 4px;
 }
 
-#voice-recorder-modal .recording-item .recording-time {
-  color: var(--text-muted);
+.record-label {
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
-#voice-recorder-modal .location-selector {
-  margin-bottom: 20px;
+.recording-timer {
+  font-family: 'Inter', monospace;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 3px 10px;
+  border-radius: 12px;
+  min-width: 40px;
+  text-align: center;
+  font-weight: 500;
 }
 
-#voice-recorder-modal .location-selector select {
-  width: 100%;
+/* Recordings container */
+.recordings-container {
+  padding: 0 24px 24px;
+  transition: opacity 0.3s ease, max-height 0.3s ease;
+}
+
+.recordings-container.hidden {
+  display: none;
+}
+
+/* Recording item */
+.recording-item {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.05);
   padding: 12px;
-  border: 1px solid var(--primary-color);
-  border-radius: 8px;
-  font-size: 16px;
-  background-color: var(--background-darker);
-  color: var(--text-light);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  transition: background-color 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-#voice-recorder-modal .other-location input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid var(--primary-color);
-  border-radius: 8px;
-  background-color: var(--background-darker);
-  color: var(--text-light);
+.recording-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
-#voice-recorder-modal .send-recordings-btn {
-  width: 100%;
-  padding: 16px;
-  background-color: var(--secondary-color);
-  color: white;
-  border: 3px solid white;
-  border-radius: 8px;
-  font-size: 18px;
-  font-family: "Rock Salt", sans-serif;
+.recording-item.playing {
+  background-color: rgba(46, 204, 113, 0.15);
+  border-color: rgba(46, 204, 113, 0.3);
+}
+
+.play-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: var(--transition-standard);
-  transform: rotate(-1deg);
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  color: #fff;
+  margin-right: 12px;
+  flex-shrink: 0;
+  padding: 0;
 }
 
-#voice-recorder-modal .send-recordings-btn:hover {
-  transform: rotate(1deg) scale(1.05);
+.play-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
-#voice-recorder-modal .send-recordings-btn:disabled {
-  background-color: var(--text-muted);
+.play-button.playing {
+  background-color: rgba(46, 204, 113, 0.4);
+}
+
+.play-button img {
+  width: 24px;
+  height: 24px;
+}
+
+.recording-content {
+  flex-grow: 1;
+  margin-right: 10px;
+}
+
+.waveform-container {
+  height: 24px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.waveform-track {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.waveform-bar {
+  flex: 1;
+  background-color: rgba(255, 255, 255, 0.15);
+  height: 2px;
+  margin: 0 1px;
+  position: relative;
+}
+
+.waveform-bar:before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 0;
+  width: 100%;
+  height: 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 1px;
+}
+
+.waveform-bar:nth-child(odd):before {
+  height: 16px;
+  top: -7px;
+}
+
+.waveform-bar:nth-child(3n):before {
+  height: 10px;
+  top: -4px;
+}
+
+.waveform-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(46, 204, 113, 0.3) 0%,
+    rgba(46, 204, 113, 0.2) 100%
+  );
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.1s linear;
+  z-index: 1;
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 5px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-button:hover {
+  color: #e74c3c;
+}
+
+.delete-button img {
+  width: 18px;
+  height: 18px;
+}
+
+/* Location selector */
+.location-select-wrapper {
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.location-select {
+  width: 100%;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  appearance: none;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255, 255, 255, 0.5)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-color: #151730;
+}
+
+.location-select:focus {
+  outline: none;
+  border-color: rgba(46, 204, 113, 0.5);
+}
+
+.other-location {
+  margin-top: 8px;
+  transition: opacity 0.3s ease, max-height 0.3s ease;
+}
+
+.other-location.hidden {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+}
+
+.other-location input {
+  width: 100%;
+  padding: 10px;
+  background-color: #151730;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+}
+
+.other-location input:focus {
+  outline: none;
+  border-color: rgba(46, 204, 113, 0.5);
+}
+
+/* Send button */
+.send-button {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(145deg, #2ecc71, #27ae60);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+}
+
+.send-button:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.send-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(46, 204, 113, 0.4);
+}
+
+.send-button:disabled {
+  background: linear-gradient(145deg, #777, #555);
   cursor: not-allowed;
-  transform: rotate(0);
+  transform: none;
+  box-shadow: none;
 }
 
 /* Thank You Modal */
@@ -1810,452 +2051,97 @@ body.debug-mode .protestor-hitbox {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: var(--overlay-dark);
+  background-color: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-#thank-you-message .container {
-  background-color: var(--background-dark);
-  border-radius: 10px;
-  padding: 30px;
-  max-width: 400px;
-  text-align: center;
-  border: 1px solid var(--secondary-color);
-  box-shadow: 0 10px 30px var(--overlay-medium);
-}
-
-#thank-you-message h2 {
-  font-family: "Rock Salt", sans-serif;
-  color: var(--secondary-color);
-  font-size: 2.5rem;
-  margin-bottom: 15px;
-}
-
-#thank-you-message p {
-  color: var(--text-light);
-  margin-bottom: 20px;
-}
-
-#close-thank-you {
-  background-color: var(--secondary-color);
-  color: white;
-  border: 3px solid white;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-family: "Rock Salt", sans-serif;
-  cursor: pointer;
-  transition: var(--transition-standard);
-  transform: rotate(-1deg);
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
-}
-
-#close-thank-you:hover {
-  transform: rotate(1deg) scale(1.05);
-}
-
-
-/* Hand visual effects - merged version */
-#trump-hand-visual {
-  position: absolute;
-  display: none;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+#thank-you-message.hidden {
+  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  border-radius: 50%;
+}
+
+.thank-you-container {
+  background-color: #151730;
+  border-radius: 16px;
+  padding: 40px 30px;
+  max-width: 360px;
+  text-align: center;
+  border: 1px solid #2ecc71;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  animation: scale-in 0.3s ease-out;
+}
+
+@keyframes scale-in {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.thank-you-container h2 {
+  font-family: "Rock Salt", sans-serif;
+  color: #2ecc71;
+  font-size: 28px;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.thank-you-container p {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 24px;
+  line-height: 1.5;
+  font-size: 15px;
+}
+
+.close-thank-you {
+  background: linear-gradient(145deg, #2ecc71, #27ae60);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 30px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
   transition: all 0.2s ease;
-  opacity: 0;
-  z-index: 5; /* Above map but below hitbox */
-  overflow: visible !important; /* Ensure shards can extend outside */
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
 }
 
-/* Grab success effect - merged version */
-#trump-hand-visual.grab-success {
-  position: relative;
-  animation: cartoony-grab-success 0.6s ease-out forwards;
-  z-index: 50 !important; /* Force higher z-index during effect */
-  display: block !important;
-  opacity: 1 !important;
-  pointer-events: none !important;
+.close-thank-you:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(46, 204, 113, 0.4);
 }
 
-/* Ensure all shard elements are visible */
-#trump-hand-visual.grab-success::before,
-#trump-hand-visual.grab-success::after,
-#trump-hand-visual.grab-success [data-shard-id] {
-  z-index: 100 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-
-
-/* Country targeting pulse effect */
-@keyframes targeting-pulse {
-  0% { filter: brightness(1) saturate(1); }
-  50% { filter: brightness(1.3) saturate(1.2); }
-  100% { filter: brightness(1) saturate(1); }
-}
-
-.targeting-pulse {
-  animation: targeting-pulse 0.8s infinite ease-in-out;
-}
-
-
-
-/* Voice Recorder UI Enhancements */
-
-/* Recording button container with timer */
-.record-button-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 25px;
-}
-
-/* Record button with progress indicator */
-.record-button {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background-color: var(--secondary-color);
-  border: 3px solid white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 10px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
-  overflow: visible;
-}
-
-/* Hover state */
-.record-button:hover {
-  background-color: #e63946;
-  transform: scale(1.05);
-}
-
-/* Active/pressed state */
-.record-button:active {
-  transform: scale(0.95);
-}
-
-/* Recording state */
-.record-button.recording-active {
-  background-color: #ff3547;
-  transform: scale(1.05);
-  animation: pulse 1.5s infinite;
-}
-
-/* Pending state (when requesting microphone access) */
-.record-button.recording-pending {
-  background-color: #888;
-}
-
-/* Circular progress indicator */
-.record-button::before {
-  content: "";
-  position: absolute;
-  top: -8px;
-  left: -8px;
-  right: -8px;
-  bottom: -8px;
-  border-radius: 50%;
-  border: 8px solid rgba(255, 255, 255, 0.2);
-  border-top-color: white;
-  opacity: 0;
-  transform: rotate(-90deg);
-}
-
-.record-button.recording-active::before {
-  opacity: 1;
-  animation: recording-progress 3s linear forwards;
-}
-
-@keyframes recording-progress {
-  0% {
-    transform: rotate(-90deg);
-    border-top-color: white;
-    border-right-color: rgba(255, 255, 255, 0.2);
+/* Mobile optimizations */
+@media (max-width: 480px) {
+  .voice-recorder-container {
+    max-width: 90%;
+    border-radius: 12px;
   }
-  25% {
-    border-top-color: white;
-    border-right-color: white;
-    border-bottom-color: rgba(255, 255, 255, 0.2);
-    border-left-color: rgba(255, 255, 255, 0.2);
+  
+  .header h2 {
+    font-size: 24px;
   }
-  50% {
-    border-top-color: white;
-    border-right-color: white;
-    border-bottom-color: white;
-    border-left-color: rgba(255, 255, 255, 0.2);
+  
+  .header p {
+    font-size: 13px;
   }
-  75% {
-    border-top-color: white;
-    border-right-color: white;
-    border-bottom-color: white;
-    border-left-color: white;
+  
+  .record-button {
+    width: 70px;
+    height: 70px;
   }
-  100% {
-    transform: rotate(270deg);
-    border-color: white;
+  
+  .thank-you-container {
+    max-width: 85%;
+    padding: 30px 20px;
   }
-}
-
-/* Pulsing animation */
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 53, 71, 0.6);
-  }
-  70% {
-    box-shadow: 0 0 0 15px rgba(255, 53, 71, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 53, 71, 0);
-  }
-}
-
-/* Recording timer display */
-.recording-timer {
-  font-family: 'Courier New', monospace;
-  font-size: 16px;
-  color: var(--text-light);
-  margin-top: 5px;
-  background-color: rgba(255, 255, 255, 0.1);
-  padding: 4px 10px;
-  border-radius: 12px;
-  min-width: 60px;
-  text-align: center;
-}
-
-/* Improved recording items */
-.recording-item {
-  display: flex;
-  align-items: center;
-  background-color: rgba(30, 30, 50, 0.5);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 10px;
-  border: 1px solid var(--primary-color);
-  transition: all 0.3s ease;
-}
-
-.recording-item.playing {
-  background-color: rgba(60, 59, 110, 0.3);
-  border-color: var(--secondary-color);
-  transform: translateX(5px);
-}
-
-.play-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: transform 0.2s;
-  margin-right: 10px;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.play-btn:hover {
-  transform: scale(1.1);
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.recording-details {
-  flex-grow: 1;
-  margin: 0 10px;
-}
-
-/* Waveform visualization */
-.recording-waveform {
-  height: 40px;
-  background-color: rgba(30, 30, 60, 0.5);
-  border-radius: 4px;
-  margin-bottom: 8px;
-  overflow: hidden;
-  position: relative;
-}
-
-.waveform-bars {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 5px;
-}
-
-.waveform-bar {
-  width: 3px;
-  background-color: rgba(120, 120, 220, 0.5);
-  margin: 0 1px;
-  border-radius: 1px;
-  transition: background-color 0.3s;
-}
-
-.playing .waveform-bar {
-  background-color: var(--secondary-color);
-}
-
-.waveform-progress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 0;
-  background-color: rgba(178, 34, 52, 0.2);
-  transition: width 0.1s linear;
-}
-
-.recording-time {
-  color: var(--text-muted);
-  font-size: 12px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.delete-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: transform 0.2s;
-  color: var(--text-muted);
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.delete-btn:hover {
-  transform: scale(1.1);
-  color: var(--secondary-color);
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Send button enhancements */
-.send-recordings-btn {
-  width: 100%;
-  padding: 16px;
-  background-color: var(--secondary-color);
-  color: white;
-  border: 3px solid white;
-  border-radius: 8px;
-  font-size: 18px;
-  font-family: "Rock Salt", sans-serif;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  transform: rotate(-1deg);
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
-  position: relative;
-  overflow: hidden;
-}
-
-.send-recordings-btn:hover {
-  transform: rotate(1deg) scale(1.05);
-  background-color: #d42e3f;
-}
-
-.send-recordings-btn:disabled {
-  background-color: #888;
-  cursor: not-allowed;
-  transform: rotate(0);
-  opacity: 0.7;
-}
-
-.send-recordings-btn.disabled {
-  pointer-events: none;
-}
-
-/* Add a subtle effect to the button */
-.send-recordings-btn::after {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.send-recordings-btn:hover::after {
-  opacity: 1;
-}
-
-/* Location selector enhancements */
-.location-selector {
-  margin-bottom: 20px;
-}
-
-.location-selector select {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid var(--primary-color);
-  border-radius: 8px;
-  font-size: 16px;
-  background-color: rgba(30, 30, 60, 0.5);
-  color: var(--text-light);
-  transition: border-color 0.3s;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px top 50%;
-  background-size: 12px auto;
-  padding-right: 30px;
-}
-
-.location-selector select:hover,
-.location-selector select:focus {
-  border-color: var(--secondary-color);
-}
-
-.other-location input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid var(--primary-color);
-  border-radius: 8px;
-  background-color: rgba(30, 30, 60, 0.5);
-  color: var(--text-light);
-  margin-top: 10px;
-  transition: border-color 0.3s;
-}
-
-.other-location input:hover,
-.other-location input:focus {
-  border-color: var(--secondary-color);
-  outline: none;
-}
-
-/* Animation for when recording completes */
-@keyframes recording-complete {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.recording-complete {
-  animation: recording-complete 0.5s ease-out;
 }

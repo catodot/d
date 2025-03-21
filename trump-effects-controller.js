@@ -145,13 +145,7 @@ class TrumpHandEffectsController {
     });
   }
 
-  /**
-   * Determine if this is the first block based on game state
-   * @returns {boolean} True if this is the first block attempt
-   */
-  isFirstBlock() {
-    return this.gameState?.stats?.successfulBlocks === 0;
-  }
+
 
   /**
    * Creates DOM element with specified properties and styles
@@ -183,81 +177,231 @@ class TrumpHandEffectsController {
     return element;
   }
 
-  /**
-   * Create and manage click prompts for first-time users
-   * @param {string} type - Type of prompt ('immediate' or 'animated')
-   */
-  createPrompt(type = 'immediate') {
-    if (!this.visual) return;
-    
-    // Remove existing prompts first
-    this.removePrompts();
-    
-    const isImmediate = type === 'immediate';
-    const className = `click-prompt ${isImmediate ? 'immediate-prompt' : ''}`;
-    const text = isImmediate ? 'click here!' : '<strong>CLICK HERE!!!</strong>';
-    
-    // Create a container that will hold our prompt
-    const container = document.createElement('div');
-    container.className = className;
-    container.style.position = 'absolute';
-    container.style.top = '0';
-    container.style.left = '0';
-    container.style.right = '0';
-    container.style.bottom = '0';
-    container.style.zIndex = '150';
-    container.style.pointerEvents = 'none';
-    
-    // Create the actual prompt content with full opacity
-    const promptContent = document.createElement('div');
-    promptContent.innerHTML = text;
-    promptContent.style.position = 'absolute';
-    promptContent.style.top = '50%';
-    promptContent.style.left = '50%';
-    promptContent.style.transform = 'translate(-50%, -50%)';
-    promptContent.style.color = 'black';
-    promptContent.style.fontWeight = 'bold';
-    promptContent.style.fontSize = this.isMobile ? '0.7rem' : '1rem';
-    promptContent.style.textAlign = 'center';
-    promptContent.style.width = '100%';
-    promptContent.style.padding = this.isMobile ? '5px' : '10px';
-    promptContent.style.backgroundColor = 'rgba(255, 255, 255, 0.85)';
-    promptContent.style.borderRadius = '10px';
-    promptContent.style.textShadow = '1px 1px 3px white';
-    promptContent.style.opacity = '1'; // Explicitly set opacity
-    
-    // Append the content to the container
-    container.appendChild(promptContent);
-    
-    // Append the container to the visual
-    this.visual.appendChild(container);
-    
-    // Add animation for non-immediate prompts
-    if (!isImmediate) {
-      promptContent.animate(
-        [
-          { opacity: 0.9, transform: 'translate(-50%, -50%) scale(0.9)', textShadow: '1px 1px 2px white' },
-          { opacity: 1, transform: 'translate(-50%, -50%) scale(1.1)', textShadow: '3px 3px 6px white' },
-          { opacity: 0.9, transform: 'translate(-50%, -50%) scale(0.9)', textShadow: '1px 1px 2px white' }
-        ],
-        {
-          duration: 1000,
-          iterations: Infinity
-        }
-      );
-    }
-    
-    logger.debug("effects", `Added ${type} click prompt`);
-    return container;
+/**
+ * Create and manage click prompts for first-time users
+ * @param {string} type - Type of prompt ('immediate' or 'animated')
+ */
+createPrompt(type = 'immediate') {
+  if (!this.hitbox) {
+    console.error("Cannot create prompt: hitbox element is null or undefined");
+    return;
   }
   
+  // Log hitbox state when creating prompt
+  console.log("Creating prompt:", type, "for hitbox:", {
+    hitbox: this.hitbox,
+    dimensions: {
+      width: this.hitbox.offsetWidth,
+      height: this.hitbox.offsetHeight,
+      display: this.hitbox.style.display,
+      visibility: window.getComputedStyle(this.hitbox).visibility,
+      overflow: window.getComputedStyle(this.hitbox).overflow
+    },
+    classList: Array.from(this.hitbox.classList),
+    position: {
+      left: this.hitbox.style.left,
+      top: this.hitbox.style.top,
+      zIndex: window.getComputedStyle(this.hitbox).zIndex
+    }
+  });
+  
+  // Remove existing prompts first
+  this.removePrompts();
+  
+  const isImmediate = type === 'immediate';
+  const className = `click-prompt ${isImmediate ? 'immediate-prompt' : ''}`;
+  const text = isImmediate ? 'click here!' : '<strong>CLICK HERE!!!</strong>';
+  
+  // Create a container that will hold our prompt
+  const container = document.createElement('div');
+  container.className = className;
+  container.style.position = 'absolute';
+  container.style.top = '0';
+  container.style.left = '0';
+  container.style.right = '0';
+  container.style.bottom = '0';
+  container.style.zIndex = '999'; // Very high z-index to ensure visibility
+  container.style.pointerEvents = 'none';
+  container.style.overflow = 'visible'; // Ensure content isn't clipped
+  container.style.backgroundColor = 'rgba(255,0,0,0.1)'; // Light red background to debug visibility
+  
+  // Create the actual prompt content with full opacity
+  const promptContent = document.createElement('div');
+  promptContent.innerHTML = text;
+  promptContent.style.position = 'absolute';
+  promptContent.style.top = '50%';
+  promptContent.style.left = '50%';
+  promptContent.style.transform = 'translate(-50%, -50%)';
+  promptContent.style.color = 'black';
+  promptContent.style.fontWeight = 'bold';
+  promptContent.style.fontSize = this.isMobile ? '0.7rem' : '1rem';
+  promptContent.style.textAlign = 'center';
+  promptContent.style.width = '100%';
+  promptContent.style.padding = this.isMobile ? '5px' : '10px';
+  promptContent.style.backgroundColor = 'rgba(255, 255, 255, 0.85)';
+  promptContent.style.borderRadius = '10px';
+  promptContent.style.textShadow = '1px 1px 3px white';
+  promptContent.style.opacity = '1'; // Explicitly set opacity
+  promptContent.style.border = '2px solid red'; // Add border for visibility
+  
+  // Append the content to the container
+  container.appendChild(promptContent);
+  
+  // Append the container to the hitbox
+  this.hitbox.appendChild(container);
+  
+  // Log after appending
+  console.log("Prompt element added to hitbox:", {
+    promptContainer: container,
+    promptContent: promptContent,
+    hitboxChildCount: this.hitbox.childNodes.length,
+    hitboxChildren: Array.from(this.hitbox.childNodes).map(node => ({
+      nodeType: node.nodeType,
+      className: node.className,
+      id: node.id
+    }))
+  });
+  
+  // Add animation for non-immediate prompts
+  if (!isImmediate) {
+    promptContent.animate(
+      [
+        { opacity: 0.9, transform: 'translate(-50%, -50%) scale(0.9)', textShadow: '1px 1px 2px white' },
+        { opacity: 1, transform: 'translate(-50%, -50%) scale(1.1)', textShadow: '3px 3px 6px white' },
+        { opacity: 0.9, transform: 'translate(-50%, -50%) scale(0.9)', textShadow: '1px 1px 2px white' }
+      ],
+      {
+        duration: 1000,
+        iterations: Infinity
+      }
+    );
+  }
+  
+  // Log any overflow issues
+  setTimeout(() => {
+    const hitboxRect = this.hitbox.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const contentRect = promptContent.getBoundingClientRect();
+    
+    console.log("Prompt positioning check:", {
+      hitboxRect,
+      containerRect,
+      contentRect,
+      isContentFullyVisible: (
+        contentRect.left >= hitboxRect.left &&
+        contentRect.right <= hitboxRect.right &&
+        contentRect.top >= hitboxRect.top &&
+        contentRect.bottom <= hitboxRect.bottom
+      )
+    });
+  }, 100);
+  
+  logger.debug("effects", `Added ${type} click prompt to hitbox`);
+  return container;
+}
+
+/**
+ * Make the hand hittable, with appropriate visual cues
+ * @param {boolean} isFirstBlock - Whether this is the user's first block attempt
+ */
+makeHittable(isFirstBlock = this.isFirstBlock()) {
+  if (!this.visual || !this.hitbox) {
+    console.error("Cannot make hittable: visual or hitbox element is missing", {
+      visual: !!this.visual,
+      hitbox: !!this.hitbox
+    });
+    return;
+  }
+
+  console.log("makeHittable called", {
+    isFirstBlock,
+    currentState: this.currentState,
+    successfulBlocks: this.gameState?.stats?.successfulBlocks,
+    isFirstBlockMethod: this.isFirstBlock()
+  });
+
+  // Update class and state
+  this.visual.classList.add(this.states.HITTABLE);
+  this.hitbox.classList.add(this.states.HITTABLE);
+
+  this.isAnimating = false;
+  this.currentState = this.states.HITTABLE;
+
+  // Apply appropriate styles based on first block state, grabbing state, and hover state
+  this.updateVisualStyles();
+
+  // Add help indicators for first block
+  if (isFirstBlock) {
+    console.log("First block detected, creating immediate prompt");
+    // Create immediate prompt
+    this.createPrompt('immediate');
+    
+    // Schedule animated prompt after delay
+    setTimeout(() => {
+      // Only add if still in hittable state and still the first block
+      console.log("Checking conditions for animated prompt", {
+        inHittableState: this.currentState === this.states.HITTABLE,
+        isStillFirstBlock: this.isFirstBlock(),
+        successfulBlocks: this.gameState?.stats?.successfulBlocks
+      });
+      
+      if (this.currentState === this.states.HITTABLE && this.isFirstBlock()) {
+        console.log("Creating animated prompt after delay");
+        this.createPrompt('animated');
+      }
+    }, this.config.promptDelay);
+  } else {
+    console.log("Not first block, no prompt created", {
+      successfulBlocks: this.gameState?.stats?.successfulBlocks
+    });
+  }
+
+  logger.debug("effects", "Hand set to hittable state", { 
+    isFirstBlock, 
+    isGrabbing: this.isGrabbing
+  });
+}
+
+/**
+ * Determine if this is the first block based on game state
+ * @returns {boolean} True if this is the first block attempt
+ */
+isFirstBlock() {
+  const result = this.gameState?.stats?.successfulBlocks === 0;
+  console.log("isFirstBlock check:", {
+    result,
+    successfulBlocks: this.gameState?.stats?.successfulBlocks,
+    hasGameState: !!this.gameState,
+    hasStats: !!(this.gameState?.stats)
+  });
+  return result;
+}
+
+/**
+ * Remove all prompts from the hitbox element
+ */
+removePrompts() {
+  if (!this.hitbox) {
+    console.error("Cannot remove prompts: hitbox element is null or undefined");
+    return;
+  }
+  
+  const prompts = this.hitbox.querySelectorAll('.click-prompt');
+  console.log("Removing prompts:", {
+    promptCount: prompts.length,
+    hitbox: this.hitbox
+  });
+  
+  prompts.forEach(prompt => prompt.remove());
+}
+  
   /**
-   * Remove all prompts from the visual element
+   * Remove all prompts from the hitbox element
    */
   removePrompts() {
-    if (!this.visual) return;
+    if (!this.hitbox) return;
     
-    const prompts = this.visual.querySelectorAll('.click-prompt');
+    const prompts = this.hitbox.querySelectorAll('.click-prompt');
     prompts.forEach(prompt => prompt.remove());
   }
 
@@ -291,42 +435,6 @@ class TrumpHandEffectsController {
     logger.debug("effects", "Visual reset to default state");
   }
 
-  /**
-   * Make the hand hittable, with appropriate visual cues
-   * @param {boolean} isFirstBlock - Whether this is the user's first block attempt
-   */
-  makeHittable(isFirstBlock = this.isFirstBlock()) {
-    if (!this.visual || !this.hitbox) return;
-  
-    // Update class and state
-    this.visual.classList.add(this.states.HITTABLE);
-    this.hitbox.classList.add(this.states.HITTABLE);
-  
-    this.isAnimating = false;
-    this.currentState = this.states.HITTABLE;
-  
-    // Apply appropriate styles based on first block state, grabbing state, and hover state
-    this.updateVisualStyles();
-  
-    // Add help indicators for first block
-    if (isFirstBlock) {
-      // Create immediate prompt
-      this.createPrompt('immediate');
-      
-      // Schedule animated prompt after delay
-      setTimeout(() => {
-        // Only add if still in hittable state and still the first block
-        if (this.currentState === this.states.HITTABLE && this.isFirstBlock()) {
-          this.createPrompt('animated');
-        }
-      }, this.config.promptDelay);
-    }
-  
-    logger.debug("effects", "Hand set to hittable state", { 
-      isFirstBlock, 
-      isGrabbing: this.isGrabbing
-    });
-  }
 
   /**
    * Apply visual effect when player successfully blocks
@@ -489,7 +597,7 @@ class TrumpHandEffectsController {
         this.removePrompts();
       } else {
         // For first block, we need to add the prompt back if it's not there
-        if (this.visual.querySelectorAll('.click-prompt').length === 0) {
+        if (this.hitbox.querySelectorAll('.click-prompt').length === 0) {
           this.createPrompt(this.gameState?.stats?.successfulBlocks > 0 ? 'animated' : 'immediate');
         }
       }

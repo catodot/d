@@ -1,7 +1,7 @@
 class VoiceRecorder {
   constructor(options = {}) {
     // Configuration options
-    this.maxRecordingLength = options.maxRecordingLength || 3000; // 3 seconds
+    this.maxRecordingLength = options.maxRecordingLength || 2000; // 2 seconds
     this.locations = ["Canada", "Greenland", "Iceland", "Turtle Island", "Other"];
 
     // State management
@@ -11,11 +11,9 @@ class VoiceRecorder {
     this.isRecording = false;
     this.selectedLocation = "";
     this.otherLocation = "";
-    this.audioStream = null; // Track the stream to ensure proper cleanup
-    this.userInteracted = false;
-    this.audioContext = null;
-
-    this.hasTriedGeolocation = false;
+    this.audioStream = null;
+    this.recordingStartTime = 0;
+    this.timerInterval = null;
 
     // Playback state
     this.currentlyPlaying = null;
@@ -23,15 +21,22 @@ class VoiceRecorder {
 
     // DOM Elements
     this.elements = {
-      container: null,
+      modal: null,
       recordButton: null,
+      recordLabel: null,
+      recordingTimer: null,
+      recordingsContainer: null,
+      recordingsList: null,
       locationSelect: null,
+      otherLocationContainer: null,
       otherLocationInput: null,
       sendButton: null,
-      recordingsList: null,
       closeButton: null,
+      thankYouMessage: null,
+      closeThankYouButton: null
     };
 
+    // Cloudinary config
     this.cloudName = "dvpixsxz0";
     this.uploadPreset = "catodot";
     this.uploadedUrls = [];
@@ -39,80 +44,49 @@ class VoiceRecorder {
     // Detect mobile/iOS
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  }
-
-  fetchLocationFromIP() {
-    if (this.hasTriedGeolocation) return;
-    this.hasTriedGeolocation = true;
     
-    // Use a free IP geolocation API
-    fetch('https://ipapi.co/json/')
-      .then(response => response.json())
-      .then(data => {
-        // Get country name from response
-        const country = data.country_name;
-        
-        // Check if the country matches any of our location options
-        let matchFound = false;
-        
-        // Try to find a match in our locations array
-        for (const location of this.locations) {
-          if (location === country || 
-              (country === "United States" && location === "Turtle Island") ||
-              (country === "Denmark" && location === "Greenland")) {
-            this.selectedLocation = location;
-            matchFound = true;
-            break;
-          }
-        }
-        
-        // If no direct match, set to "Other" and fill in the country
-        if (!matchFound) {
-          this.selectedLocation = "Other";
-          this.otherLocation = country;
-        }
-        
-        // Update the UI to reflect the selected location
-        if (this.elements.locationSelect) {
-          this.elements.locationSelect.value = this.selectedLocation;
-          
-          // If "Other" was selected, show the input field and fill it
-          if (this.selectedLocation === "Other") {
-            this.elements.otherLocationContainer.style.display = "block";
-            this.elements.otherLocationInput.value = this.otherLocation;
-          }
-          
-          // Trigger the change event after setting the value
-          this.elements.locationSelect.dispatchEvent(new Event('change'));
-          
-          this.validateSendButton();
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching location from IP:', error);
-      });
+    this.hasTriedGeolocation = false;
   }
 
-  // Initialize the recorder interface
-  init(containerId) {
-    this.elements.container = document.getElementById(containerId);
-    if (!this.elements.container) {
-      console.error("Container not found:", containerId);
-      return;
-    }
-  
-    this.render();
+  init() {
+    // Find all required DOM elements
+    this.elements.modal = document.getElementById("voice-recorder-modal");
+    this.elements.recordButton = document.getElementById("record-button");
+    this.elements.recordLabel = this.elements.recordButton.querySelector(".record-label");
+    this.elements.recordingTimer = document.getElementById("recording-timer");
+    this.elements.recordingsContainer = document.getElementById("recordings-container");
+    this.elements.recordingsList = document.getElementById("recordings-list");
+    this.elements.locationSelect = document.getElementById("location-select");
+    this.elements.otherLocationContainer = document.getElementById("other-location-container");
+    this.elements.otherLocationInput = document.getElementById("other-location");
+    this.elements.sendButton = document.getElementById("send-recording");
+    this.elements.closeButton = document.getElementById("close-recorder");
+    this.elements.thankYouMessage = document.getElementById("thank-you-message");
+    this.elements.closeThankYouButton = document.getElementById("close-thank-you");
+    
+    // Initialize audio context
     this.initAudioContext();
+    
+    // Set up event listeners
     this.setupEventListeners();
     
-    // Try to get the user's location from their IP
+    // Try to detect location
     this.fetchLocationFromIP();
+    
+    // Show recordings container if there are any
+    if (this.recordings.length > 0) {
+      this.elements.recordingsContainer.classList.remove("hidden");
+    }
   }
-
-  // Initialize Audio Context for iOS and other mobile devices
+  
   initAudioContext() {
     // Fix for iOS Safari - create and resume AudioContext on user interaction
     const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) {
+      console.warn("AudioContext is not supported in this browser");
+      return;
+    }
+    
     this.audioContext = new AudioContext();
     
     if (this.audioContext.state === 'suspended') {
@@ -132,107 +106,88 @@ class VoiceRecorder {
     }
   }
 
-  // Render the entire interface
-  render() {
-    this.elements.container.innerHTML = `
-        <div class="voice-recorder-container">
-            <button class="close-button" id="close-recorder">✕</button>
-            
-            <div class="header">
-                <h2>Record Your Voice</h2>
-                <p>Tell Trump to stop, in your own words, in 3 seconds or less</p>
-            </div>
-
-            <div class="record-button-container">
-                <button class="record-button" id="record-button">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
-                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                    </svg>
-                </button>
-                <div class="recording-timer" id="recording-timer">0.0s</div>
-            </div>
-
-            <div class="recordings-list" id="recordings-list">
-                <!-- Recordings will be dynamically added here -->
-            </div>
-
-            <div class="location-selector">
-                <select id="location-select">
-                    <option value="">Where are you?</option>
-                    ${this.locations.map((loc) => `<option value="${loc}">${loc}</option>`).join("")}
-                </select>
-                <div id="other-location-container" class="other-location" style="display:none;">
-                    <input 
-                        type="text" 
-                        id="other-location" 
-                        placeholder="Enter your location"
-                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;"
-                    >
-                </div>
-            </div>
-
-            <button 
-                id="send-recordings" 
-                class="send-recordings-btn" 
-                disabled
-            >
-                Send
-            </button>
-        </div>
-    `;
-
-    // Cache elements
-    this.elements.recordButton = this.elements.container.querySelector("#record-button");
-    this.elements.recordingTimer = this.elements.container.querySelector("#recording-timer");
-    this.elements.locationSelect = this.elements.container.querySelector("#location-select");
-    this.elements.otherLocationContainer = this.elements.container.querySelector("#other-location-container");
-    this.elements.otherLocationInput = this.elements.container.querySelector("#other-location");
-    this.elements.recordingsList = this.elements.container.querySelector("#recordings-list");
-    this.elements.sendButton = this.elements.container.querySelector("#send-recordings");
-    this.elements.closeButton = this.elements.container.querySelector("#close-recorder");
-  }
-
-  // Set up all event listeners
   setupEventListeners() {
-    // Record button with user interaction tracking - handle both click and touch events
+    // Record button
     this.elements.recordButton.addEventListener("click", this.handleRecordButton.bind(this));
-    this.elements.recordButton.addEventListener("touchend", this.handleRecordButton.bind(this));
-
-    // Location select with user interaction tracking
+    this.elements.recordButton.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      this.handleRecordButton(e);
+    });
+    
+    // Location selection
     this.elements.locationSelect.addEventListener("change", (e) => {
-      this.userInteracted = true;
-      const location = e.target.value;
-      this.selectedLocation = location;
-
-      // Toggle other location input
-      this.elements.otherLocationContainer.style.display = location === "Other" ? "block" : "none";
-
+      this.selectedLocation = e.target.value;
+      if (this.selectedLocation === "Other") {
+        this.elements.otherLocationContainer.classList.remove("hidden");
+      } else {
+        this.elements.otherLocationContainer.classList.add("hidden");
+      }
       this.validateSendButton();
     });
-
-    // Other location input with user interaction tracking
+    
+    // Other location input
     this.elements.otherLocationInput.addEventListener("input", (e) => {
-      this.userInteracted = true;
       this.otherLocation = e.target.value;
       this.validateSendButton();
     });
-
+    
     // Send button
     this.elements.sendButton.addEventListener("click", this.handleSendButton.bind(this));
     this.elements.sendButton.addEventListener("touchend", this.handleSendButton.bind(this));
-
-    // Close button
+    
+    // Close buttons
     this.elements.closeButton.addEventListener("click", this.closeRecorder.bind(this));
-    this.elements.closeButton.addEventListener("touchend", this.closeRecorder.bind(this));
+    this.elements.closeThankYouButton.addEventListener("click", () => {
+      this.elements.thankYouMessage.classList.add("hidden");
+    });
   }
 
-  // Handler for record button to prevent duplicate events on mobile
-  handleRecordButton(e) {
-    e.preventDefault(); // Prevent default behavior
-    e.stopPropagation(); // Stop propagation
+  fetchLocationFromIP() {
+    if (this.hasTriedGeolocation) return;
+    this.hasTriedGeolocation = true;
     
-    this.userInteracted = true;
+    fetch('https://ipapi.co/json/')
+      .then(response => response.json())
+      .then(data => {
+        const country = data.country_name;
+        let matchFound = false;
+        
+        for (const location of this.locations) {
+          if (location === country || 
+              (country === "United States" && location === "Turtle Island") ||
+              (country === "Denmark" && location === "Greenland")) {
+            this.selectedLocation = location;
+            matchFound = true;
+            break;
+          }
+        }
+        
+        if (!matchFound) {
+          this.selectedLocation = "Other";
+          this.otherLocation = country;
+        }
+        
+        if (this.elements.locationSelect) {
+          this.elements.locationSelect.value = this.selectedLocation;
+          
+          if (this.selectedLocation === "Other") {
+            this.elements.otherLocationContainer.classList.remove("hidden");
+            this.elements.otherLocationInput.value = this.otherLocation;
+          }
+          
+          this.validateSendButton();
+        }
+      })
+      .catch(error => {
+        console.error('Error detecting location:', error);
+      });
+  }
+
+  handleRecordButton(e) {
+    e.preventDefault();
+    e.stopPropagation(); // Stop propagation
+
+    
     if (this.isRecording) {
       this.stopRecording();
     } else {
@@ -249,74 +204,64 @@ class VoiceRecorder {
     this.sendRecordings();
   }
 
-  // Improved recording start with visual feedback and mobile support
   startRecording() {
     if (this.isRecording) return;
     
-    this.userInteracted = true;
+    // Reset audio chunks
     this.audioChunks = [];
     
-    // Reset timer
+    // Update UI
     this.recordingStartTime = Date.now();
-    this.elements.recordingTimer.textContent = "0.0s";
+    this.updateTimerDisplay(this.maxRecordingLength);
+    this.elements.recordButton.classList.add('recording');
+    this.elements.recordLabel.textContent = "STOP";
     
-    // Add a visual indicator immediately that we're trying to record
-    this.elements.recordButton.classList.add('recording-pending');
-    
-    // Set up audio constraints based on device
-    const audioConstraints = this.isIOS ? 
-      { audio: { echoCancellation: true, noiseSuppression: true } } : 
-      { audio: true };
-    
-    navigator.mediaDevices.getUserMedia(audioConstraints)
+    // Request microphone access
+    navigator.mediaDevices.getUserMedia({ audio: true })
       .then(stream => {
-        this.audioStream = stream; // Save reference for cleanup
+        this.audioStream = stream;
         
-        // Try different MIME types for better mobile compatibility
-        let options;
-        
-        // Test different MIME types for better compatibility
+        // Setup MediaRecorder with best available format
+        let options = {};
         if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
           options = { mimeType: 'audio/webm;codecs=opus' };
         } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
           options = { mimeType: 'audio/mp4' };
-        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-          options = { mimeType: 'audio/webm' };
-        } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
-          options = { mimeType: 'audio/ogg;codecs=opus' };
         }
         
         try {
-          this.mediaRecorder = options ? new MediaRecorder(stream, options) : new MediaRecorder(stream);
+          this.mediaRecorder = new MediaRecorder(stream, options);
         } catch (err) {
           console.warn("Error with specified mime type, falling back to default", err);
           this.mediaRecorder = new MediaRecorder(stream);
         }
         
+        // Handle recording data
         this.mediaRecorder.ondataavailable = (event) => {
           if (event.data && event.data.size > 0) {
             this.audioChunks.push(event.data);
           }
         };
         
+        // Handle recording stop
         this.mediaRecorder.onstop = () => {
           if (this.audioChunks.length === 0) {
             console.error("No audio data captured");
-            this.elements.recordButton.classList.remove('recording-pending', 'recording-active');
+            this.resetRecording();
             return;
           }
           
-          // Get MIME type from recorder
+          // Create audio blob and URL
           const mimeType = this.mediaRecorder.mimeType || 'audio/webm';
-          
-          // Create blob with the recorded MIME type
           const audioBlob = new Blob(this.audioChunks, { type: mimeType });
           const audioUrl = URL.createObjectURL(audioBlob);
           
-          // Calculate actual duration
+          // Calculate duration
           const duration = (Date.now() - this.recordingStartTime) / 1000;
-          const formattedDuration = duration.toFixed(1);
+          // Format to whole seconds (no decimal)
+          const formattedDuration = Math.round(duration);
           
+          // Add to recordings
           this.recordings.push({
             blob: audioBlob,
             url: audioUrl,
@@ -324,32 +269,31 @@ class VoiceRecorder {
             waveform: this.generateRandomWaveform()
           });
           
+          // Update UI
           this.updateRecordingsList();
+          this.resetRecording();
           
-          // Clean up stream properly
-          this.cleanupAudioResources();
+          // Show recordings container
+          this.elements.recordingsContainer.classList.remove("hidden");
         };
         
-        // Start recording with mobile-friendly timeslice (more frequent data events)
-        this.mediaRecorder.start(this.isMobile ? 100 : 500);
+        // Start recording
+        this.mediaRecorder.start();
         this.isRecording = true;
         
-        // Update UI
-        this.elements.recordButton.classList.remove('recording-pending');
-        this.elements.recordButton.classList.add('recording-active');
-        
-        // Start timer update
+        // Update timer counting down
         this.timerInterval = setInterval(() => {
-          const elapsed = (Date.now() - this.recordingStartTime) / 1000;
-          this.elements.recordingTimer.textContent = `${elapsed.toFixed(1)}s`;
+          const elapsed = Date.now() - this.recordingStartTime;
+          const remaining = Math.max(0, this.maxRecordingLength - elapsed);
           
-          // Check if we've reached max recording time
-          if (elapsed >= this.maxRecordingLength / 1000) {
+          this.updateTimerDisplay(remaining);
+          
+          if (remaining <= 0) {
             this.stopRecording();
           }
-        }, 100);
+        }, 50); // Update more frequently for smoother countdown
         
-        // Stop recording after max length
+        // Safety timeout
         setTimeout(() => {
           if (this.isRecording) {
             this.stopRecording();
@@ -358,25 +302,28 @@ class VoiceRecorder {
       })
       .catch(err => {
         console.error('Error accessing microphone:', err);
-        this.elements.recordButton.classList.remove('recording-pending');
+        this.resetRecording();
         
-        // Show a more specific error message
         if (err.name === 'NotAllowedError') {
-          alert('Please allow microphone access to record. You may need to allow it in your browser settings.');
-        } else if (err.name === 'NotFoundError') {
-          alert('No microphone device found. Please connect a microphone.');
+          alert('Please allow microphone access to record.');
         } else {
-          alert('Error accessing microphone: ' + err.message);
+          alert('Error accessing microphone. Please try again.');
         }
-        
-        this.isRecording = false;
       });
   }
+  
+  updateTimerDisplay(timeInMs) {
+    // Format as "2.0", "1.5", "1.0", "0.5", "0"
+    const seconds = timeInMs / 1000;
+    
+    // We want to show whole numbers only
+    const displayValue = Math.ceil(seconds);
+    this.elements.recordingTimer.textContent = `${displayValue}s`;
+  }
 
-  // Generate random waveform data for visualization
   generateRandomWaveform() {
     const bars = [];
-    const numBars = 20;
+    const numBars = 10;
     
     for (let i = 0; i < numBars; i++) {
       // Generate heights between 30% and 90%
@@ -387,7 +334,51 @@ class VoiceRecorder {
     return bars;
   }
 
-  // Improved cleanup for audio resources
+  stopRecording() {
+    if (!this.isRecording || !this.mediaRecorder) return;
+    
+    try {
+      if (this.mediaRecorder.state === 'recording') {
+        this.mediaRecorder.stop();
+      }
+    } catch (e) {
+      console.error('Error stopping MediaRecorder:', e);
+      this.cleanupAudioResources();
+    }
+    
+    this.isRecording = false;
+    
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+    
+    if (this.audioStream) {
+      this.audioStream.getTracks().forEach(track => track.stop());
+      this.audioStream = null;
+    }
+  }
+
+  resetRecording() {
+    // Reset UI
+    this.elements.recordButton.classList.remove('recording');
+    this.elements.recordLabel.textContent = "RECORD";
+    this.elements.recordingTimer.textContent = "2s";
+    
+    // Clean up
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+    
+    if (this.audioStream) {
+      this.audioStream.getTracks().forEach(track => track.stop());
+      this.audioStream = null;
+    }
+    
+    this.isRecording = false;
+  }
+
   cleanupAudioResources() {
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
@@ -395,17 +386,14 @@ class VoiceRecorder {
     }
     
     if (this.audioStream) {
-      // Stop all tracks and remove them
       const tracks = this.audioStream.getTracks();
       tracks.forEach(track => {
         track.stop();
-        this.audioStream.removeTrack(track);
       });
       this.audioStream = null;
     }
     
     if (this.mediaRecorder) {
-      // Only try to stop if it's not already inactive
       if (this.mediaRecorder.state !== 'inactive') {
         try {
           this.mediaRecorder.stop();
@@ -419,284 +407,167 @@ class VoiceRecorder {
     this.isRecording = false;
   }
 
-  // Stop recording with proper cleanup
-  stopRecording() {
-    if (!this.isRecording || !this.mediaRecorder) return;
-    
-    try {
-      // Only call stop if the state is recording
-      if (this.mediaRecorder.state === 'recording') {
-        this.mediaRecorder.stop();
-      }
-    } catch (e) {
-      console.error('Error stopping MediaRecorder:', e);
-      this.cleanupAudioResources();
-    }
-    
-    // Reset record button
-    this.elements.recordButton.classList.remove('recording-active', 'recording-pending');
-    
-    // Clear timer interval
-    if (this.timerInterval) {
-      clearInterval(this.timerInterval);
-      this.timerInterval = null;
-    }
-    
-    // Set isRecording to false
-    this.isRecording = false;
-  }
-
-  // Better memory management for recordings list with improved visuals
   updateRecordingsList() {
     const recordingsList = this.elements.recordingsList;
-
-    // Clear existing list content
     recordingsList.innerHTML = "";
 
     if (this.recordings.length === 0) {
       return;
     }
 
-    this.recordings.forEach((recording, index) => {
+    // Display all recordings, newest first
+    [...this.recordings].reverse().forEach((recording, index) => {
+      const actualIndex = this.recordings.length - 1 - index;
       const recordingElement = document.createElement("div");
       recordingElement.className = "recording-item";
-      recordingElement.dataset.index = index;
-      
-      // Generate waveform HTML
-      const waveformBars = recording.waveform.map(height => 
-        `<div class="waveform-bar" style="height: ${height}%"></div>`
-      ).join('');
+      recordingElement.dataset.index = actualIndex;
       
       recordingElement.innerHTML = `
-        <button class="play-btn" aria-label="Play recording">▶️</button>
-        <div class="recording-details">
-          <div class="recording-waveform">
-            <div class="waveform-bars">
-              ${waveformBars}
+        <button class="play-button" aria-label="Play recording">
+          <img src="https://catodot.github.io/d/images/play-icon.png" alt="Play">
+        </button>
+        
+        <div class="recording-content">
+          <div class="waveform-container">
+            <div class="waveform-track">
+              ${Array(10).fill('<div class="waveform-bar"></div>').join('')}
             </div>
             <div class="waveform-progress"></div>
           </div>
-          <div class="recording-time">
-            <span>${recording.duration}s</span>
-            <span>${this.selectedLocation}</span>
-          </div>
         </div>
-        <button class="delete-btn" aria-label="Delete recording">🗑️</button>
+        
+        <button class="delete-button" aria-label="Delete recording">
+          <img src="https://catodot.github.io/d/images/trash-icon.png" alt="Delete">
+        </button>
       `;
 
-      // Play recording with visual feedback and mobile support
-      const playBtn = recordingElement.querySelector(".play-btn");
+      // Add play functionality
+      const playButton = recordingElement.querySelector(".play-button");
       const waveformProgress = recordingElement.querySelector(".waveform-progress");
       
-      const playHandler = (e) => {
+      playButton.addEventListener("click", (e) => {
         e.preventDefault();
-        e.stopPropagation();
         
-        // Stop any currently playing audio
         this.stopAllPlayback();
         
-        // Create new audio element for playback
         const audio = new Audio(recording.url);
         
-        // For iOS, we need to handle this specially
-        if (this.isIOS) {
-          // Ensure audio context is running
-          if (this.audioContext && this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
-          }
-          
-          // Add event listeners to track playback
-          audio.addEventListener('canplaythrough', () => {
-            playBtn.textContent = "⏸️";
-            recordingElement.classList.add('playing');
-            audio.play()
-              .catch(err => {
-                console.error("iOS playback error:", err);
+        // Make sure audio doesn't loop
+        audio.loop = false;
+        
+        playButton.classList.add('playing');
+        recordingElement.classList.add('playing');
+        
+        audio.addEventListener('ended', () => {
+          this.stopAllPlayback();
+        });
+        
+        audio.play()
+          .then(() => {
+            const duration = parseFloat(recording.duration);
+            
+            this.currentlyPlaying = {
+              audio: audio,
+              element: recordingElement,
+              duration: duration
+            };
+            
+            this.playbackInterval = setInterval(() => {
+              if (!audio || audio.paused || audio.ended) {
                 this.stopAllPlayback();
-              });
-          });
-          
-          audio.addEventListener('error', (e) => {
-            console.error("iOS audio loading error:", e);
+                return;
+              }
+              
+              const progress = Math.min(audio.currentTime / duration, 1);
+              waveformProgress.style.transform = `scaleX(${progress})`;
+            }, 50);
+          })
+          .catch(err => {
+            console.error("Playback error:", err);
             this.stopAllPlayback();
           });
-          
-          // Load the audio (needed for iOS)
-          audio.load();
-        } else {
-          // Non-iOS playback is simpler
-          this.currentlyPlaying = {
-            audio: audio,
-            element: recordingElement,
-            duration: parseFloat(recording.duration),
-            startTime: Date.now()
-          };
-          
-          // Mark as playing
-          recordingElement.classList.add('playing');
-          playBtn.textContent = "⏸️";
-          
-          // Play the audio
-          audio.play()
-            .catch((error) => {
-              console.error("Error playing audio:", error);
-              this.stopAllPlayback();
-            });
-        }
-        
-        // For both iOS and non-iOS, set up progress tracking
-        this.currentlyPlaying = {
-          audio: audio,
-          element: recordingElement,
-          duration: parseFloat(recording.duration),
-          startTime: Date.now()
-        };
-        
-        // Set up progress tracking
-        this.playbackInterval = setInterval(() => {
-          const elapsed = (Date.now() - this.currentlyPlaying.startTime) / 1000;
-          const progress = Math.min(elapsed / this.currentlyPlaying.duration, 1);
-          waveformProgress.style.width = `${progress * 100}%`;
-          
-          if (progress >= 1) {
-            this.stopAllPlayback();
-          }
-        }, 50);
-        
-        audio.onended = () => {
-          this.stopAllPlayback();
-        };
-      };
-      
-      // Add both click and touch handlers for playback
-      playBtn.addEventListener("click", playHandler);
-      playBtn.addEventListener("touchend", playHandler);
+      });
 
-      // Delete recording with mobile support
-      const deleteBtn = recordingElement.querySelector(".delete-btn");
-      const deleteHandler = (e) => {
+      // Add delete functionality
+      const deleteButton = recordingElement.querySelector(".delete-button");
+      deleteButton.addEventListener("click", (e) => {
         e.preventDefault();
-        e.stopPropagation();
         
-        // Stop if this recording is playing
-        if (this.currentlyPlaying && this.currentlyPlaying.element === recordingElement) {
-          this.stopAllPlayback();
+        this.stopAllPlayback();
+        
+        // Remove from recordings array
+        URL.revokeObjectURL(recording.url);
+        this.recordings.splice(actualIndex, 1);
+        
+        // Update UI
+        this.updateRecordingsList();
+        
+        // Hide container if no recordings
+        if (this.recordings.length === 0) {
+          this.elements.recordingsContainer.classList.add("hidden");
         }
         
-        // Revoke the URL to free memory
-        URL.revokeObjectURL(recording.url);
-        
-        // Remove the recording
-        this.recordings.splice(index, 1);
-        this.updateRecordingsList();
         this.validateSendButton();
-      };
+      });
       
-      deleteBtn.addEventListener("click", deleteHandler);
-      deleteBtn.addEventListener("touchend", deleteHandler);
-
       recordingsList.appendChild(recordingElement);
     });
 
-    // Validate send button
     this.validateSendButton();
   }
 
-  // Stop all audio playback and reset UI
   stopAllPlayback() {
     if (this.playbackInterval) {
       clearInterval(this.playbackInterval);
       this.playbackInterval = null;
     }
     
-    if (this.currentlyPlaying) {
+    if (this.currentlyPlaying && this.currentlyPlaying.audio) {
       try {
         this.currentlyPlaying.audio.pause();
         this.currentlyPlaying.audio.currentTime = 0;
-        this.currentlyPlaying.element.classList.remove('playing');
-        const playBtn = this.currentlyPlaying.element.querySelector('.play-btn');
-        if (playBtn) playBtn.textContent = "▶️";
+        
+        if (this.currentlyPlaying.element) {
+          const playButton = this.currentlyPlaying.element.querySelector('.play-button');
+          if (playButton) playButton.classList.remove('playing');
+          
+          this.currentlyPlaying.element.classList.remove('playing');
+          
+          const waveformProgress = this.currentlyPlaying.element.querySelector('.waveform-progress');
+          if (waveformProgress) {
+            waveformProgress.style.transform = 'scaleX(0)';
+          }
+        }
       } catch (e) {
         console.warn('Error stopping playback:', e);
       }
+      
       this.currentlyPlaying = null;
     }
     
-    // Reset all progress bars
-    const allProgressBars = this.elements.recordingsList.querySelectorAll('.waveform-progress');
-    allProgressBars.forEach(bar => {
-      bar.style.width = '0%';
-    });
-    
-    // Reset all playing states
-    const allRecordings = this.elements.recordingsList.querySelectorAll('.recording-item');
-    allRecordings.forEach(item => {
-      item.classList.remove('playing');
-      const btn = item.querySelector('.play-btn');
-      if (btn) btn.textContent = "▶️";
-    });
+    // Reset all play buttons and progress bars
+    if (this.elements.recordingsList) {
+      const allPlayButtons = this.elements.recordingsList.querySelectorAll('.play-button');
+      allPlayButtons.forEach(button => button.classList.remove('playing'));
+      
+      const allItems = this.elements.recordingsList.querySelectorAll('.recording-item');
+      allItems.forEach(item => item.classList.remove('playing'));
+      
+      const allProgress = this.elements.recordingsList.querySelectorAll('.waveform-progress');
+      allProgress.forEach(progress => progress.style.transform = 'scaleX(0)');
+    }
   }
 
-  // Validate send button state
   validateSendButton() {
-    const isValid = this.recordings.length > 0 && this.selectedLocation && (this.selectedLocation !== "Other" || this.otherLocation.trim() !== "");
-
+    const isValid = this.recordings.length > 0 && 
+                    this.selectedLocation && 
+                    (this.selectedLocation !== "Other" || this.otherLocation.trim() !== "");
+    
     this.elements.sendButton.disabled = !isValid;
-    this.elements.sendButton.classList.toggle("disabled", !isValid);
   }
 
-  showThankYouMessage() {
-    // Stop any playing audio before showing thank you
-    this.stopAllPlayback();
-    
-    const thankYouModal = document.getElementById("thank-you-message");
-    const closeThankYouBtn = document.getElementById("close-thank-you");
 
-    if (thankYouModal) {
-      thankYouModal.classList.remove("hidden");
 
-      const closeHandler = (e) => {
-        e.preventDefault();
-        thankYouModal.classList.add("hidden");
-        closeThankYouBtn.removeEventListener("click", closeHandler);
-        closeThankYouBtn.removeEventListener("touchend", closeHandler);
-      };
-
-      closeThankYouBtn.addEventListener("click", closeHandler);
-      closeThankYouBtn.addEventListener("touchend", closeHandler);
-    }
-  }
-
-  handleUploadCompletion(hasError = false) {
-    // Reset button state
-    this.elements.sendButton.disabled = false;
-    this.elements.sendButton.textContent = 'Send';
-    
-    if (hasError) {
-        alert('Some uploads failed. Please try again.');
-        return;
-    }
-    
-    // Show thank you message
-    this.showThankYouMessage();
-    
-    // Revoke object URLs before clearing
-    this.recordings.forEach(recording => {
-        URL.revokeObjectURL(recording.url);
-    });
-    
-    // Clear recordings
-    this.recordings = [];
-    this.updateRecordingsList();
-    
-    // Close the recorder modal
-    const recorderModal = document.getElementById('voice-recorder-modal');
-    if (recorderModal) {
-        recorderModal.classList.add('hidden');
-    }
-  }
-
-  // Updated sendRecordings method with better mobile support
   sendRecordings() {
     if (this.recordings.length === 0) {
         console.error('No recordings to send');
@@ -706,7 +577,9 @@ class VoiceRecorder {
     // Stop any playing audio
     this.stopAllPlayback();
 
-    const location = this.selectedLocation === 'Other' ? this.otherLocation : this.selectedLocation;
+    const location = this.selectedLocation === 'Other' ? 
+                    this.otherLocation : 
+                    this.selectedLocation;
     
     // Show loading state
     this.elements.sendButton.disabled = true;
@@ -719,7 +592,7 @@ class VoiceRecorder {
     
     // Process each recording with better error handling
     this.recordings.forEach((recording, index) => {
-        const fileName = `voice_${location}_${Date.now()}_${index}`;
+        const fileName = `voice_${location.replace(/\s+/g, '_')}_${Date.now()}_${index}`;
         
         const formData = new FormData();
         formData.append('file', recording.blob);
@@ -727,8 +600,6 @@ class VoiceRecorder {
         formData.append('tags', location);
         formData.append('context', `location=${location}`);
         formData.append('resource_type', 'video'); // Cloudinary uses 'video' for audio files
-        
-        // Specify audio format conversion
         formData.append('format', 'mp3'); // Force MP3 format
         formData.append('public_id', `audio/new/${fileName}`); // No extension, Cloudinary adds it
         
@@ -781,45 +652,44 @@ class VoiceRecorder {
             }
         });
     });
-  }
+}
+  
 
-  closeRecorder() {
-    // Stop any playing audio
-    this.stopAllPlayback();
+
+  handleUploadCompletion(hasError = false) {
+    this.elements.sendButton.disabled = false;
+    this.elements.sendButton.textContent = "SEND RECORDING";
     
-    const recorderModal = document.getElementById("voice-recorder-modal");
-    if (recorderModal) {
-      recorderModal.classList.add("hidden");
-
-      // Reset the recorder state
-      this.reset();
+    if (hasError) {
+      alert('Some uploads failed. Please try again.');
+      return;
     }
-  }
-
-  hasUserInteracted() {
-    return this.userInteracted || 
-           this.recordings.length > 0 || 
-           (this.selectedLocation && (this.selectedLocation !== "Other" || this.otherLocation.trim() !== ""));
-  }
-
-  // Better memory cleanup on reset
-  reset() {
-    // Stop any playing audio
-    this.stopAllPlayback();
     
-    // Clean up all recordings properly
+    // Success - show thank you message
+    this.showThankYouMessage();
+    
+    // Clean up
     this.recordings.forEach(recording => {
       URL.revokeObjectURL(recording.url);
     });
     
     this.recordings = [];
-    this.selectedLocation = "";
-    this.otherLocation = "";
-    this.audioChunks = [];
-    this.cleanupAudioResources();
-    this.updateRecordingsList();
-    
-    // Don't reset userInteracted flag - we want to remember if they engaged with it
+    this.elements.recordingsContainer.classList.add("hidden");
+    this.elements.recordingsList.innerHTML = "";
+    this.elements.modal.classList.add("hidden");
+  }
+
+  showThankYouMessage() {
+    this.elements.thankYouMessage.classList.remove("hidden");
+  }
+
+  closeRecorder() {
+    this.stopAllPlayback();
+    this.elements.modal.classList.add("hidden");
+  }
+
+  show() {
+    this.elements.modal.classList.remove("hidden");
   }
 }
 
