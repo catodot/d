@@ -17,6 +17,7 @@ class GameManager {
     this.speedManager = null;
     this.protestorHitboxManager = null;
     this.smackManager = null;
+    this.trumpHandEffects = null; // Reference to hand effects controller
 
     // Bind methods to maintain context
     this.initiateGrab = this.initiateGrab.bind(this);
@@ -31,23 +32,13 @@ class GameManager {
     this.positionElements = this.positionElements.bind(this);
     this.positionCountryFlagOverlays = this.positionCountryFlagOverlays.bind(this);
     this.positionTrumpCharacter = this.positionTrumpCharacter.bind(this);
-    this.applyGrabSuccessEffect = this.applyGrabSuccessEffect.bind(this);
-    this.applyCartoonyHitEffect = this.applyCartoonyHitEffect.bind(this);
     this.showFasterNotification = this.showFasterNotification.bind(this);
     this.restartGame = this.restartGame.bind(this);
   }
 
   init(gameState, elements) {
-    // console.log("yo");
-
     this.gameState = gameState;
     this.elements = elements;
-
-    // Log before assigning managers
-    console.log("Global Managers Before Assignment:", {
-      audioManager: window.audioManager,
-      animationManager: window.animationManager,
-    });
 
     // Store manager references directly from window object
     this.audioManager = window.audioManager;
@@ -56,18 +47,9 @@ class GameManager {
     this.speedManager = window.speedManager;
     this.protestorHitboxManager = window.protestorHitboxManager;
     this.smackManager = window.smackManager;
+    this.trumpHandEffects = window.trumpHandEffects;
 
-    // Log after assigning managers
-    // console.log("GameManager Initialized Managers:", {
-    //   hasAudioManager: !!this.audioManager,
-    //   hasAnimationManager: !!this.animationManager,
-    //   hasElements: !!this.elements,
-    //   hasScreens: !!(this.elements && this.elements.screens),
-    //   hasIntroScreen: !!(this.elements && this.elements.screens && this.elements.screens.intro),
-    //   hasGameScreen: !!(this.elements && this.elements.screens && this.elements.screens.game),
-    // });
-
-    // Rest of the method remains the same
+    // Set up accessibility features
     this.setupAccessibility();
 
     if (this.DEBUG_MODE) {
@@ -126,13 +108,12 @@ class GameManager {
    * Start the game
    */
   startGame() {
-    console.log("GameManager.startGame called start");
+    console.log("GameManager.startGame called");
 
     // Always try to resume AudioContext on game start (user interaction)
     if (this.audioManager) {
       this.audioManager.resumeAudioContext().then(() => {
         this.audioManager.ensureSoundsAreLoaded();
-
         this.audioManager.stopBackgroundMusic();
 
         // Start background music after context is resumed
@@ -157,15 +138,12 @@ class GameManager {
           this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
 
           // Delay the first grab sequence to give player time to get oriented
-          // and see the first instruction
           setTimeout(() => {
             // Begin first grab sequence after delay
             this.initiateGrab();
 
-            // Begin loading remaining sounds gradually
-            this.audioManager.loadRemainingSounds();
-            this.audioManager.preloadAllCatchphrases();
-            this.audioManager.preloadAllProtestSounds();
+            // Begin loading remaining sounds using the optimized preload method
+            this.audioManager.preloadGameSounds();
           }, 5000); // 5 second delay before first grab to allow for instructions
         } else {
           // Wait for the map to load
@@ -184,10 +162,8 @@ class GameManager {
               // Begin first grab sequence after delay
               this.initiateGrab();
 
-              // Begin loading remaining sounds gradually
-              this.audioManager.loadRemainingSounds();
-              this.audioManager.preloadAllCatchphrases();
-              this.audioManager.preloadAllProtestSounds();
+              // Begin loading remaining sounds using the optimized preload method
+              this.audioManager.preloadGameSounds();
             }, 5000); // 5 second delay before first grab
           };
         }
@@ -334,14 +310,18 @@ class GameManager {
     this.gameState.isPaused = !this.gameState.isPaused;
 
     const pauseButton = document.getElementById("pause-button");
+    if (pauseButton) {
+      // Update aria-pressed based on current state
+      pauseButton.setAttribute("aria-pressed", this.gameState.isPaused ? "true" : "false");
 
-    // Update aria-pressed based on current state
-    pauseButton.setAttribute("aria-pressed", this.gameState.isPaused ? "true" : "false");
+      // Also update the aria-label to match the current action
+      pauseButton.setAttribute("aria-label", this.gameState.isPaused ? "Resume game" : "Pause game");
 
-    // Also update the aria-label to match the current action
-    pauseButton.setAttribute("aria-label", this.gameState.isPaused ? "Resume game" : "Pause game");
-
-    pauseButton.querySelector(".icon").textContent = this.gameState.isPaused ? "▶️" : "⏸️";
+      const iconElement = pauseButton.querySelector(".icon");
+      if (iconElement) {
+        iconElement.textContent = this.gameState.isPaused ? "▶️" : "⏸️";
+      }
+    }
 
     if (this.gameState.isPaused) {
       // Stop timers when paused
@@ -534,58 +514,12 @@ class GameManager {
     // Announce for screen readers
     this.announceForScreenReaders(`Trump is trying to grab ${targetCountry}! Smack his hand!`);
 
-    // Get visual and hitbox elements
-    const visual = document.getElementById("trump-hand-visual");
-    const hitbox = document.getElementById("trump-hand-hitbox");
-
-    // Check if this is before the first successful block
-    const isBeforeFirstBlock = this.gameState.stats.successfulBlocks === 0;
-
-    // Set up visual element for grab
-    if (visual) {
-      visual.classList.add("hittable");
-
-      // Make sure the visual is displayed
-      visual.style.display = "block";
-
-      // Only add border before the first block
-      if (isBeforeFirstBlock) {
-        visual.style.opacity = "0.6";
-        visual.style.border = "5px dashed black";
-        visual.style.borderRadius = "50%"; // Make border round to match hitbox
-      } else {
-        visual.style.opacity = "0.3";
-        visual.style.border = "none";
-      }
-
-      visual.style.backgroundColor = "transparent";
-      visual.style.transform = "scale(1.0)";
-    }
-
-    if (hitbox) {
-      hitbox.classList.add("hittable"); // For the cursor
-
-      // Add hover effect only for the first block
-      if (isBeforeFirstBlock) {
-        const handleMouseEnter = () => {
-          if (visual) {
-            visual.style.opacity = "0.6";
-          }
-        };
-
-        const handleMouseLeave = () => {
-          if (visual) {
-            visual.style.opacity = "0.4";
-          }
-        };
-
-        hitbox.addEventListener("mouseenter", handleMouseEnter);
-        hitbox.addEventListener("mouseleave", handleMouseLeave);
-
-        // Store the handlers on the element so we can remove them later
-        hitbox._enterHandler = handleMouseEnter;
-        hitbox._leaveHandler = handleMouseLeave;
-      }
+    // Handle visual effects using the controller
+    const isFirstBlock = this.gameState.stats.successfulBlocks === 0;
+    
+    if (this.trumpHandEffects) {
+      // Use the new API method for grab start
+      this.trumpHandEffects.handleGrabStart(targetCountry, isFirstBlock);
     }
 
     // Play the grab animation
@@ -598,22 +532,6 @@ class GameManager {
         // Grab was interrupted or blocked - start next cycle
         this.initiateGrab();
       }
-
-      // Clean up event listeners
-      if (hitbox && isBeforeFirstBlock) {
-        if (hitbox._enterHandler) hitbox.removeEventListener("mouseenter", hitbox._enterHandler);
-        if (hitbox._leaveHandler) hitbox.removeEventListener("mouseleave", hitbox._leaveHandler);
-        hitbox._enterHandler = null;
-        hitbox._leaveHandler = null;
-      }
-
-      // IMPORTANT: Hide the visual completely when animation completes
-      if (visual) {
-        visual.style.display = "none";
-        visual.style.opacity = "0";
-        visual.style.border = "none"; // Remove border
-        visual.classList.remove("hittable");
-      }
     });
 
     // Play grab sound
@@ -625,42 +543,11 @@ class GameManager {
    */
   stopGrab(event) {
     const targetCountry = this.gameState.currentTarget;
-
-    const visual = document.getElementById("trump-hand-visual");
-    const hitbox = document.getElementById("trump-hand-hitbox");
-
-    if (visual) {
-      visual.classList.remove("hittable");
-      visual.style.opacity = "1"; // Force full opacity when hit starts
-      visual.style.border = "none"; // Remove border when blocked
-      visual.classList.add("hit");
-
-      // Apply the effect setup
-      this.applyCartoonyHitEffect();
-
-      setTimeout(() => {
-        visual.classList.remove("hit");
-        visual.classList.add("animation-completed");
-
-        // Remove the class and HIDE the visual after a short delay
-        setTimeout(() => {
-          visual.classList.remove("animation-completed");
-          visual.style.display = "none";
-          visual.style.opacity = "0";
-        }, 100);
-      }, 650);
-    }
-
-    // Clean up event listeners if they exist
-    if (hitbox) {
-      if (hitbox._enterHandler) hitbox.removeEventListener("mouseenter", hitbox._enterHandler);
-      if (hitbox._leaveHandler) hitbox.removeEventListener("mouseleave", hitbox._leaveHandler);
-      hitbox._enterHandler = null;
-      hitbox._leaveHandler = null;
-    }
-
-    if (hitbox) {
-      hitbox.classList.remove("hittable"); // Remove cursor style
+    
+    // Handle visual effects using the controller
+    if (this.trumpHandEffects) {
+      // Use the new API method for grab block
+      this.trumpHandEffects.handleGrabBlocked();
     }
 
     if (!targetCountry) {
@@ -740,38 +627,10 @@ class GameManager {
     // Reset consecutive hits
     this.gameState.consecutiveHits = 0;
 
-    const visual = document.getElementById("trump-hand-visual");
-    const hitbox = document.getElementById("trump-hand-hitbox");
-
-    if (visual) {
-      visual.classList.remove("hittable");
-
-      // IMPORTANT: Make sure the visual is visible before applying effects
-      visual.style.display = "block";
-      visual.style.opacity = "1"; // Important: Full opacity for the animation to be visible
-
-      // Add the class AFTER ensuring visibility
-      visual.classList.add("grab-success");
-
-      // Apply the effect setup
-      this.applyGrabSuccessEffect();
-
-      // This timing matches stopGrab
-      setTimeout(() => {
-        visual.classList.remove("grab-success");
-        visual.classList.add("animation-completed");
-
-        // Remove the class and HIDE the visual after a short delay
-        setTimeout(() => {
-          visual.classList.remove("animation-completed");
-          visual.style.display = "none";
-          visual.style.opacity = "0";
-        }, 100);
-      }, 650);
-    }
-
-    if (hitbox) {
-      hitbox.classList.remove("hittable");
+    // Handle visual effects using the controller
+    if (this.trumpHandEffects) {
+      // Use the new API method for grab success
+      this.trumpHandEffects.handleGrabSuccess();
     }
 
     // Reset current target
@@ -882,84 +741,8 @@ class GameManager {
   }
 
   /**
-   * Add cartoon hit effect when player successfully blocks
+   * Restart the game
    */
-  applyCartoonyHitEffect() {
-    const visual = document.getElementById("trump-hand-visual");
-
-    if (!visual) return;
-
-    // Make sure the visual element has position relative or absolute
-    const currentPosition = window.getComputedStyle(visual).position;
-    if (currentPosition === "static") {
-      visual.style.position = "absolute";
-    }
-
-    // Ensure the visual is fully opaque for the animation
-    visual.style.opacity = "1";
-
-    // Add a small screen shake
-    const gameContainer = document.getElementById("game-container") || document.body;
-    gameContainer.classList.add("screen-shake");
-
-    // Force layout recalculation to ensure animations are applied
-    void visual.offsetWidth;
-
-    // Clean up screen shake after animations complete
-    setTimeout(() => {
-      gameContainer.classList.remove("screen-shake");
-    }, 700);
-  }
-
-  /**
-   * Add grab success effect when Trump successfully grabs a country
-   */
-  applyGrabSuccessEffect() {
-    const visual = document.getElementById("trump-hand-visual");
-
-    if (!visual) return;
-
-    // Ensure full opacity
-    visual.style.opacity = "1";
-
-    // Make sure the visual element has position relative or absolute
-    const currentPosition = window.getComputedStyle(visual).position;
-    if (currentPosition === "static") {
-      visual.style.position = "absolute";
-    }
-
-    // Add success class
-    visual.classList.add("grab-success");
-
-    // Create additional shards
-    for (let i = 3; i <= 8; i++) {
-      const shard = document.createElement("div");
-      shard.className = `shard${i}`;
-      visual.appendChild(shard);
-    }
-
-    // Add a small screen shake (reduced intensity)
-    const gameContainer = document.getElementById("game-container") || document.body;
-    gameContainer.classList.add("grab-screen-shake");
-
-    // Force layout recalculation to ensure animations are applied
-    void visual.offsetWidth;
-
-    // Clean up screen shake after animations complete
-    setTimeout(() => {
-      gameContainer.classList.remove("grab-screen-shake");
-
-      // Remove shard elements after animation completes
-      setTimeout(() => {
-        for (let i = 3; i <= 8; i++) {
-          const shard = visual.querySelector(`.shard${i}`);
-          if (shard) visual.removeChild(shard);
-        }
-        visual.classList.remove("grab-success");
-      }, 100);
-    }, 700);
-  }
-
   restartGame() {
     // Play UI click sound
     this.audioManager.play("ui", "click");
@@ -1140,19 +923,18 @@ class GameManager {
       initializeShareButtonsOnGameOver();
     }
 
-    // Auto-restart after delay
-    // Auto-restart after delay
-setTimeout(() => {
-  const recorderModal = document.getElementById("voice-recorder-modal");
-  const thankYouModal = document.getElementById("thank-you-message");
-  
-  // Check if both modals are hidden AND no interaction occurred
-  if ((!recorderModal || recorderModal.classList.contains('hidden')) && 
-      (!thankYouModal || thankYouModal.classList.contains('hidden')) &&
-      (!window.voiceRecorder || !window.voiceRecorder.hasUserInteracted())) {
-      this.restartGame();
-  }
-}, 20000); // 20 seconds
+    // Auto-restart after delay if no interaction with the voice recorder
+    setTimeout(() => {
+      const recorderModal = document.getElementById("voice-recorder-modal");
+      const thankYouModal = document.getElementById("thank-you-message");
+      
+      // Check if both modals are hidden AND no interaction occurred
+      if ((!recorderModal || recorderModal.classList.contains('hidden')) && 
+          (!thankYouModal || thankYouModal.classList.contains('hidden')) &&
+          (!window.voiceRecorder || !window.voiceRecorder.hasUserInteracted())) {
+          this.restartGame();
+      }
+    }, 20000); // 20 seconds
   }
 
   /**

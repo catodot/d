@@ -76,23 +76,6 @@ document.addEventListener("DOMContentLoaded", function () {
       mexico: document.getElementById("mexico-flag-overlay"),
       greenland: document.getElementById("greenland-flag-overlay"),
     },
-    meters: {
-      canada: {
-        container: document.getElementById("canada-meter"),
-        occupation: document.getElementById("canada-occupation"),
-        resistance: document.getElementById("canada-resistance"),
-      },
-      mexico: {
-        container: document.getElementById("mexico-meter"),
-        occupation: document.getElementById("mexico-occupation"),
-        resistance: document.getElementById("mexico-resistance"),
-      },
-      greenland: {
-        container: document.getElementById("greenland-meter"),
-        occupation: document.getElementById("greenland-occupation"),
-        resistance: document.getElementById("greenland-resistance"),
-      },
-    },
     debug: {
       panel: document.getElementById("debug-panel"),
       toggleHitbox: document.getElementById("toggle-hitbox"),
@@ -154,7 +137,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // Create other managers
     window.freedomManager = new FreedomManager(gameState, elements, audioManager);
     window.protestorHitboxManager = new ProtestorHitboxManager();
-  
+    window.trumpHandEffects = new TrumpHandEffectsController(gameState);
+
+    
     // Connect freedom manager and protestor hitbox manager
     if (window.freedomManager) {
       window.freedomManager.protestorHitboxManager = window.protestorHitboxManager;
@@ -395,22 +380,27 @@ document.addEventListener("DOMContentLoaded", function () {
     // Start button click handler with audio initialization
     elements.buttons.start.addEventListener("click", function () {
       console.log("Start button clicked");
-
+  
       // NOW initialize audio system (first user interaction)
       audioManager.init();
-
+  
       // Now resume audio context
       audioManager.resumeAudioContext().then(() => {
         // NOW preload only critical sounds
         console.log("Audio context resumed");
-
-        audioManager.loadSound("ui", "click");
-
+  
+        // Preload essential UI sounds
+        audioManager.loadEssentialSounds();
+  
         // Try to play the click sound
         setTimeout(() => {
           audioManager
             .play("ui", "click")
             .then((sound) => {
+              // Preload catchphrases
+              audioManager.preloadAllCatchphrases();
+              
+              // Start the game
               window.gameManager.startGame();
             })
             .catch((error) => {

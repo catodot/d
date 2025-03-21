@@ -2,25 +2,17 @@ class AudioManager {
   constructor() {
     // Sound categories organized by purpose
     this.sounds = {
-      ui: {}, // UI feedback sounds
+      ui: {}, 
       trump: {
-        // Trump action sounds
         grab: [],
         success: [],
         annex: [],
         victory: [],
         sob: [],
       },
-      resistance: {
-        canada: [],
-        mexico: [],
-        greenland: [],
-      },
-      particles: {
-        freedom: [],
-      },
+      resistance: { canada: [], mexico: [], greenland: [] },
+      particles: { freedom: [] },
       defense: {
-        // Defense-related sounds
         slap: [],
         protest: {
           eastCanada: [],
@@ -35,7 +27,7 @@ class AudioManager {
           greenland: null,
         },
       },
-      music: {}, // Background music
+      music: {},
     };
 
     this.shuffledSoundIndexes = {}; // Tracks the current position in each shuffled array
@@ -190,6 +182,13 @@ class AudioManager {
     this.grabVolumeStep = 0.05; // Amount to increase volume per interval
 
     // console.log("Audio Manager initialized");
+    this.loadErrors = [];
+    this.maxLoadRetries = 2;
+    this.audioLoadQueue = [];
+    this.isProcessingQueue = false;
+    
+    // Track if we've already initialized
+    this.hasInitialized = false;
   }
 
   /**
@@ -197,49 +196,199 @@ class AudioManager {
    * IMPORTANT: Call this only after user interaction on mobile
    */
   init() {
-    if (this.initialized) return;
-
+    if (this.hasInitialized) {
+      console.log("AudioManager already initialized, resuming context");
+      return this.resumeAudioContext();
+    }
     try {
       // Create audio context with proper fallbacks
-      window.AudioContext = window.AudioContext || window.webkitAudioContext;
-      this.audioContext = new AudioContext();
+      if (!window.audioContext) {
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        window.audioContext = new AudioContext();
+      }
+      this.audioContext = window.audioContext;
+      
+      // Adjust sound path for mobile devices
+      if (window.DeviceUtils && window.DeviceUtils.isMobileDevice) {
+        const baseUrl = window.location.origin + window.location.pathname;
+        this.soundPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/";
+      }
+
+      this.hasInitialized = true;
+      this.initialized = true;
+
+      // Preload only the most essential sounds initially
+      this.loadEssentialSounds();
+      
+      return Promise.resolve();
     } catch (e) {
       console.warn("Web Audio API not supported:", e);
+      // Fallback to a no-audio mode
+      this.hasInitialized = true;
+      this.initialized = false;
+      return Promise.reject(e);
     }
-
-    // Adjust sound path for mobile devices
-    if (window.DeviceUtils.isMobileDevice) {
-      const baseUrl = window.location.origin + window.location.pathname;
-      this.soundPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/";
-    }
-
-    this.initialized = true;
-
-    // Preload essential sounds that need to be available immediately
-    this.loadSound("ui", "click");
-    this.loadSound("ui", "start");
-    this.loadSound("ui", "warning");
-    this.loadSound("defense", "slap", 0);
-    this.loadSound("trump", "grab", 0);
-    this.loadSound("trump", "success", 0);
   }
 
+
+  loadEssentialSounds() {
+    // Clear queue and add only essential sounds
+    this.audioLoadQueue = [
+      { category: "ui", name: "click" },
+      { category: "ui", name: "start" },
+      { category: "defense", name: "slap", index: 0 },
+      { category: "trump", name: "grab", index: 0 }
+    ];
+    
+    // Start queue processing
+    this.processAudioQueue();
+  }
+
+
   /**
-   * Resume the AudioContext (required for mobile after user interaction)
+   * Process audio load queue with rate limiting
    */
+  processAudioQueue() {
+    if (this.isProcessingQueue || this.audioLoadQueue.length === 0) return;
+    
+    this.isProcessingQueue = true;
+    
+    // Process next item in queue
+    const item = this.audioLoadQueue.shift();
+    this.loadSoundWithRetry(item.category, item.name, item.index)
+      .finally(() => {
+        // Continue after a short delay for browser breathing room
+        setTimeout(() => {
+          this.isProcessingQueue = false;
+          this.processAudioQueue();
+        }, 50);
+      });
+  }
+
+
+
+  loadSoundWithRetry(category, name, index = null, retryCount = 0) {
+    return new Promise((resolve) => {
+      try {
+        // Create a unique key for tracking loaded sounds
+        const soundKey = index !== null ? `${category}.${name}.${index}` : `${category}.${name}`;
+        
+        // Skip if already loaded
+        if (this.loadedSounds.has(soundKey)) {
+          resolve();
+          return;
+        }
+        
+        let soundPath;
+        let destination;
+
+        if (index !== null) {
+          // Array sound (like trump.grab[0])
+          soundPath = this.soundFiles[category][name][index];
+          
+          // Make sure the array exists before trying to use it
+          if (!this.sounds[category][name]) {
+            this.sounds[category][name] = [];
+          }
+          
+          destination = this.sounds[category][name];
+        } else {
+          // Named sound (like ui.click)
+          soundPath = this.soundFiles[category][name];
+          destination = this.sounds[category];
+        }
+
+        // Create and load the audio with proper error handling
+        const audio = new Audio();
+        
+        // Set up success handler
+        audio.oncanplaythrough = () => {
+          if (index !== null) {
+            // Push to array when loaded
+            destination.push(audio);
+          } else {
+            // Set named property when loaded
+            destination[name] = audio;
+          }
+          
+          this.loadedSounds.add(soundKey);
+          resolve();
+        };
+        
+        // Set up error handler with retry logic
+        audio.onerror = (e) => {
+          console.warn(`Error loading sound ${soundPath}:`, e.type);
+          
+          if (retryCount < this.maxLoadRetries) {
+            console.log(`Retrying load for ${soundPath}, attempt ${retryCount + 1}`);
+            // Add back to queue with increased retry count
+            this.audioLoadQueue.push({ 
+              category, 
+              name, 
+              index, 
+              retryCount: retryCount + 1 
+            });
+          } else {
+            // Track persistent errors
+            this.loadErrors.push({ category, name, index, error: e.type });
+            resolve(); // Resolve anyway to continue queue
+          }
+        };
+        
+        // Set timeout for stalled loads
+        const timeout = setTimeout(() => {
+          if (!this.loadedSounds.has(soundKey)) {
+            console.warn(`Timeout loading sound ${soundPath}`);
+            
+            if (retryCount < this.maxLoadRetries) {
+              // Add back to queue with increased retry count
+              this.audioLoadQueue.push({ 
+                category, 
+                name, 
+                index, 
+                retryCount: retryCount + 1 
+              });
+            } else {
+              this.loadErrors.push({ category, name, index, error: 'timeout' });
+            }
+            resolve(); // Resolve anyway to continue queue
+          }
+        }, 5000);
+        
+        // Set source and load
+        audio.src = this.getSoundPath(soundPath);
+        audio.load();
+        
+        // Clean up timeout on success
+        audio.addEventListener('canplaythrough', () => clearTimeout(timeout), { once: true });
+      } catch (err) {
+        console.error(`Error in loadSoundWithRetry for ${category}.${name}:`, err);
+        resolve(); // Resolve anyway to continue queue
+      }
+    });
+  }
+
+
   resumeAudioContext() {
-    if (!this.audioContext) return Promise.resolve();
+    if (!this.audioContext) {
+      // Try to reinitialize if context is missing
+      try {
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.audioContext = new AudioContext();
+      } catch (e) {
+        console.warn("Failed to create AudioContext:", e);
+        return Promise.resolve();
+      }
+    }
 
     if (this.audioContext.state === "suspended") {
       return this.audioContext
         .resume()
         .then(() => {
-          // If no sounds loaded, try loading essential sounds again
+          console.log("AudioContext resumed successfully");
+          // Retry loading essential sounds if we have none loaded
           if (this.loadedSounds.size === 0) {
-            this.loadSound("ui", "click");
-            this.loadSound("ui", "start");
-            this.loadSound("defense", "slap", 0);
-            this.loadSound("trump", "grab", 0);
+            this.loadEssentialSounds();
           }
         })
         .catch((err) => {
@@ -250,122 +399,87 @@ class AudioManager {
     return Promise.resolve();
   }
 
+
   preloadGameSounds() {
-    // First wave: Only the most critical gameplay sounds (minimal set)
-    this.loadSound("ui", "click");
-    this.loadSound("ui", "start");
-    this.loadSound("defense", "slap", 0);  // Just one slap sound
-    this.loadSound("trump", "grab", 0);    // Just one grab sound
-    this.loadSound("trump", "success", 0); // Just one success sound
-  
-    // Second wave (after a delay): Important gameplay sounds
-    setTimeout(() => {
-      this.loadSound("ui", "warning");
-      this.loadSound("ui", "instruction1");
-      this.loadSound("ui", "instruction2");
-      this.loadSound("ui", "instruction3");
-      this.loadSound("music", "background");
-      this.loadSound("trump", "sob", 0);
-    }, 1000);
-  
-    // Third wave: Additional sounds with longer staggered timing
-    setTimeout(() => {
-      this.loadSoundsProgressively();
-    }, 5000);  // Start loading the rest 5 seconds after game start
-  }
-  
-  loadSoundsProgressively() {
-    // Create a queue of sounds to load
-    const soundQueue = [];
+    // Clear existing queue and start with most critical sounds
+    this.audioLoadQueue = [
+      { category: "ui", name: "click" },
+      { category: "ui", name: "start" },
+      { category: "defense", name: "slap", index: 0 },
+      { category: "trump", name: "grab", index: 0 },
+      { category: "trump", name: "success", index: 0 },
+      { category: "ui", name: "warning" }
+    ];
     
-    // Add trump sounds to queue (with priorities)
+    // Start processing queue
+    this.processAudioQueue();
+    
+    // After a delay, add second wave of important sounds
+    setTimeout(() => {
+      // Add UI instructions and background music
+      this.audioLoadQueue.push(
+        { category: "ui", name: "instruction1" },
+        { category: "ui", name: "instruction2" },
+        { category: "ui", name: "instruction3" },
+        { category: "music", name: "background" },
+        { category: "trump", name: "sob", index: 0 }
+      );
+    }, 1000);
+    
+    // After a longer delay, queue the remaining sounds
+    setTimeout(() => {
+      this.queueRemainingAudio();
+    }, 5000);
+  }
+
+
+  queueRemainingAudio() {
+    // Add trump sounds with priority
     for (let category in this.soundFiles.trump) {
       const files = this.soundFiles.trump[category];
       for (let i = 0; i < files.length; i++) {
         // Skip index 0 for categories we already loaded
         if (i === 0 && (category === "grab" || category === "success" || category === "sob")) continue;
         
-        soundQueue.push({
-          type: "regular",
-          load: () => this.loadSound("trump", category, i),
-          priority: category === "annex" ? 2 : 1  // Higher priority for annex sounds
-        });
+        this.audioLoadQueue.push({ category: "trump", name: category, index: i });
       }
     }
     
-    // Add remaining UI sounds
+    // Queue remaining UI sounds
     for (const name in this.soundFiles.ui) {
-      // Skip already loaded sounds
+      // Skip already queued sounds
       if (["click", "start", "warning", "instruction1", "instruction2", "instruction3"].includes(name)) continue;
       
-      soundQueue.push({
-        type: "regular",
-        load: () => this.loadSound("ui", name),
-        priority: name === "speedup" ? 2 : 1
-      });
+      this.audioLoadQueue.push({ category: "ui", name: name });
     }
     
-    // Add lower priority sounds
-    const loadProtests = () => {
-      setTimeout(() => this.preloadAllProtestSounds(), 100);
-    };
-    
-    const loadCatchphrases = () => {
-      setTimeout(() => this.preloadAllCatchphrases(), 100);
-    };
-    
-    soundQueue.push({ type: "batch", load: loadProtests, priority: 0 });
-    soundQueue.push({ type: "batch", load: loadCatchphrases, priority: 0 });
-    
-    // Sort the queue by priority (highest first)
-    soundQueue.sort((a, b) => b.priority - a.priority);
-    
-    // Load sounds with staggered timing
-    soundQueue.forEach((item, index) => {
-      const delay = item.type === "regular" 
-        ? 200 + (index * 150)  // Regular sounds: spread out loading
-        : 8000 + (index * 1000);  // Batch loaders: much later
-        
-      setTimeout(item.load, delay);
+    // Queue some protest sounds (will add more later)
+    ["eastCanada", "westCanada", "mexico", "greenland"].forEach((country) => {
+      if (this.soundFiles.defense.protest[country]) {
+        // Just load the first few for each country initially
+        const count = Math.min(2, this.soundFiles.defense.protest[country].length);
+        for (let i = 0; i < count; i++) {
+          this.audioLoadQueue.push({ category: "defense.protest", name: country, index: i });
+        }
+      }
     });
   }
 
-  /**
-   * Load remaining game sounds after initial critical sounds
-   */
-  loadRemainingSounds() {
-    if (!this.initialized) return;
-  
-    // Load instruction sounds first
-    this.loadSound("ui", "instruction1");
-    this.loadSound("ui", "instruction2");
-    this.loadSound("ui", "instruction3");
-    this.loadSound("ui", "speedup");
 
-    // Trump sounds
-    for (let category in this.soundFiles.trump) {
-      const files = this.soundFiles.trump[category];
-      for (let i = 0; i < files.length; i++) {
-        setTimeout(() => {
-          this.loadSound("trump", category, i);
-        }, i * 100); // Stagger loading
-      }
-    }
 
-    // UI sounds
-    for (const name in this.soundFiles.ui) {
-      setTimeout(() => {
-        this.loadSound("ui", name);
-      }, 200); // Light delay
-    }
 
-    // Catchphrases and protest sounds (lower priority)
-    setTimeout(() => {
-      this.preloadAllCatchphrases();
-      this.preloadAllProtestSounds();
-      this.preloadAllProtestorSounds();
-    }, 2000);
-  }
+
+
+
+
+
+
+
+
+
+
+
+
 
   /**
    * Preload all protest sounds
@@ -1470,75 +1584,80 @@ class AudioManager {
 }
 
 destroy() {
-  // Comprehensive cleanup
-  
-  // Stop all sounds and clear references
-  this.stopAll();
-  this.stopBackgroundMusic();
-  this.stopAllProtestorSounds();
+    // Stop all sounds first
+    this.stopAll();
+    this.stopBackgroundMusic();
+    this.stopAllProtestorSounds();
 
-  // Clear all sound references
-  this.sounds = {
-    ui: {}, 
-    trump: { grab: [], success: [], annex: [], victory: [], sob: [] },
-    resistance: { canada: [], mexico: [], greenland: [] },
-    particles: { freedom: [] },
-    defense: { 
-      slap: [],
-      protest: { eastCanada: [], westCanada: [], mexico: [], greenland: [] },
-      protestors: { eastCanada: null, westCanada: null, mexico: null, greenland: null }
-    },
-    music: {}
-  };
-
-  // Clear shuffled sound tracking
-  this.shuffledSoundIndexes = {};
-  this.shuffledSoundArrays = {};
-  this.shuffledCatchphraseIndexes = {};
-  this.shuffledCatchphraseArrays = {};
-
-  // Clear catchphrases
-  this.catchphrases = {
-    canada: [],
-    mexico: [],
-    greenland: [],
-    generic: []
-  };
-
-  // Reset audio context
-  if (this.audioContext) {
-    try {
-      this.audioContext.close();
-    } catch (e) {
-      console.warn("Error closing AudioContext:", e);
+    // Explicitly release all audio elements
+    for (const category in this.sounds) {
+      if (typeof this.sounds[category] === 'object') {
+        for (const name in this.sounds[category]) {
+          if (Array.isArray(this.sounds[category][name])) {
+            // Handle arrays of sounds
+            this.sounds[category][name].forEach(sound => {
+              if (sound instanceof HTMLAudioElement) {
+                sound.oncanplaythrough = null;
+                sound.onerror = null;
+                sound.onended = null;
+                sound.pause();
+                sound.src = '';
+              }
+            });
+            this.sounds[category][name] = [];
+          } else if (this.sounds[category][name] instanceof HTMLAudioElement) {
+            // Handle individual sounds
+            const sound = this.sounds[category][name];
+            sound.oncanplaythrough = null;
+            sound.onerror = null;
+            sound.onended = null;
+            sound.pause();
+            sound.src = '';
+            this.sounds[category][name] = null;
+          }
+        }
+      }
     }
-    this.audioContext = null;
-  }
 
-  // Reset tracking sets and states
-  this.loadedSounds.clear();
-  this.currentlyPlaying = [];
-  this.backgroundMusic = null;
-  this.activeGrabSound = null;
+    // Clear all catchphrases
+    for (const country in this.catchphrases) {
+      if (Array.isArray(this.catchphrases[country])) {
+        this.catchphrases[country].forEach(sound => {
+          if (sound instanceof HTMLAudioElement) {
+            sound.oncanplaythrough = null;
+            sound.onerror = null;
+            sound.pause();
+            sound.src = '';
+          }
+        });
+        this.catchphrases[country] = [];
+      }
+    }
 
-  // Clear intervals
-  if (this.grabVolumeInterval) {
-    clearInterval(this.grabVolumeInterval);
-    this.grabVolumeInterval = null;
+    // Reset state
+    this.shuffledSoundIndexes = {};
+    this.shuffledSoundArrays = {};
+    this.shuffledCatchphraseIndexes = {};
+    this.shuffledCatchphraseArrays = {};
+    this.loadedSounds.clear();
+    this.loadErrors = [];
+    this.audioLoadQueue = [];
+    this.isProcessingQueue = false;
+    
+    // Close AudioContext properly
+    if (this.audioContext) {
+      try {
+        this.audioContext.close();
+      } catch (e) {
+        console.warn("Error closing AudioContext:", e);
+      }
+      this.audioContext = null;
+    }
+    
+    // Reset flags
+    this.initialized = false;
+    this.hasInitialized = false;
   }
-  if (this.musicRateInterval) {
-    clearInterval(this.musicRateInterval);
-    this.musicRateInterval = null;
-  }
-
-  // Reset state variables
-  this.initialized = false;
-  this.muted = false;
-  this.volume = 1.0;
-  this.backgroundMusicPlaying = false;
-  this.musicIntensity = 0;
-  this.currentGrabVolume = 0.2;
-}
 }
 
 window.AudioManager = AudioManager;

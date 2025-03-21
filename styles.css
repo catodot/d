@@ -223,7 +223,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 3rem 0;
+  /* margin: 3rem 0; */
   gap: 5px;
   width: 100%;
   font-size: 1.4rem;
@@ -307,7 +307,7 @@ button:hover {
   font-weight: normal;
   margin-bottom: 5px;
   opacity: 0.9;
-  /* font-family: "Arial", sans-serif; */
+  font-family: "Arial", sans-serif;
   letter-spacing: 0.5px;
 }
 
@@ -736,20 +736,7 @@ body.debug-mode #trump-hand-hitbox {
   /* Debug styling enabled only in debug mode */
 }
 
-/* Hand visual effects */
-#trump-hand-visual {
-  position: absolute;
-  display: none;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-  opacity: 0;
-  z-index: -10;
-}
+
 
 #trump-hand-visual.hittable {
   display: block;
@@ -855,11 +842,7 @@ body.debug-mode #trump-hand-hitbox {
   20%, 40%, 60%, 80% { transform: translateX(4px); }
 }
 
-/* Grab success effect */
-#trump-hand-visual.grab-success {
-  position: relative;
-  animation: cartoony-grab-success 0.6s ease-out forwards;
-}
+
 
 @keyframes cartoony-grab-success {
   0% {
@@ -1585,8 +1568,15 @@ body.debug-mode .protestor-hitbox {
     font-size: 12px;
   }
 
+  .game-over-content{
+    margin: 1rem 5px;
+    padding: 0;
+  }
+
   .game-over-content h1 {
-    font-size: 2.5rem;
+    font-size: clamp(2rem, 10vw, 2rem);
+    width: 100%;
+    text-align: center;  
   }
 
   .game-over-content h2 {
@@ -1607,6 +1597,15 @@ body.debug-mode .protestor-hitbox {
 
   .animation-test-dialog {
     top: 20%;
+  }
+
+  .voice-text {
+    font-size: 1rem;
+  }
+
+  .resistance-text {
+    font-size: .9rem;
+  
   }
 }
 
@@ -1858,6 +1857,405 @@ body.debug-mode .protestor-hitbox {
 }
 
 
+/* Hand visual effects - merged version */
+#trump-hand-visual {
+  position: absolute;
+  display: none;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  opacity: 0;
+  z-index: 5; /* Above map but below hitbox */
+  overflow: visible !important; /* Ensure shards can extend outside */
+}
+
+/* Grab success effect - merged version */
+#trump-hand-visual.grab-success {
+  position: relative;
+  animation: cartoony-grab-success 0.6s ease-out forwards;
+  z-index: 50 !important; /* Force higher z-index during effect */
+  display: block !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+/* Ensure all shard elements are visible */
+#trump-hand-visual.grab-success::before,
+#trump-hand-visual.grab-success::after,
+#trump-hand-visual.grab-success [data-shard-id] {
+  z-index: 100 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
 
 
 
+/* Country targeting pulse effect */
+@keyframes targeting-pulse {
+  0% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.3) saturate(1.2); }
+  100% { filter: brightness(1) saturate(1); }
+}
+
+.targeting-pulse {
+  animation: targeting-pulse 0.8s infinite ease-in-out;
+}
+
+
+
+/* Voice Recorder UI Enhancements */
+
+/* Recording button container with timer */
+.record-button-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+/* Record button with progress indicator */
+.record-button {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: var(--secondary-color);
+  border: 3px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+  overflow: visible;
+}
+
+/* Hover state */
+.record-button:hover {
+  background-color: #e63946;
+  transform: scale(1.05);
+}
+
+/* Active/pressed state */
+.record-button:active {
+  transform: scale(0.95);
+}
+
+/* Recording state */
+.record-button.recording-active {
+  background-color: #ff3547;
+  transform: scale(1.05);
+  animation: pulse 1.5s infinite;
+}
+
+/* Pending state (when requesting microphone access) */
+.record-button.recording-pending {
+  background-color: #888;
+}
+
+/* Circular progress indicator */
+.record-button::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 50%;
+  border: 8px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  opacity: 0;
+  transform: rotate(-90deg);
+}
+
+.record-button.recording-active::before {
+  opacity: 1;
+  animation: recording-progress 3s linear forwards;
+}
+
+@keyframes recording-progress {
+  0% {
+    transform: rotate(-90deg);
+    border-top-color: white;
+    border-right-color: rgba(255, 255, 255, 0.2);
+  }
+  25% {
+    border-top-color: white;
+    border-right-color: white;
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+    border-left-color: rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    border-top-color: white;
+    border-right-color: white;
+    border-bottom-color: white;
+    border-left-color: rgba(255, 255, 255, 0.2);
+  }
+  75% {
+    border-top-color: white;
+    border-right-color: white;
+    border-bottom-color: white;
+    border-left-color: white;
+  }
+  100% {
+    transform: rotate(270deg);
+    border-color: white;
+  }
+}
+
+/* Pulsing animation */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 53, 71, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(255, 53, 71, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 53, 71, 0);
+  }
+}
+
+/* Recording timer display */
+.recording-timer {
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  color: var(--text-light);
+  margin-top: 5px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 4px 10px;
+  border-radius: 12px;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* Improved recording items */
+.recording-item {
+  display: flex;
+  align-items: center;
+  background-color: rgba(30, 30, 50, 0.5);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--primary-color);
+  transition: all 0.3s ease;
+}
+
+.recording-item.playing {
+  background-color: rgba(60, 59, 110, 0.3);
+  border-color: var(--secondary-color);
+  transform: translateX(5px);
+}
+
+.play-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  margin-right: 10px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.play-btn:hover {
+  transform: scale(1.1);
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.recording-details {
+  flex-grow: 1;
+  margin: 0 10px;
+}
+
+/* Waveform visualization */
+.recording-waveform {
+  height: 40px;
+  background-color: rgba(30, 30, 60, 0.5);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.waveform-bars {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 5px;
+}
+
+.waveform-bar {
+  width: 3px;
+  background-color: rgba(120, 120, 220, 0.5);
+  margin: 0 1px;
+  border-radius: 1px;
+  transition: background-color 0.3s;
+}
+
+.playing .waveform-bar {
+  background-color: var(--secondary-color);
+}
+
+.waveform-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  background-color: rgba(178, 34, 52, 0.2);
+  transition: width 0.1s linear;
+}
+
+.recording-time {
+  color: var(--text-muted);
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.delete-btn:hover {
+  transform: scale(1.1);
+  color: var(--secondary-color);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Send button enhancements */
+.send-recordings-btn {
+  width: 100%;
+  padding: 16px;
+  background-color: var(--secondary-color);
+  color: white;
+  border: 3px solid white;
+  border-radius: 8px;
+  font-size: 18px;
+  font-family: "Rock Salt", sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  transform: rotate(-1deg);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.send-recordings-btn:hover {
+  transform: rotate(1deg) scale(1.05);
+  background-color: #d42e3f;
+}
+
+.send-recordings-btn:disabled {
+  background-color: #888;
+  cursor: not-allowed;
+  transform: rotate(0);
+  opacity: 0.7;
+}
+
+.send-recordings-btn.disabled {
+  pointer-events: none;
+}
+
+/* Add a subtle effect to the button */
+.send-recordings-btn::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.send-recordings-btn:hover::after {
+  opacity: 1;
+}
+
+/* Location selector enhancements */
+.location-selector {
+  margin-bottom: 20px;
+}
+
+.location-selector select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--primary-color);
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: rgba(30, 30, 60, 0.5);
+  color: var(--text-light);
+  transition: border-color 0.3s;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px top 50%;
+  background-size: 12px auto;
+  padding-right: 30px;
+}
+
+.location-selector select:hover,
+.location-selector select:focus {
+  border-color: var(--secondary-color);
+}
+
+.other-location input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--primary-color);
+  border-radius: 8px;
+  background-color: rgba(30, 30, 60, 0.5);
+  color: var(--text-light);
+  margin-top: 10px;
+  transition: border-color 0.3s;
+}
+
+.other-location input:hover,
+.other-location input:focus {
+  border-color: var(--secondary-color);
+  outline: none;
+}
+
+/* Animation for when recording completes */
+@keyframes recording-complete {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.recording-complete {
+  animation: recording-complete 0.5s ease-out;
+}

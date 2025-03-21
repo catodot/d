@@ -53,40 +53,27 @@ class HandHitboxManager {
   setupHoverEffects() {
     if (!this.trumpHandHitBox || !this.trumpHandHitBoxVisual) return;
     
-    const hitbox = this.trumpHandHitBox;
-    const visual = this.trumpHandHitBoxVisual;
-    
-    // Remove existing listeners to prevent duplicates
+    // Remove existing listeners
     this.removeHoverEffects();
     
-    // Define event handlers with improved state checking
+    // Define new handlers using the effects controller
     const onMouseEnter = () => {
-      // Only apply hover effect if in hittable state and not in animation
-      if (hitbox.classList.contains("hittable") && 
-          !visual.classList.contains("hit") && 
-          !visual.classList.contains("grab-success")) {
-        
-        visual.style.transform = "scale(1.2)"; 
-        visual.style.opacity = "0.4";
+      if (window.trumpHandEffects) {
+        window.trumpHandEffects.updateHoverState(true);
       }
     };
     
     const onMouseLeave = () => {
-      // Only reset if in hittable state and not in animation
-      if (hitbox.classList.contains("hittable") && 
-          !visual.classList.contains("hit") && 
-          !visual.classList.contains("grab-success")) {
-        
-        visual.style.transform = "scale(1.0)";
-        visual.style.opacity = "0.3";
+      if (window.trumpHandEffects) {
+        window.trumpHandEffects.updateHoverState(false);
       }
     };
     
     // Add the event listeners
-    hitbox.addEventListener("mouseenter", onMouseEnter);
-    hitbox.addEventListener("mouseleave", onMouseLeave);
+    this.trumpHandHitBox.addEventListener("mouseenter", onMouseEnter);
+    this.trumpHandHitBox.addEventListener("mouseleave", onMouseLeave);
     
-    // Store the handlers for later removal
+    // Store for later removal
     this._hoverHandlers = { enter: onMouseEnter, leave: onMouseLeave };
   }
 
@@ -244,65 +231,60 @@ scaleCoordinates(baseCoords, scaleFactor, touchFactor = 1.0) {
   };
 }
  
-  positionHitbox(coords, isMobile) {
-    // Position the hitbox
-    this.trumpHandHitBox.style.position = "absolute";
-    this.trumpHandHitBox.style.left = `${coords.x}px`;
-    this.trumpHandHitBox.style.top = `${coords.y}px`;
-    this.trumpHandHitBox.style.width = `${coords.width}px`;
-    this.trumpHandHitBox.style.height = `${coords.height}px`;
+positionHitbox(coords, isMobile) {
+  // Position the hitbox
+  this.trumpHandHitBox.style.position = "absolute";
+  this.trumpHandHitBox.style.left = `${coords.x}px`;
+  this.trumpHandHitBox.style.top = `${coords.y}px`;
+  this.trumpHandHitBox.style.width = `${coords.width}px`;
+  this.trumpHandHitBox.style.height = `${coords.height}px`;
+  
+  // Make it visible and clickable
+  this.trumpHandHitBox.style.display = "block";
+  this.trumpHandHitBox.style.pointerEvents = "all";
+  this.isVisible = true;
+  
+  // Position the visual element directly, adjusting for the different coordinate space
+  if (this.trumpHandHitBoxVisual) {
+    // Get the sprite container's position relative to its parent
+    const trumpContainer = document.getElementById("trump-sprite-container");
+    const containerRect = trumpContainer.getBoundingClientRect();
+    const parentRect = trumpContainer.parentElement.getBoundingClientRect();
     
-    // Make it visible and clickable
-    this.trumpHandHitBox.style.display = "block";
-    this.trumpHandHitBox.style.pointerEvents = "all";
-    this.isVisible = true;
+    // Calculate the offset from sprite container to its parent
+    const offsetX = containerRect.left - parentRect.left;
+    const offsetY = containerRect.top - parentRect.top;
     
-    // Position the visual element directly, adjusting for the different coordinate space
-    if (this.trumpHandHitBoxVisual) {
-      // Get the sprite container's position relative to its parent
-      const trumpContainer = document.getElementById("trump-sprite-container");
-      const containerRect = trumpContainer.getBoundingClientRect();
-      const parentRect = trumpContainer.parentElement.getBoundingClientRect();
-      
-      // Calculate the offset from sprite container to its parent
-      const offsetX = containerRect.left - parentRect.left;
-      const offsetY = containerRect.top - parentRect.top;
-      
-      // Apply sizing and account for the coordinate system difference
-      const scaledWidth = coords.width * 0.55;
-      const scaledHeight = coords.height * 0.55;
-      const adjustedX = coords.x + offsetX + (coords.width - scaledWidth) / 2;
-      const adjustedY = coords.y + offsetY + (coords.height - scaledHeight) / 2;
-      
-      this.trumpHandHitBoxVisual.style.position = "absolute";
-      this.trumpHandHitBoxVisual.style.left = `${adjustedX}px`;
-      this.trumpHandHitBoxVisual.style.top = `${adjustedY}px`;
-      this.trumpHandHitBoxVisual.style.width = `${scaledWidth}px`;
-      this.trumpHandHitBoxVisual.style.height = `${scaledHeight}px`;
-      
-      // Update visibility only if not in an animation state
-      if (!this.trumpHandHitBoxVisual.classList.contains("hit") && 
-    !this.trumpHandHitBoxVisual.classList.contains("grab-success")) {
-  // Set appropriate opacity based on hitbox state
-  if (this.trumpHandHitBox.classList.contains("hittable")) {
-    this.trumpHandHitBoxVisual.style.display = "block";
-    // Only set default opacity if no custom opacity is set
-    if (!this.trumpHandHitBoxVisual.style.opacity || this.trumpHandHitBoxVisual.style.opacity === "0") {
-      this.trumpHandHitBoxVisual.style.opacity = "0.3"; // Use 0.01 as default
+    // Apply sizing and account for the coordinate system difference
+    const scaledWidth = coords.width * 0.55;
+    const scaledHeight = coords.height * 0.55;
+    const adjustedX = coords.x + offsetX + (coords.width - scaledWidth) / 2;
+    const adjustedY = coords.y + offsetY + (coords.height - scaledHeight) / 2;
+    
+    this.trumpHandHitBoxVisual.style.position = "absolute";
+    this.trumpHandHitBoxVisual.style.left = `${adjustedX}px`;
+    this.trumpHandHitBoxVisual.style.top = `${adjustedY}px`;
+    this.trumpHandHitBoxVisual.style.width = `${scaledWidth}px`;
+    this.trumpHandHitBoxVisual.style.height = `${scaledHeight}px`;
+    
+    // After positioning, let the effects controller restore styling
+    if (window.trumpHandEffects && this.trumpHandHitBox.classList.contains("hittable")) {
+      window.trumpHandEffects.restoreVisualState();
+    } else if (!this.trumpHandHitBoxVisual.classList.contains("hit") && 
+              !this.trumpHandHitBoxVisual.classList.contains("grab-success")) {
+      // Only basic visibility if no effects controller
+      this.trumpHandHitBoxVisual.style.display = "block";
+      this.trumpHandHitBoxVisual.style.opacity = "0.3";
     }
-  } else {
-    this.trumpHandHitBoxVisual.style.opacity = "0";
   }
+  
+  // Ensure hover effects are attached
+  if (!this._hoverHandlers) {
+    this.setupHoverEffects();
+  }
+  
+  logger.trace("hitbox", `Positioned hand hitbox at (${coords.x}, ${coords.y}) with dimensions ${coords.width}x${coords.height}`);
 }
-      
-      // Ensure hover effects are attached
-      if (!this._hoverHandlers) {
-        this.setupHoverEffects();
-      }
-    }
-    
-    logger.trace("hitbox", `Positioned hand hitbox at (${coords.x}, ${coords.y}) with dimensions ${coords.width}x${coords.height}`);
-  }
 
   hideHitbox() {
     if (this.trumpHandHitBox) {
