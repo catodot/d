@@ -152,13 +152,12 @@ class FreedomManager {
         // Update annexation timer
         country.annexTime += deltaTime;
   
-        // Original threshold for showing protestors
+        // Show protestors when at the configured delay threshold
         const protestorThreshold = this.config.fullAnnexationTime * this.config.protestorShowDelay;
-        
         if (country.annexTime >= protestorThreshold && !country.protestorsShown) {
           this.logger.info("freedom", `[THRESHOLD] ${countryId} reached protestor show threshold at ${country.annexTime}ms`);
-          const result = this.showProtestors(countryId);
-          country.protestorsShown = !!result;
+          this.showProtestors(countryId);
+          country.protestorsShown = true;
         }
   
         // Check if country has been annexed long enough to enable resistance
@@ -391,17 +390,12 @@ class FreedomManager {
     }, 2500);
   }
 
-  /**
-   * Create confetti burst effect
-   * @param {number} x - X position
-   * @param {number} y - Y position
-   * @param {number} width - Width
-   * @param {number} height - Height
-   * @param {HTMLElement} container - Parent container
-   */
   createConfettiBurst(x, y, width, height, container) {
-    const confettiCount = 80;
-
+    // Performance optimization for mobile devices
+    const isMobile = window.DeviceUtils ? window.DeviceUtils.isMobileDevice : false;
+    const confettiCount = isMobile ? 30 : 80; // Reduce particles on mobile
+    const animationInterval = isMobile ? 30 : 10; // Slower creation rate on mobile
+  
     // For each confetti piece, create it within the flag boundaries
     for (let i = 0; i < confettiCount; i++) {
       // Stagger creation slightly for better visual effect
@@ -410,9 +404,9 @@ class FreedomManager {
         const padding = Math.min(5, Math.min(width, height) * 0.1);
         const startX = x + padding + Math.random() * (width - padding * 2);
         const startY = y + padding + Math.random() * (height - padding * 2);
-
+  
         this.createConfettiPiece(startX, startY, container, i % 5 === 0);
-      }, i * 10);
+      }, i * animationInterval);
     }
   }
 
@@ -1044,25 +1038,38 @@ createAdditionalProtestors(countryId, clickCount) {
     }, 300);
   }
 
-  /**
-   * Helper method for playing sounds with error handling
-   * @param {string} type - Sound type
-   * @param {string} id - Sound identifier
-   * @param {number} [volume] - Optional volume level (0-1)
-   */
-  playSound(type, id, volume) {
-    try {
-      if (this.audioManager && typeof this.audioManager.playRandom === "function") {
-        if (volume !== undefined) {
-          this.audioManager.playRandom(type, id, volume);
-        } else {
-          this.audioManager.playRandom(type, id);
-        }
-      }
-    } catch (error) {
-      this.logger.warn("freedom", `Error playing sound ${type}/${id}: ${error.message}`);
-    }
+/**
+ * Helper method for playing sounds with error handling
+ * @param {string} type - Sound type
+ * @param {string} id - Sound identifier
+ * @param {number} [volume] - Optional volume level (0-1)
+ * @returns {Promise} - Promise that resolves when sound is played or error is handled
+ */
+playSound(type, id, volume) {
+  if (!this.audioManager) {
+    this.logger.warn("freedom", `Cannot play sound ${type}/${id}: AudioManager not available`);
+    return Promise.resolve();
   }
+  
+  if (typeof this.audioManager.playRandom !== "function") {
+    this.logger.warn("freedom", `Cannot play sound ${type}/${id}: playRandom method not available`);
+    return Promise.resolve();
+  }
+  
+  try {
+    const playPromise = volume !== undefined ? 
+      this.audioManager.playRandom(type, id, volume) : 
+      this.audioManager.playRandom(type, id);
+    
+    return playPromise.catch(error => {
+      this.logger.warn("freedom", `Error playing sound ${type}/${id}: ${error.message}`);
+      return Promise.resolve();
+    });
+  } catch (error) {
+    this.logger.warn("freedom", `Error attempting to play sound ${type}/${id}: ${error.message}`);
+    return Promise.resolve();
+  }
+}
 
   /**
    * Play resistance animation for a country
@@ -1500,26 +1507,19 @@ shrinkAndHideProtestors(countryId) {
 
 // Keep this implementation and remove the duplicate
 showProtestors(countryId) {
-  console.log(`[FREEDOM DEBUG] Beginning showProtestors for ${countryId}`);
 
   this.hideProtestors(countryId);
-  
-  console.log(`[FREEDOM DEBUG] Selecting spawn location for ${countryId}`);
-  this.protestorHitboxManager.selectNewRandomSpawnLocation(countryId);
+    this.protestorHitboxManager.selectNewRandomSpawnLocation(countryId);
 
   this.logger.info("freedom", `Showing protestors for ${countryId}`);
   
   // Get the hitbox
-  console.log(`[FREEDOM DEBUG] Calling showHitbox for ${countryId}`);
   const hitbox = this.protestorHitboxManager.showHitbox(countryId, this);
   if (!hitbox) {
     console.error(`[FREEDOM ERROR] Failed to create protestor hitbox for ${countryId}`);
     this.logger.error("freedom", `Failed to create protestor hitbox for ${countryId}`);
     return null;
-  }
-  
-  console.log(`[FREEDOM DEBUG] Hitbox created successfully for ${countryId}`);
-  
+  }  
   
   // Get hitbox position and size directly from the style
   const left = parseInt(hitbox.style.left) || 0;
@@ -1573,6 +1573,18 @@ showProtestors(countryId) {
   this.countries[countryId].clickCounter = 0;
   this.countries[countryId].currentScale = 1.0; // For scaling when clicked
   
+// Add transition end listener to track completion
+const handleTransitionEnd = () => {
+  wrapper.removeEventListener('transitionend', handleTransitionEnd);
+  this.logger.debug("freedom", `Protestor animation for ${countryId} completed`);
+};
+wrapper.addEventListener('transitionend', handleTransitionEnd);
+
+// Track sprite transition separately
+protestors.addEventListener('transitionend', () => {
+  this.logger.debug("freedom", `Protestor sprite for ${countryId} visible`);
+}, { once: true });
+
   // Animation for sprite sheet
   let currentFrame = 0;
   
@@ -2060,57 +2072,74 @@ resetProtestors() {
     return this.triggerCountryResistance(countryId);
   }
 
-  // Add to FreedomManager class
-// In FreedomManager, enhance the destroy() method
-destroy() {
-  // Clean up timers
-  Object.keys(this.countries).forEach(countryId => {
-    if (this.countries[countryId].disappearTimeout) {
-      clearTimeout(this.countries[countryId].disappearTimeout);
-      this.countries[countryId].disappearTimeout = null;
+  destroy() {
+    // Clean up timers
+    Object.keys(this.countries).forEach(countryId => {
+      if (this.countries[countryId].disappearTimeout) {
+        clearTimeout(this.countries[countryId].disappearTimeout);
+        this.countries[countryId].disappearTimeout = null;
+      }
+    });
+  
+    // More comprehensive animation cleanup
+    Object.keys(this.activeAnimations).forEach(type => {
+      if (Array.isArray(this.activeAnimations[type])) {
+        this.activeAnimations[type].forEach(item => {
+          if (item.element && item.element.parentNode) {
+            item.element.parentNode.removeChild(item.element);
+          }
+          item.animationCompleted = true;
+        });
+        this.activeAnimations[type] = [];
+      } else if (typeof this.activeAnimations[type] === 'object') {
+        Object.keys(this.activeAnimations[type]).forEach(key => {
+          if (this.activeAnimations[type][key]) {
+            clearInterval(this.activeAnimations[type][key]);
+            delete this.activeAnimations[type][key];
+          }
+        });
+      }
+    });
+  
+    if (this.audioManager) {
+      if (typeof this.audioManager.stopAllProtestorSounds === "function") {
+        this.audioManager.stopAllProtestorSounds();
+      }
+      if (typeof this.audioManager.stopAll === "function") {
+        this.audioManager.stopAll();
+      }
     }
-  });
-
-  if (this.audioManager) {
-    if (typeof this.audioManager.stopAllProtestorSounds === "function") {
-      this.audioManager.stopAllProtestorSounds();
+    
+    // Clean up all visual effects and animations
+    this.cleanupAllEffects();
+    
+    // Enhanced protestor cleanup
+    this.cleanupAllProtestors();
+    
+    // Force removal of any remaining protestor elements
+    document.querySelectorAll('[id$="-protestors-wrapper"]').forEach(el => {
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    
+    document.querySelectorAll('[id$="-protestors"]').forEach(el => {
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    
+    // Clean up hitbox manager if it exists
+    if (this.protestorHitboxManager) {
+      this.protestorHitboxManager.cleanupAll();
     }
-    // If you have a general stopAll method, this would be a good place to call it
-    if (typeof this.audioManager.stopAll === "function") {
-      this.audioManager.stopAll();
-    }
+    
+    // Reset internal state
+    Object.keys(this.countries).forEach(countryId => {
+      this.countries[countryId].annexTime = 0;
+      this.countries[countryId].resistanceAvailable = false;
+      this.countries[countryId].protestorsShown = false;
+      this.countries[countryId].clickCounter = 0;
+    });
+    
+    this.logger.info("freedom", "Freedom Manager destroyed");
   }
-  
-  // Clean up all visual effects and animations
-  this.cleanupAllEffects();
-  
-  // Enhanced protestor cleanup
-  this.cleanupAllProtestors();
-  
-  // Force removal of any remaining protestor elements (belt and suspenders approach)
-  document.querySelectorAll('[id$="-protestors-wrapper"]').forEach(el => {
-    if (el && el.parentNode) el.parentNode.removeChild(el);
-  });
-  
-  document.querySelectorAll('[id$="-protestors"]').forEach(el => {
-    if (el && el.parentNode) el.parentNode.removeChild(el);
-  });
-  
-  // Clean up hitbox manager if it exists
-  if (this.protestorHitboxManager) {
-    this.protestorHitboxManager.cleanupAll();
-  }
-  
-  // Reset internal state
-  Object.keys(this.countries).forEach(countryId => {
-    this.countries[countryId].annexTime = 0;
-    this.countries[countryId].resistanceAvailable = false;
-    this.countries[countryId].protestorsShown = false;
-    this.countries[countryId].clickCounter = 0;
-  });
-  
-  this.logger.info("freedom", "Freedom Manager destroyed");
-}
 }
 
 

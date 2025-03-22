@@ -600,7 +600,7 @@ class VoiceRecorder {
         formData.append('tags', location);
         formData.append('context', `location=${location}`);
         formData.append('resource_type', 'video'); // Cloudinary uses 'video' for audio files
-        formData.append('format', 'mp3'); // Force MP3 format
+        // formData.append('format', 'mp3'); // Force MP3 format
         formData.append('public_id', `audio/new/${fileName}`); // No extension, Cloudinary adds it
         
         // Create a timeout for the upload

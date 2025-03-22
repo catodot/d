@@ -6,16 +6,27 @@ class GameManager {
       DEBUG_MODE: options.debug || false,
       GAME_DURATION: 168, // 2min 48sec in seconds
       ANIMATION_DELAY: 650,
-      INITIAL_GRAB_DELAY: 5000,
       SPEED_INCREASE_INTERVAL: 16000,
       MAX_SPEED_MULTIPLIER: 3.0,
       SPEED_INCREASE_STEP: 0.5,
-      AUTO_RESTART_DELAY: 20000
-    };
+      AUTO_RESTART_DELAY: 20000,
+
+      
+      GLOBE_ANIMATION_DURATION: 4000,    // Globe animation time
+  READY_TEXT_DURATION: 3500,         // How long "READY..." text shows
+  TRUMP_ENTRANCE_DURATION: 2000,     // Trump entrance animation time
+  IDLE_BEFORE_GRAB_DURATION: 2000,   // Trump idle time before first grab
+  INITIAL_GRAB_DELAY: 8000           // Keep your existing value
+};
 
     // State & references
     this.gameState = null;
     this.elements = null;
+
+    this.activeTimeouts = [];
+
+    this.currentAnimationFrame = null;
+
     
     // Manager references
     this.managers = {
@@ -67,6 +78,7 @@ class GameManager {
 
     // Store manager references from global scope
     this._initializeManagers();
+    
     
     // Set up accessibility features
     this._setupAccessibility();
@@ -162,19 +174,13 @@ class GameManager {
    * Start the game
    */
   startGame() {
-    console.log("[DEBUG] GameManager.startGame called - FIRST PLAYTHROUGH");
-
-    console.log("GameManager.startGame called");
-
     // Ensure audio is properly initialized
     if (this.managers.audio) {
       this.managers.audio.resumeAudioContext().then(() => {
-        this._prepareAudio();
         this._showGameScreen();
         this._initializeGameplay();
       });
     } else {
-      // Fallback if audio manager isn't available
       this._showGameScreen();
       this._initializeGameplay();
     }
@@ -191,28 +197,110 @@ class GameManager {
     this.managers.audio.play("ui", "start");
   }
 
-/**
- * Show game screen and hide intro screen
- * @private
- */
-_showGameScreen() {
-  this.elements.screens.intro.classList.add("hidden");
-  this.elements.screens.game.classList.remove("hidden");
-  
-  // Hide Trump sprite until animation completes
-  const trumpContainer = document.getElementById("trump-sprite-container");
-  const trumpHandVisual = document.getElementById("trump-hand-visual");
-  
-  if (trumpContainer) trumpContainer.style.visibility = "hidden";
-  if (trumpHandVisual) trumpHandVisual.style.visibility = "hidden";
-  
-  // Create a wrapper for the animation that preserves positioning
-  if (this.elements.game.map) {
-    // Get the original map position
-    const mapRect = this.elements.game.map.getBoundingClientRect();
-    const mapParent = this.elements.game.map.parentElement;
+  _startGameAudio() {
+    if (this.managers.audio) {
+      this.managers.audio.stopBackgroundMusic();
+      this.managers.audio.startBackgroundMusic();
+      this.managers.audio.play("ui", "start");
+    }
+  }
+
+  _showGameScreen() {
+    // Hide game elements initially
+    this.elements.screens.intro.classList.add("hidden");
+    this.elements.screens.game.classList.remove("hidden");
     
-    // Create a wrapper div that maintains the map's position
+    // Get all the elements we'll need
+    const trumpContainer = document.getElementById("trump-sprite-container");
+    const trumpHandVisual = document.getElementById("trump-hand-visual");
+    const trumpHandHitbox = document.getElementById("trump-hand-hitbox");
+    const gameContainer = document.getElementById("game-container");
+    
+    // Hide Trump elements initially
+    this._setTrumpVisibility(false);
+    
+    // Create the globe animation wrapper
+    const wrapper = this._createGlobeAnimationWrapper();
+    this.elements.screens.game.appendChild(wrapper);
+    
+    // Hide the actual map during animation
+    if (this.elements.game.map) {
+      this.elements.game.map.style.opacity = "0";
+    }
+    
+    // Preload sounds during animations
+    if (this.managers.audio) {
+      this.managers.audio.preloadGameSounds();
+    }
+    
+    // Add "READY..." text overlay
+    const readyOverlay = this._createReadyTextOverlay();
+    this.elements.screens.game.appendChild(readyOverlay);
+    
+    // STEP 1: Globe animation complete
+    setTimeout(() => {
+      // Clean up globe animation
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
+      }
+      if (this.elements.game.map) {
+        this.elements.game.map.style.opacity = "1";
+      }
+      
+      // STEP 2: Add Trump entrance animation class
+      if (trumpContainer) {
+        trumpContainer.style.visibility = "visible";
+        trumpContainer.classList.add("trump-entrance-animation");
+        
+      }
+      
+      // STEP 3: Trump entrance animation complete
+      setTimeout(() => {
+        // Remove entrance class and show all Trump elements
+        if (trumpContainer) {
+          trumpContainer.classList.remove("trump-entrance-animation");
+        }
+        
+        this._setTrumpVisibility(true);
+        
+        // Set idle animation
+        if (this.managers.animation) {
+          this.managers.animation.changeState("idle");
+        }
+        
+        // Ready to start gameplay
+        this._initializeGameplay();
+        
+      }, this.config.TRUMP_ENTRANCE_DURATION);
+      
+    }, this.config.GLOBE_ANIMATION_DURATION);
+    
+    // Remove ready text after its duration
+    setTimeout(() => {
+      if (readyOverlay && readyOverlay.parentNode) {
+        readyOverlay.parentNode.removeChild(readyOverlay);
+      }
+    }, this.config.READY_TEXT_DURATION);
+  }
+
+  _setTrumpVisibility(isVisible) {
+    const trumpContainer = document.getElementById("trump-sprite-container");
+    const trumpHandVisual = document.getElementById("trump-hand-visual");
+    const trumpHandHitbox = document.getElementById("trump-hand-hitbox");
+    
+    const visibility = isVisible ? "visible" : "hidden";
+    const pointerEvents = isVisible ? "auto" : "none";
+    
+    if (trumpContainer) trumpContainer.style.visibility = visibility;
+    if (trumpHandVisual) trumpHandVisual.style.visibility = visibility;
+    if (trumpHandHitbox) {
+      trumpHandHitbox.style.visibility = visibility;
+      trumpHandHitbox.style.pointerEvents = pointerEvents;
+    }
+  }
+
+  
+  _createGlobeAnimationWrapper() {
     const wrapper = document.createElement("div");
     wrapper.style.position = "absolute";
     wrapper.style.top = "0";
@@ -222,35 +310,35 @@ _showGameScreen() {
     wrapper.style.display = "flex";
     wrapper.style.justifyContent = "center";
     wrapper.style.alignItems = "center";
-    wrapper.style.pointerEvents = "none"; // Don't interfere with clicks
+    wrapper.style.pointerEvents = "none";
     
-    // Add animation class with slower animation
+    // Add or ensure animation style exists
     if (!document.getElementById("world-intro-animation-style")) {
       const style = document.createElement("style");
       style.id = "world-intro-animation-style";
       style.textContent = `
         @keyframes world-grow {
-          0% {
-            transform: scale(0.2);
-            opacity: 0.2;
-          }
-          40% {
-            transform: scale(0.9);
-            opacity: 0.5;
-          }
-          80% {
-            transform: scale(1.02);
-            opacity: 0.9;
-          }
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
+          0% { transform: scale(0.2); opacity: 0.2; }
+          40% { transform: scale(0.9); opacity: 0.5; }
+          80% { transform: scale(1.02); opacity: 0.9; }
+          100% { transform: scale(1); opacity: 1; }
         }
         .world-intro-animation {
-          animation: world-grow 6.5s ease-out forwards;
+          animation: world-grow ${this.config.GLOBE_ANIMATION_DURATION/1000}s ease-out forwards;
           transform-origin: center center;
           position: relative;
+        }
+        
+        /* Add Trump entrance animation */
+        @keyframes trump-entrance {
+          0% { transform: translateY(100%) scale(0.5); opacity: 0; }
+          60% { transform: translateY(0) scale(1.1); opacity: 1; }
+          80% { transform: translateY(0) scale(0.9); opacity: 1; }
+          100% { transform: translateY(0) scale(1.0); opacity: 1; }
+        }
+        .trump-entrance-animation {
+          animation: trump-entrance ${this.config.TRUMP_ENTRANCE_DURATION/1000}s ease-out forwards;
+          transform-origin: center bottom;
         }
       `;
       document.head.appendChild(style);
@@ -258,7 +346,7 @@ _showGameScreen() {
     
     wrapper.classList.add("world-intro-animation");
     
-    // Move the map to the wrapper temporarily (visually only)
+    // Create animated map
     const animatedMap = document.createElement("div");
     animatedMap.style.width = "100%";
     animatedMap.style.height = "100%";
@@ -268,17 +356,11 @@ _showGameScreen() {
     animatedMap.style.backgroundRepeat = "no-repeat";
     
     wrapper.appendChild(animatedMap);
-    this.elements.screens.game.appendChild(wrapper);
-    
-    // Hide the actual map briefly
-    this.elements.game.map.style.opacity = "0";
-    
-    // Preload sounds during animation
-    if (this.managers.audio) {
-      this.managers.audio.preloadGameSounds();
-    }
-    
-    // Add "READY..." text overlay
+    return wrapper;
+  }
+
+
+  _createReadyTextOverlay() {
     const readyOverlay = document.createElement("div");
     readyOverlay.className = "ready-overlay";
     readyOverlay.innerHTML = "<span>READY...</span>";
@@ -293,7 +375,7 @@ _showGameScreen() {
     readyOverlay.style.zIndex = "100";
     readyOverlay.style.opacity = "0";
     
-    // Add fade-in-out animation with longer duration
+    // Add fade animation
     if (!document.getElementById("fade-animations")) {
       const style = document.createElement("style");
       style.id = "fade-animations";
@@ -309,26 +391,30 @@ _showGameScreen() {
       document.head.appendChild(style);
     }
     
-    readyOverlay.style.animation = "fade-in-out 5s ease-in-out forwards";
-    this.elements.screens.game.appendChild(readyOverlay);
-    
-    // After animation completes, remove the wrapper and show the real map and Trump
-    setTimeout(() => {
-      if (wrapper.parentNode) {
-        wrapper.parentNode.removeChild(wrapper);
-      }
-      this.elements.game.map.style.opacity = "1";
-      
-      // Show Trump sprite after animation completes
-      if (trumpContainer) trumpContainer.style.visibility = "visible";
-      if (trumpHandVisual) trumpHandVisual.style.visibility = "visible";
-      
-      // Also remove the ready overlay
-      if (readyOverlay.parentNode) {
-        readyOverlay.parentNode.removeChild(readyOverlay);
-      }
-    }, 6500); // Match the longer animation duration
+    readyOverlay.style.animation = `fade-in-out ${this.config.READY_TEXT_DURATION/1000}s ease-in-out forwards`;
+    return readyOverlay;
   }
+  
+
+/**
+ * Create a tracked timeout that will be properly cleaned up on game end
+ * @param {Function} callback - Function to call when timeout completes
+ * @param {number} delay - Delay in milliseconds
+ * @returns {number} - Timeout ID
+ */
+createTrackedTimeout(callback, delay) {
+  const timeoutId = setTimeout(() => {
+    // Remove from active timeouts first
+    const index = this.activeTimeouts.indexOf(timeoutId);
+    if (index !== -1) this.activeTimeouts.splice(index, 1);
+    
+    // Then execute callback
+    callback();
+  }, delay);
+  
+  // Track this timeout
+  this.activeTimeouts.push(timeoutId);
+  return timeoutId;
 }
 
   /**
@@ -336,6 +422,10 @@ _showGameScreen() {
    * @private
    */
   _initializeGameplay() {
+    if (this.managers.audio && window.DeviceUtils && window.DeviceUtils.isMobileDevice) {
+      console.log("Setting up audio unlocking for mobile");
+      this.managers.audio.unlockAudioForMobile();
+    }
     // Position game elements based on map state
     if (this.elements.game.map.complete) {
       this._startGameSession();
@@ -345,35 +435,55 @@ _showGameScreen() {
     }
   }
 
-/**
- * Start the actual game session
- * @private
- */
-_startGameSession() {
-  this.resetGameState();
-  
-  // Delay gameplay start to allow for the longer intro animation
-  setTimeout(() => {
+  _startGameSession() {
+    this.resetGameState();
+    
+    // Set playing state immediately
     this.gameState.isPlaying = true;
     this.positionElements();
+    
+    // Start background music explicitly
+    if (this.managers.audio) {
+      console.log("GameManager requesting background music start");
+      const isMobile = window.DeviceUtils && window.DeviceUtils.isMobileDevice;
+      
+      // On mobile, don't stop the music as this might interrupt playback
+      if (!isMobile) {
+        this.managers.audio.stopBackgroundMusic();
+      }
+      
+      this.managers.audio.startBackgroundMusic()
+        .then(started => {
+          console.log("Background music start result:", started);
+        });
+    }
+    
+    // Play start sound
+    if (this.managers.audio) {
+      this.managers.audio.play("ui", "start").catch(e => {
+        console.warn("Failed to play start sound:", e);
+      });
+    }
     
     // Start game timers
     this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
     
+    
+    // Start animation loop
+    if (typeof window.startAnimationLoop === 'function') {
+      window.startAnimationLoop();
+    }
+    
     // Announce game start
     this.announceForScreenReaders("Game started! Be ready to block Trump's grabbing hand!");
     
-    // Add stars to game screen if function exists
+    // Add stars if function exists
     if (typeof addStarsToGameScreen === "function") {
       addStarsToGameScreen();
     }
     
-    console.log("goind to grab");
-    
     // Begin first grab sequence after a delay
-    setTimeout(() => {
-      console.log("in the timeout");
-      
+    this.createTrackedTimeout(() => {
       this.initiateGrab();
       
       // Preload remaining game sounds
@@ -381,23 +491,28 @@ _startGameSession() {
         this.managers.audio.preloadGameSounds();
       }
     }, this.config.INITIAL_GRAB_DELAY);
-  }, 2800); // Increased to match the longer animation time
-
-  if (typeof window.startAnimationLoop === 'function') {
-    window.startAnimationLoop();
-    console.log("Animation loop started for freedom manager");
   }
-}
   
 
-  /**
-   * Reset the game state
-   */
   resetGameState() {
+    // Cancel any pending animation frames
+    if (this.gameState.currentAnimationFrame) {
+      cancelAnimationFrame(this.gameState.currentAnimationFrame);
+      this.gameState.currentAnimationFrame = null;
+    }
+  
+    // Clear all active timeouts
+    this.activeTimeouts.forEach(id => clearTimeout(id));
+    this.activeTimeouts = [];
+    
+    // Reset animation sequence flag if it exists
+    this.isPlayingAnimationSequence = false;
+    
     // Reset core game values
     this.gameState.score = 0;
     this.gameState.timeRemaining = this.config.GAME_DURATION;
     this.gameState.consecutiveHits = 0;
+    this.gameState.currentTarget = null;
     
     // Clear any existing speed timer
     this._resetSpeedProgression();
@@ -407,13 +522,12 @@ _startGameSession() {
     
     // Reset animation state
     if (this.managers.animation) {
+      this.managers.animation.stop();
+      this.managers.animation.isPaused = false;
       this.managers.animation.changeState("idle");
     }
     
-    // Play start sound
-    if (this.managers.audio) {
-      this.managers.audio.play("ui", "start");
-    }
+
     
     // Reset freedom manager if available
     if (this.managers.freedom) {
@@ -427,7 +541,6 @@ _startGameSession() {
     // Update HUD
     this.updateHUD();
   }
-
   /**
    * Reset speed progression system
    * @private
@@ -765,7 +878,6 @@ _startGameSession() {
    * Position Trump character
    */
   positionTrumpCharacter() {
-    console.log("posutioning trump character");
     
     const trumpContainer = document.getElementById("trump-sprite-container");
     const trumpSprite = document.getElementById("trump-sprite");
@@ -793,7 +905,6 @@ _startGameSession() {
    * Start a grab sequence
    */
   initiateGrab() {
-    console.log("in the function");
     
     // Skip if game isn't actively playing
     if (!this.gameState.isPlaying || this.gameState.isPaused) {
@@ -803,12 +914,13 @@ _startGameSession() {
     // Select target country
     const targetCountry = this._selectTargetCountry();
     if (!targetCountry) {
-      console.log("no target country");
-
-      this.initiateGrab(); // Retry if no country available
+  
+      // Use tracked timeout for retry instead of immediate recursion
+      this.createTrackedTimeout(() => {
+        this.initiateGrab();
+      }, 500);
       return;
-    }
-    
+    }  
     // Select animation for target
     const { animationName } = this._selectAnimationForCountry(targetCountry);
     
@@ -884,12 +996,18 @@ _startGameSession() {
     const isBeforeFirstBlock = this.gameState.stats.successfulBlocks === 0;
     
     // Use TrumpHandEffects or fallback to direct DOM manipulation
-    if (window.trumpHandEffects) {
-      window.trumpHandEffects.makeHittable(isBeforeFirstBlock);
-      window.trumpHandEffects.highlightTargetCountry(targetCountry, true);
-    } else {
-      this._legacyPrepareGrabVisuals(visual, hitbox, isBeforeFirstBlock);
-    }
+    // Use TrumpHandEffects or fallback to direct DOM manipulation
+if (window.trumpHandEffects) {
+  window.trumpHandEffects.makeHittable(isBeforeFirstBlock);
+  window.trumpHandEffects.highlightTargetCountry(targetCountry, true);
+} else {
+  const hitbox = document.getElementById("trump-hand-hitbox");
+  if (hitbox) {
+    hitbox.style.visibility = "visible";
+    hitbox.style.pointerEvents = "auto";
+    this._legacyPrepareGrabVisuals(visual, hitbox, isBeforeFirstBlock);
+  }
+}
   }
 
   /**
@@ -907,14 +1025,11 @@ _startGameSession() {
    * @param {string} animationName - The animation name
    */
   _startGrabAnimation(targetCountry, animationName) {
-    console.log("starting grab animation");
     
     if (!this.managers.animation) return;
     
     // Start the animation with completion callback
     this.managers.animation.changeState(animationName, () => {
-      console.log("starting completion callback ");
-
       const visual = document.getElementById("trump-hand-visual");
       const hitbox = document.getElementById("trump-hand-hitbox");
       
@@ -1060,31 +1175,23 @@ _startGameSession() {
     this.gameState.isEastCanadaGrab = false;
     this.gameState.isWestCanadaGrab = false;
   }
-
-  /**
-   * Play sound effects for a successful block
-   * @private
-   * @param {string} smackCountry - The region being smacked
-   */
   _playBlockSoundEffects(smackCountry) {
-    // DIRECT APPROACH: Play slap sound directly on mobile devices
-    if (window.DeviceUtils && window.DeviceUtils.isMobileDevice) {
+    // Check if we're on mobile
+    const isMobile = window.DeviceUtils && window.DeviceUtils.isMobileDevice;
+    
+    if (isMobile && !this.managers.audio) {
+      // Only use direct audio approach if the audio manager is not available
       try {
-        // Create a direct path to the sound file
         const baseUrl = window.location.origin + window.location.pathname;
         const soundPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/slap1.mp3";
-
-        // Create and play a new Audio element directly
         const directSlap = new Audio(soundPath);
         directSlap.volume = 1.0;
         directSlap.play();
       } catch (e) {
         // Silently handle any errors
       }
-    }
-
-    // Also use the audioManager for redundancy
-    if (this.managers.audio) {
+    } else if (this.managers.audio) {
+      // Use the audio manager for all other cases
       this.managers.audio.playSuccessfulBlock(smackCountry);
     }
   }
@@ -1110,31 +1217,32 @@ _startGameSession() {
     this.announceForScreenReaders(`Hand blocked! +10 points. Total score: ${this.gameState.score}`);
   }
 
-  /**
-   * Play animation sequence for a successful block
-   * @private
-   * @param {string} smackCountry - The region being smacked
-   */
   _playBlockAnimationSequence(smackCountry) {
+    // Set a flag to prevent multiple animation sequences from starting
+    if (this.isPlayingAnimationSequence) return;
+    this.isPlayingAnimationSequence = true;
+    
+    const finishSequence = () => {
+      this.isPlayingAnimationSequence = false;
+      this.initiateGrab();
+    };
+    
     if (this.managers.smack) {
       // Use smack manager if available
       this.managers.smack.playSmackAnimation(smackCountry, () => {
         // After smack completes, play slapped animation
         if (this.managers.animation) {
-          this.managers.animation.changeState("slapped", () => {
-            // After slapped completes, restart animation loop
-            this.initiateGrab();
-          });
+          this.managers.animation.changeState("slapped", finishSequence);
+        } else {
+          finishSequence();
         }
       });
     } else if (this.managers.animation) {
       // Fallback path if no smack manager
-      this.managers.animation.changeState("slapped", () => {
-        this.initiateGrab();
-      });
+      this.managers.animation.changeState("slapped", finishSequence);
     } else {
       // Last resort fallback
-      setTimeout(() => this.initiateGrab(), 1000);
+      setTimeout(finishSequence, 1000);
     }
   }
 
@@ -1259,21 +1367,20 @@ _startGameSession() {
    * @param {string} country - The country being grabbed
    */
   _handleStandardCountryGrab(country) {
+    
     // Log previous and new claim counts
     const previousClaims = this.gameState.countries[country].claims;
-    
+
     // Increment claim count
     this.gameState.countries[country].claims = Math.min(
       this.gameState.countries[country].claims + 1, 
       this.gameState.countries[country].maxClaims
     );
-  
+
+
     // Get current claim count
     const claimCount = this.gameState.countries[country].claims;
-    
-    console.log(`[DEBUG] Country ${country} claims increased from ${previousClaims} to ${claimCount}`);
-    console.log(`[DEBUG] Freedom manager exists: ${!!this.managers.freedom}, update cycle should be triggered`);
-  
+      
     // Play appropriate sounds based on grab count
     if (this.managers.audio) {
       if (claimCount < this.gameState.countries[country].maxClaims) {
@@ -1417,7 +1524,10 @@ _startGameSession() {
    * Restart the game
    */
   restartGame() {
-    console.log("[DEBUG] GameManager.restartGame called - SUBSEQUENT PLAYTHROUGH");
+
+    this.activeTimeouts.forEach(id => clearTimeout(id));
+    this.activeTimeouts = [];
+
     sessionStorage.setItem('gameRestarted', 'true');
 
     // Play UI sound
@@ -1455,6 +1565,7 @@ _startGameSession() {
     this.elements.screens.game.classList.remove("hidden");
   }
 
+ 
   _resetGameManagers() {
     console.log("[DEBUG] _resetGameManagers called, managers state:", {
       audio: !!this.managers.audio,
@@ -1470,9 +1581,14 @@ _startGameSession() {
       this.managers.audio.stopBackgroundMusic();
     }
   
-    // Reset animation
+    // Reset animation with improved handling
     if (this.managers.animation) {
       this.managers.animation.stop();
+      
+      // Ensure the animation is not paused
+      this.managers.animation.isPaused = false;
+      
+      // Reset to idle state
       this.managers.animation.changeState("idle");
     }
   
@@ -1495,39 +1611,60 @@ _startGameSession() {
     }
   }
 
-  /**
-   * Start a new game after restart
-   * @private
-   */
-  _startNewGame() {
-    // Reset game state
-    this.resetGameState();
+/**
+ * Start a new game after restart
+ * @private
+ */
+_startNewGame() {
+  // Reset game state
+  this.resetGameState();
 
-    // Restart countdown timer
-    this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
+  // Restart countdown timer
+  this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
 
-    // Reposition elements
-    this.positionElements();
+  // Reposition elements
+  this.positionElements();
 
-    // Set playing state
-    this.gameState.isPlaying = true;
+  // Set playing state
+  this.gameState.isPlaying = true;
 
-    // Restart animation and grab sequence
-    window.startAnimationLoop();
+  // Restart animation and grab sequence
+  window.startAnimationLoop();
+  
+  // IMPORTANT: Schedule the first grab - this is the missing piece
+  this.createTrackedTimeout(() => {
+    this.initiateGrab();
+  }, this.config.INITIAL_GRAB_DELAY);
 
-    // Restart background music
-    setTimeout(() => {
-      if (this.managers.audio) {
-        this.managers.audio.startBackgroundMusic();
-      }
-    }, 1000);
-  }
+  // Restart background music
+  setTimeout(() => {
+    if (this.managers.audio) {
+      this.managers.audio.startBackgroundMusic();
+    }
+  }, 1000);
+}
 
   /**
    * End the game
    * @param {boolean} playerWon - Whether the player won
    */
   endGame(playerWon) {
+    // Cancel animation frame if it exists
+    if (this.currentAnimationFrame) {
+      cancelAnimationFrame(this.currentAnimationFrame);
+      this.currentAnimationFrame = null;
+    }
+  
+    // Also cancel the game's animation frame if it exists
+    if (this.gameState.currentAnimationFrame) {
+      cancelAnimationFrame(this.gameState.currentAnimationFrame);
+      this.gameState.currentAnimationFrame = null;
+    }
+  
+    // Clear all timeouts
+    this.activeTimeouts.forEach(id => clearTimeout(id));
+    this.activeTimeouts = [];
+    
     // Stop game state
     this.gameState.isPlaying = false;
 

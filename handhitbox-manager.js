@@ -56,8 +56,10 @@ class HandHitboxManager {
       this.trumpHandHitBox.style.pointerEvents = "none";
       logger.debug("hitbox", "Hand hitbox initialized");
 
-      // Set up hover effects
-      this.setupHoverEffects();
+      // Don't set up hover effects if TrumpHandEffectsController exists
+      if (!window.trumpHandEffects) {
+        this.setupHoverEffects();
+      }
     } else {
       logger.error("hitbox", "Hand hitbox element not found");
     }
@@ -90,8 +92,6 @@ class HandHitboxManager {
       this.removeClickHerePrompt();
     }
   }
-
-
 
   /**
    * Setup hover effects for the hitbox
@@ -217,7 +217,6 @@ class HandHitboxManager {
     return { x, y, width, height };
   }
 
-
   removeClickHerePrompt() {
     // Remove trump-hand-click-prompt
     const prompt = document.getElementById("trump-hand-click-prompt");
@@ -239,106 +238,119 @@ class HandHitboxManager {
     if (hitboxPromptStyle) hitboxPromptStyle.remove();
   }
 
-  /**
-   * Update hitbox position based on current state and frame
-   */
-  updatePosition() {
-    // Validate required elements and data
-    if (!this.trumpHandHitBox) {
-      logger.error("hitbox", "Hand hitbox not found in updatePosition");
-      return;
-    }
-
-    if (!this.animations) {
-      logger.error("hitbox", "No animations data available in HandHitboxManager");
-      return;
-    }
-
-    const grabAnimations = this.animationTypes.grab;
-    const smackedAnimations = this.animationTypes.smack;
-    this.isDebugMode = document.body.classList.contains("debug-mode");
-
-    // No hitbox for idle or after being smacked
-    if (this.currentState === "idle" || smackedAnimations.includes(this.currentState)) {
-      this.hideHitbox();
-      logger.trace("hitbox", `Hiding hand hitbox for ${this.currentState} state`);
-      return;
-    }
-
-    // Only continue for grab animations
-    if (!grabAnimations.includes(this.currentState)) {
-      this.hideHitbox();
-      return;
-    }
-
-    const animation = this.animations[this.currentState];
-    if (!animation || !animation.handCoordinates) {
-      logger.error("hitbox", `No hand coordinates for ${this.currentState}`);
-      this.hideHitbox();
-      return;
-    }
-
-    const isMobile = window.DeviceUtils.isMobileDevice;
-
-    // Choose the right coordinates based on device type
-    let coords = this.getCoordinatesForDevice(animation, isMobile);
-
-    if (!coords) {
-      logger.error("hitbox", `No coordinates for frame ${this.currentFrame} in ${this.currentState}`);
-      this.hideHitbox();
-      return;
-    }
-
-    // Position the hitbox
-    this.positionHitbox(coords, isMobile);
-  }
 
   /**
-   * Get scaled coordinates for the device
-   * @param {Object} animation - Animation data
-   * @param {boolean} isMobile - True if on mobile device
-   * @returns {Object|null} Scaled coordinates or null if coordinates not found
-   */
-  getCoordinatesForDevice(animation, isMobile) {
-    // Always start with the base desktop coordinates
-    if (!animation.handCoordinates || !animation.handCoordinates[this.currentFrame]) {
-      logger.trace("hitbox", "No base coordinates found for frame");
-      return null;
-    }
-
-    const baseCoords = animation.handCoordinates[this.currentFrame];
-    logger.trace("hitbox", `Base coordinates: x:${baseCoords.x}, y:${baseCoords.y}, w:${baseCoords.width}, h:${baseCoords.height}`);
-
-    // Get the current map element
-    const mapElem = document.getElementById("map-background");
-    if (!mapElem) {
-      logger.error("hitbox", "Map element not found for scaling calculation");
-      return baseCoords;
-    }
-
-    // Calculate current map scale compared to natural size
-    const currentMapScale = mapElem.clientWidth / mapElem.naturalWidth;
-
-    // This is your "reference" scale at which the desktop coordinates were calibrated
-    const referenceDesktopScale = this.config.REFERENCE_SCALE;
-
-    // Calculate the adjustment needed
-    const scaleAdjustment = currentMapScale / referenceDesktopScale;
-
-    // For mobile, you might want to make hitboxes slightly larger for easier touch targets
-    const touchFactor = isMobile ? this.config.MOBILE_TOUCH_FACTOR : this.config.DESKTOP_TOUCH_FACTOR;
-
-    // Apply scaling
-    const scaledCoords = this.scaleCoordinates(baseCoords, scaleAdjustment, touchFactor);
-
-    logger.trace(
-      "hitbox",
-      `Scaled coordinates (factor ${scaleAdjustment.toFixed(2)}): x:${scaledCoords.x}, y:${scaledCoords.y}, w:${scaledCoords.width}, h:${
-        scaledCoords.height
-      }`
-    );
-    return scaledCoords;
+ * Get coordinates for a specific animation frame
+ * @param {Object} animation - The animation data
+ * @param {number} frameIndex - The frame index to get coordinates for
+ * @param {boolean} isMobile - Whether the device is mobile
+ * @returns {Object|null} The scaled coordinates or null if not found
+ */
+getCoordinatesForFrame(animation, frameIndex, isMobile) {
+  // Check if coordinates exist for this frame
+  if (!animation.handCoordinates || !animation.handCoordinates[frameIndex]) {
+    return null;
   }
+  
+  const baseCoords = animation.handCoordinates[frameIndex];
+  
+  // Get the current map element
+  const mapElem = document.getElementById("map-background");
+  if (!mapElem) {
+    logger.error("hitbox", "Map element not found for scaling calculation");
+    return baseCoords; // Return unscaled as fallback
+  }
+  
+  // Calculate current map scale compared to natural size
+  const currentMapScale = mapElem.clientWidth / mapElem.naturalWidth;
+  
+  // This is your "reference" scale at which the desktop coordinates were calibrated
+  const referenceDesktopScale = this.config.REFERENCE_SCALE;
+  
+  // Calculate the adjustment needed
+  const scaleAdjustment = currentMapScale / referenceDesktopScale;
+  
+  // For mobile, you might want to make hitboxes slightly larger for easier touch targets
+  const touchFactor = isMobile ? this.config.MOBILE_TOUCH_FACTOR : this.config.DESKTOP_TOUCH_FACTOR;
+  
+  // Apply scaling
+  const scaledCoords = {
+    x: Math.round(baseCoords.x * scaleAdjustment),
+    y: Math.round(baseCoords.y * scaleAdjustment),
+    width: Math.round(baseCoords.width * scaleAdjustment * touchFactor),
+    height: Math.round(baseCoords.height * scaleAdjustment * touchFactor)
+  };
+  
+  logger.trace(
+    "hitbox",
+    `Scaled coordinates for frame ${frameIndex} (factor ${scaleAdjustment.toFixed(2)}): x:${scaledCoords.x}, y:${scaledCoords.y}, w:${scaledCoords.width}, h:${scaledCoords.height}`
+  );
+  
+  return scaledCoords;
+}
+  
+/**
+ * Update hitbox position based on current state and frame
+ * @param {boolean} predictFrame - Whether to predict next frame position for smoother animations
+ */
+updatePosition(predictFrame = false) {
+  // Validate required elements and data
+  if (!this.trumpHandHitBox) {
+    logger.error("hitbox", "Hand hitbox not found in updatePosition");
+    return;
+  }
+
+  if (!this.animations) {
+    logger.error("hitbox", "No animations data available in HandHitboxManager");
+    return;
+  }
+
+  const grabAnimations = this.animationTypes.grab;
+  const smackedAnimations = this.animationTypes.smack;
+  this.isDebugMode = document.body.classList.contains("debug-mode");
+
+  // No hitbox for idle or after being smacked
+  if (this.currentState === "idle" || smackedAnimations.includes(this.currentState)) {
+    this.hideHitbox();
+    logger.trace("hitbox", `Hiding hand hitbox for ${this.currentState} state`);
+    return;
+  }
+
+  // Only continue for grab animations
+  if (!grabAnimations.includes(this.currentState)) {
+    this.hideHitbox();
+    return;
+  }
+
+  const animation = this.animations[this.currentState];
+  if (!animation || !animation.handCoordinates) {
+    logger.error("hitbox", `No hand coordinates for ${this.currentState}`);
+    this.hideHitbox();
+    return;
+  }
+
+  const isMobile = window.DeviceUtils.isMobileDevice;
+
+  // If prediction is enabled and we're not on the last frame, look ahead
+  let frameToUse = this.currentFrame;
+  if (predictFrame && frameToUse < animation.handCoordinates.length - 1) {
+    frameToUse += 1; // Look ahead one frame to account for rendering delay
+  }
+  
+  // Get the coordinates for the specified frame
+  let coords = this.getCoordinatesForFrame(animation, frameToUse, isMobile);
+  
+  if (!coords) {
+    logger.error("hitbox", `No coordinates for frame ${frameToUse} in ${this.currentState}`);
+    this.hideHitbox();
+    return;
+  }
+  
+  // Position the hitbox
+  this.positionHitbox(coords, isMobile);
+}
+
+
 
   /**
    * Scale coordinates by given factors
@@ -356,113 +368,111 @@ class HandHitboxManager {
     };
   }
 
+  /**
+   * Position the hitbox at specified coordinates
+   * @param {Object} coords - Coordinates for positioning
+   * @param {boolean} isMobile - True if on mobile device
+   */
+  positionHitbox(coords, isMobile) {
+    // Position the hitbox
+    this.trumpHandHitBox.style.position = "absolute";
+    this.trumpHandHitBox.style.left = `${coords.x}px`;
+    this.trumpHandHitBox.style.top = `${coords.y}px`;
+    this.trumpHandHitBox.style.width = `${coords.width}px`;
+    this.trumpHandHitBox.style.height = `${coords.height}px`;
 
-/**
- * Position the hitbox at specified coordinates
- * @param {Object} coords - Coordinates for positioning
- * @param {boolean} isMobile - True if on mobile device
- */
-positionHitbox(coords, isMobile) {
-  // Position the hitbox
-  this.trumpHandHitBox.style.position = "absolute";
-  this.trumpHandHitBox.style.left = `${coords.x}px`;
-  this.trumpHandHitBox.style.top = `${coords.y}px`;
-  this.trumpHandHitBox.style.width = `${coords.width}px`;
-  this.trumpHandHitBox.style.height = `${coords.height}px`;
+    // Make it visible and explicitly set pointer events to all
+    this.trumpHandHitBox.style.display = "block";
+    this.trumpHandHitBox.style.pointerEvents = "all";
+    this.trumpHandHitBox.style.cursor = "pointer"; // Add cursor pointer
+    this.trumpHandHitBox.style.zIndex = "300"; // Ensure it's above visual elements
+    this.isVisible = true;
 
-  // Make it visible and explicitly set pointer events to all
-  this.trumpHandHitBox.style.display = "block";
-  this.trumpHandHitBox.style.pointerEvents = "all";
-  this.trumpHandHitBox.style.cursor = "pointer"; // Add cursor pointer
-  this.trumpHandHitBox.style.zIndex = "300"; // Ensure it's above visual elements
-  this.isVisible = true;
+    // Position the visual element directly, adjusting for the different coordinate space
+    if (this.trumpHandHitBoxVisual) {
+      // Get the sprite container's position relative to its parent
+      const trumpContainer = document.getElementById("trump-sprite-container");
+      const containerRect = trumpContainer ? trumpContainer.getBoundingClientRect() : { left: 0, top: 0 };
+      const parentRect = trumpContainer && trumpContainer.parentElement ? trumpContainer.parentElement.getBoundingClientRect() : { left: 0, top: 0 };
 
-  // Position the visual element directly, adjusting for the different coordinate space
-  if (this.trumpHandHitBoxVisual) {
-    // Get the sprite container's position relative to its parent
-    const trumpContainer = document.getElementById("trump-sprite-container");
-    const containerRect = trumpContainer ? trumpContainer.getBoundingClientRect() : { left: 0, top: 0 };
-    const parentRect = trumpContainer && trumpContainer.parentElement ? trumpContainer.parentElement.getBoundingClientRect() : { left: 0, top: 0 };
+      // Calculate the offset from sprite container to its parent
+      const offsetX = containerRect.left - parentRect.left;
+      const offsetY = containerRect.top - parentRect.top;
 
-    // Calculate the offset from sprite container to its parent
-    const offsetX = containerRect.left - parentRect.left;
-    const offsetY = containerRect.top - parentRect.top;
+      // Apply sizing and account for the coordinate system difference
+      const scaledWidth = coords.width * this.config.VISUAL_SCALE_FACTOR;
+      const scaledHeight = coords.height * this.config.VISUAL_SCALE_FACTOR;
+      const adjustedX = coords.x + offsetX + (coords.width - scaledWidth) / 2;
+      const adjustedY = coords.y + offsetY + (coords.height - scaledHeight) / 2;
 
-    // Apply sizing and account for the coordinate system difference
-    const scaledWidth = coords.width * this.config.VISUAL_SCALE_FACTOR;
-    const scaledHeight = coords.height * this.config.VISUAL_SCALE_FACTOR;
-    const adjustedX = coords.x + offsetX + (coords.width - scaledWidth) / 2;
-    const adjustedY = coords.y + offsetY + (coords.height - scaledHeight) / 2;
+      this.trumpHandHitBoxVisual.style.position = "absolute";
+      this.trumpHandHitBoxVisual.style.left = `${adjustedX}px`;
+      this.trumpHandHitBoxVisual.style.top = `${adjustedY}px`;
+      this.trumpHandHitBoxVisual.style.width = `${scaledWidth}px`;
+      this.trumpHandHitBoxVisual.style.height = `${scaledHeight}px`;
+      this.trumpHandHitBoxVisual.style.pointerEvents = "none"; // Ensure visual doesn't block clicks
 
-    this.trumpHandHitBoxVisual.style.position = "absolute";
-    this.trumpHandHitBoxVisual.style.left = `${adjustedX}px`;
-    this.trumpHandHitBoxVisual.style.top = `${adjustedY}px`;
-    this.trumpHandHitBoxVisual.style.width = `${scaledWidth}px`;
-    this.trumpHandHitBoxVisual.style.height = `${scaledHeight}px`;
-    this.trumpHandHitBoxVisual.style.pointerEvents = "none"; // Ensure visual doesn't block clicks
+      // After positioning, let the effects controller restore styling
+      if (window.trumpHandEffects && this.trumpHandHitBox.classList.contains("hittable")) {
+        window.trumpHandEffects.restoreVisualState();
+      } else if (!this.trumpHandHitBoxVisual.classList.contains("hit") && !this.trumpHandHitBoxVisual.classList.contains("grab-success")) {
+        // Only basic visibility if no effects controller
+        this.trumpHandHitBoxVisual.style.display = "block";
+      }
+    }
 
-    // After positioning, let the effects controller restore styling
-    if (window.trumpHandEffects && this.trumpHandHitBox.classList.contains("hittable")) {
-      window.trumpHandEffects.restoreVisualState();
-    } else if (!this.trumpHandHitBoxVisual.classList.contains("hit") && !this.trumpHandHitBoxVisual.classList.contains("grab-success")) {
-      // Only basic visibility if no effects controller
-      this.trumpHandHitBoxVisual.style.display = "block";
+    // Ensure hover effects are attached
+    if (!this._hoverHandlers) {
+      this.setupHoverEffects();
+    }
+
+    // Check if we need to show the prompt - now using the effects controller
+    const isBeforeFirstBlock =
+      window.gameManager &&
+      window.gameManager.gameState &&
+      window.gameManager.gameState.stats &&
+      window.gameManager.gameState.stats.successfulBlocks === 0;
+
+    if (isBeforeFirstBlock && window.trumpHandEffects) {
+      window.trumpHandEffects.updatePromptVisibility();
+    }
+
+    logger.trace("hitbox", `Positioned hand hitbox at (${coords.x}, ${coords.y}) with dimensions ${coords.width}x${coords.height}`);
+  }
+
+  /**
+   * Handle successful hit - can be called to remove prompt after first successful hit
+   */
+  handleSuccessfulHit() {
+    // If we have the effects controller, let it handle the prompt removal
+    if (window.trumpHandEffects) {
+      window.trumpHandEffects.handleSuccessfulHit();
     }
   }
 
-  // Ensure hover effects are attached
-  if (!this._hoverHandlers) {
-    this.setupHoverEffects();
+  /**
+   * Clean up resources
+   */
+  destroy() {
+    // Remove event listeners
+    this.removeHoverEffects();
+
+    // Remove the prompt - now using the effects controller if available
+    if (window.trumpHandEffects) {
+      window.trumpHandEffects.removeClickHerePrompt();
+    }
+
+    // Hide hitbox
+    this.hideHitbox();
+
+    // Clear references
+    this.trumpHandHitBox = null;
+    this.trumpHandHitBoxVisual = null;
+    this.elements.hitbox = null;
+    this.elements.visual = null;
+
+    logger.debug("hitbox", "HandHitboxManager destroyed");
   }
-
-  // Check if we need to show the prompt - now using the effects controller
-  const isBeforeFirstBlock =
-    window.gameManager &&
-    window.gameManager.gameState &&
-    window.gameManager.gameState.stats &&
-    window.gameManager.gameState.stats.successfulBlocks === 0;
-    
-  if (isBeforeFirstBlock && window.trumpHandEffects) {
-    window.trumpHandEffects.updatePromptVisibility();
-  }
-  
-  logger.trace("hitbox", `Positioned hand hitbox at (${coords.x}, ${coords.y}) with dimensions ${coords.width}x${coords.height}`);
-}
-
-/**
- * Handle successful hit - can be called to remove prompt after first successful hit
- */
-handleSuccessfulHit() {
-  // If we have the effects controller, let it handle the prompt removal
-  if (window.trumpHandEffects) {
-    window.trumpHandEffects.handleSuccessfulHit();
-  }
-}
-
-/**
- * Clean up resources
- */
-destroy() {
-  // Remove event listeners
-  this.removeHoverEffects();
-
-  // Remove the prompt - now using the effects controller if available
-  if (window.trumpHandEffects) {
-    window.trumpHandEffects.removeClickHerePrompt();
-  }
-
-  // Hide hitbox
-  this.hideHitbox();
-
-  // Clear references
-  this.trumpHandHitBox = null;
-  this.trumpHandHitBoxVisual = null;
-  this.elements.hitbox = null;
-  this.elements.visual = null;
-
-  logger.debug("hitbox", "HandHitboxManager destroyed");
-}
-
 
   /**
    * Set debug mode

@@ -177,21 +177,15 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.trump = createTrumpSprite();
     
     // Create specialized managers
-    console.log("[DEBUG] Creating managers...");
-    console.log("[DEBUG] Creating FreedomManager");
     window.freedomManager = new FreedomManager(gameState, elements, systems.audio);
-    console.log("[DEBUG] Creating ProtestorHitboxManager");
     window.protestorHitboxManager = new ProtestorHitboxManager();
-    console.log("[DEBUG] Creating TrumpHandEffectsController");
     window.trumpHandEffects = new TrumpHandEffectsController(gameState);
     
     // Connect managers
-    console.log("[DEBUG] Connecting managers...");
-    if (window.freedomManager && window.protestorHitboxManager) {
+    if (window.freedomManager) {
       window.freedomManager.protestorHitboxManager = window.protestorHitboxManager;
-      
+  
       if (typeof window.freedomManager.initProtestorHitboxManager === "function") {
-        console.log("[DEBUG] Initializing protestor hitbox manager");
         window.freedomManager.initProtestorHitboxManager();
       }
     }
@@ -672,26 +666,27 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateGameFrame(timestamp) {
-    // Skip if game is not playing
-    if (!gameState.isPlaying) return;
+    // Check if game is currently playing
+    if (!gameState.isPlaying) {
+      // Cancel the animation frame if game is no longer playing
+      if (gameState.currentAnimationFrame) {
+        cancelAnimationFrame(gameState.currentAnimationFrame);
+        gameState.currentAnimationFrame = null;
+      }
+      return;
+    }
   
     // Calculate delta time in milliseconds
     const deltaTime = timestamp - (gameState.lastFrameTime || timestamp);
     gameState.lastFrameTime = timestamp;
   
-    // Update freedom manager if available - with extra safety checks
+    // Update freedom mechanics if freedom manager exists
     if (window.freedomManager) {
-      // Call update with try/catch to ensure errors don't break the animation loop
-      try {
-        // Call the update method with the calculated delta time
-        window.freedomManager.update(deltaTime);
-      } catch (err) {
-        console.error("[ANIMATION] Error calling freedomManager.update:", err);
-      }
+      window.freedomManager.update(deltaTime);
     }
   
-    // Continue animation loop
-    requestAnimationFrame(updateGameFrame);
+    // Continue animation loop with proper tracking
+    gameState.currentAnimationFrame = requestAnimationFrame(updateGameFrame);
   }
 
   window.startAnimationLoop = function() {
@@ -716,9 +711,5 @@ document.addEventListener("DOMContentLoaded", function () {
     // Start animation frame loop
     requestAnimationFrame(updateGameFrame);
     
-    // Begin first grab sequence
-    if (window.gameManager) {
-      window.gameManager.initiateGrab();
-    }
   };
 });

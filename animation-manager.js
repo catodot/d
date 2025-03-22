@@ -29,7 +29,7 @@
         idle: {
           spriteSheet: "images/trump-idle-sprite.png",
           frameCount: 2,
-          loopCount: 3,
+          loopCount: Infinity,
           handVisible: false,
         },
         
@@ -88,13 +88,13 @@
         slapped: {
           spriteSheet: "images/trump-slapped-sprite.png",
           frameCount: 2,
-          loopCount: 2,
+          loopCount: 3,  // Increased from 2 for better visibility
           handVisible: false,
         },
         victory: {
           spriteSheet: "images/trump-happy-sprite.png",
           frameCount: 2,
-          loopCount: 2,
+          loopCount: 3,  // Increased from 2 for better visibility
           handVisible: false,
         },
         // Smack animations remain the same
@@ -285,79 +285,117 @@
       });
     }
 
-    play() {
-      // Clear any existing animation interval
-      if (this.animationInterval) {
-        clearInterval(this.animationInterval);
-        this.animationInterval = null;
-      }
-    
-      const animation = this.animations[this.currentState];
-      if (!animation) {
-        logger.error("animation", `No animation data found for state: ${this.currentState}`);
-        return;
-      }
-    
-      // If paused, don't start animation
-      if (this.isPaused) return;
-        
-      
-      // Calculate frame duration based on game speed
-      let frameDuration;
-      if (animation.frameDuration) {
-        // Always apply game speed, even to custom duration animations
-        // but still respect a minimum threshold
-        frameDuration = Math.max(50, animation.frameDuration / this.gameSpeed);
-      } else {
-        frameDuration = Math.max(50, this.baseFrameDuration / this.gameSpeed);
-      }
-    
-      // Apply slight framerate reduction for mobile devices to preserve performance
-      if (window.DeviceUtils.isMobileDevice) {
-        frameDuration = Math.max(frameDuration, 80); // Minimum 80ms per frame on mobile
-      }
-    
-      logger.debug(
-        "animation",
-        `Starting animation loop for ${this.currentState}: ${animation.frameCount} frames, max ${animation.loopCount} loops at ${frameDuration}ms per frame`
-      );
-    
-      // Use interval timing with speed adjustment
-      this.animationInterval = setInterval(() => {
-        if (this.isPaused) return;
-    
-        // Advance frame
-        this.currentFrame++;
-    
-        // Check for loop completion
-        if (this.currentFrame >= animation.frameCount) {
-          // Reset frame counter
-          this.currentFrame = 0;
-    
-          // Increase loop counter
-          this.loopCount++;
-    
-          // Check if we've reached max loops for this animation
-          if (animation.loopCount && this.loopCount >= animation.loopCount) {
-            // Log completion before stopping
-            logger.debug("animation", `Animation ${this.currentState} completed after ${this.loopCount} loops`);
-    
-            // Stop the animation
-            this.stop();
-    
-            // Call completion callback if provided
-            if (typeof this.onAnimationEnd === "function") {
-              const callback = this.onAnimationEnd;
-              setTimeout(() => callback(), 16);
-            }
-            return;
-          }
-        }
-    
-        // Update the displayed frame
-        this.updateFrame(this.currentFrame);
-      }, frameDuration);
+ 
+    // In AnimationManager class
+play() {
+  // Clear any existing animation interval
+  if (this.animationInterval) {
+    clearInterval(this.animationInterval);
+    this.animationInterval = null;
+  }
+  
+  // Clear any existing animation frame
+  if (this.animationFrame) {
+    cancelAnimationFrame(this.animationFrame);
+    this.animationFrame = null;
+  }
+
+  const animation = this.animations[this.currentState];
+  if (!animation) {
+    logger.error("animation", `No animation data found for state: ${this.currentState}`);
+    return;
+  }
+
+  // If paused, don't start animation
+  if (this.isPaused) return;
+  
+  // Calculate frame duration based on game speed
+  let frameDuration;
+  if (animation.frameDuration) {
+    frameDuration = Math.max(50, animation.frameDuration / this.gameSpeed);
+  } else {
+    frameDuration = Math.max(50, this.baseFrameDuration / this.gameSpeed);
+  }
+  
+  // For mobile, apply minimum frame duration
+  if (window.DeviceUtils.isMobileDevice) {
+    frameDuration = Math.max(frameDuration, 80);
+  }
+  
+  // Track time for frame-based animation
+  let lastFrameTime = performance.now();
+  let accumulatedTime = 0;
+  
+  // Animation loop using requestAnimationFrame
+  const animateFrame = (timestamp) => {
+    if (this.isPaused) {
+      this.animationFrame = requestAnimationFrame(animateFrame);
+      return;
     }
+    
+    // Calculate elapsed time
+    const elapsed = timestamp - lastFrameTime;
+    lastFrameTime = timestamp;
+    
+    // Accumulate time
+    accumulatedTime += elapsed;
+    
+    // Check if it's time for a new frame
+    if (accumulatedTime >= frameDuration) {
+      accumulatedTime = 0;
+      
+      // Advance frame
+      this.currentFrame++;
+      
+      // Check for loop completion
+      if (this.currentFrame >= animation.frameCount) {
+        // Reset frame counter
+        this.currentFrame = 0;
+        
+        // Increase loop counter
+        this.loopCount++;
+        
+        // Check if we've reached max loops for this animation
+        if (animation.loopCount && this.loopCount >= animation.loopCount) {
+          // Log completion before stopping
+          logger.debug("animation", `Animation ${this.currentState} completed after ${this.loopCount} loops`);
+          
+          // Stop the animation
+          this.stop();
+          
+          // Call completion callback if provided
+          if (typeof this.onAnimationEnd === "function") {
+            const callback = this.onAnimationEnd;
+            setTimeout(() => callback(), 16);
+          }
+          return;
+        }
+      }
+      
+      // Update the displayed frame
+      this.updateFrame(this.currentFrame);
+    }
+    
+    // Continue the animation loop
+    this.animationFrame = requestAnimationFrame(animateFrame);
+  };
+  
+  // Start the animation loop
+  this.animationFrame = requestAnimationFrame(animateFrame);
+}
+
+stop() {
+  if (this.animationInterval) {
+    logger.debug("animation", `Stopping animation interval for ${this.currentState} at frame ${this.currentFrame}, loop ${this.loopCount}`);
+    clearInterval(this.animationInterval);
+    this.animationInterval = null;
+  }
+  
+  if (this.animationFrame) {
+    cancelAnimationFrame(this.animationFrame);
+    this.animationFrame = null;
+  }
+}
 
     destroy() {
       this.stop();

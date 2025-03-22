@@ -2,7 +2,7 @@ class AudioManager {
   constructor() {
     // Sound categories organized by purpose
     this.sounds = {
-      ui: {}, 
+      ui: {},
       trump: {
         grab: [],
         success: [],
@@ -64,7 +64,7 @@ class AudioManager {
         // Add new instruction audio files - simple naming
         instruction1: "instruction1.mp3",
         instruction2: "instruction2.mp3",
-        instruction3: "instruction3.mp3"
+        instruction3: "instruction3.mp3",
       },
       trump: {
         grab: ["grab1.mp3"],
@@ -85,7 +85,6 @@ class AudioManager {
             "protestEastCan6.mp3",
             "protestEastCan7.mp3",
             "protestEastCan8.mp3",
-
           ],
           westCanada: [
             "protestWestCan1.mp3",
@@ -127,7 +126,7 @@ class AudioManager {
             "protestGreen5.mp3",
             "protestGreen6.mp3",
             "protestGreen7.mp3",
-            ],
+          ],
         },
         protestors: {
           eastCanada: ["protestorsEastCan1.mp3"],
@@ -169,7 +168,6 @@ class AudioManager {
     this.backgroundMusicPlaying = false;
     this.loadedSounds = new Set(); // Track loaded sounds
 
-    
     // Music state
     this.musicIntensity = 0; // 0 = normal, 1-3 = increasing intensity levels
     this.musicRateInterval = null;
@@ -186,7 +184,7 @@ class AudioManager {
     this.maxLoadRetries = 2;
     this.audioLoadQueue = [];
     this.isProcessingQueue = false;
-    
+
     // Track if we've already initialized
     this.hasInitialized = false;
   }
@@ -207,7 +205,7 @@ class AudioManager {
         window.audioContext = new AudioContext();
       }
       this.audioContext = window.audioContext;
-      
+
       // Adjust sound path for mobile devices
       if (window.DeviceUtils && window.DeviceUtils.isMobileDevice) {
         const baseUrl = window.location.origin + window.location.pathname;
@@ -219,7 +217,7 @@ class AudioManager {
 
       // Preload only the most essential sounds initially
       this.loadEssentialSounds();
-      
+
       return Promise.resolve();
     } catch (e) {
       console.warn("Web Audio API not supported:", e);
@@ -230,62 +228,58 @@ class AudioManager {
     }
   }
 
-
   loadEssentialSounds() {
     // Clear queue and add only essential sounds
     this.audioLoadQueue = [
       { category: "ui", name: "click" },
       { category: "ui", name: "start" },
       { category: "defense", name: "slap", index: 0 },
-      { category: "trump", name: "grab", index: 0 }
+      { category: "trump", name: "grab", index: 0 },
     ];
-    
+
     // Start queue processing
     this.processAudioQueue();
   }
-
 
   /**
    * Process audio load queue with rate limiting
    */
   processAudioQueue() {
     if (this.isProcessingQueue || this.audioLoadQueue.length === 0) return;
-    
+
     this.isProcessingQueue = true;
-    
+
     // Process next item in queue
     const item = this.audioLoadQueue.shift();
-    this.loadSoundWithRetry(item.category, item.name, item.index)
-      .finally(() => {
-        // Continue after a short delay for browser breathing room
-        setTimeout(() => {
-          this.isProcessingQueue = false;
-          this.processAudioQueue();
-        }, 50);
-      });
+    this.loadSoundWithRetry(item.category, item.name, item.index).finally(() => {
+      // Continue after a short delay for browser breathing room
+      setTimeout(() => {
+        this.isProcessingQueue = false;
+        this.processAudioQueue();
+      }, 50);
+    });
   }
-
 
   loadSoundWithRetry(category, name, index = null, retryCount = 0) {
     return new Promise((resolve) => {
       try {
         // Create a unique key for tracking loaded sounds
         const soundKey = index !== null ? `${category}.${name}.${index}` : `${category}.${name}`;
-        
+
         // Skip if already loaded
         if (this.loadedSounds.has(soundKey)) {
           resolve();
           return;
         }
-        
+
         let soundPath;
         let destination;
-  
+
         // Handle nested categories (like "defense.protest")
-        const categories = category.split('.');
+        const categories = category.split(".");
         let soundFileRef = this.soundFiles;
         let soundsRef = this.sounds;
-        
+
         // Navigate through the nested categories
         for (let i = 0; i < categories.length; i++) {
           const cat = categories[i];
@@ -297,7 +291,7 @@ class AudioManager {
           soundFileRef = soundFileRef[cat];
           soundsRef = soundsRef[cat];
         }
-  
+
         if (index !== null) {
           // Array sound (like defense.protest.eastCanada[0])
           if (!soundFileRef[name] || !soundFileRef[name][index]) {
@@ -306,7 +300,7 @@ class AudioManager {
             return;
           }
           soundPath = soundFileRef[name][index];
-          
+
           // Make sure the destination array exists
           if (!soundsRef[name]) {
             soundsRef[name] = [];
@@ -322,10 +316,10 @@ class AudioManager {
           soundPath = soundFileRef[name];
           destination = soundsRef;
         }
-  
+
         // Create and load the audio with proper error handling
         const audio = new Audio();
-        
+
         // Set up success handler
         audio.oncanplaythrough = () => {
           if (index !== null) {
@@ -335,23 +329,23 @@ class AudioManager {
             // Set named property when loaded
             destination[name] = audio;
           }
-          
+
           this.loadedSounds.add(soundKey);
           resolve();
         };
-        
+
         // Set up error handler with retry logic
         audio.onerror = (e) => {
           console.warn(`Error loading sound ${soundPath}:`, e.type);
-          
+
           if (retryCount < this.maxLoadRetries) {
             console.log(`Retrying load for ${soundPath}, attempt ${retryCount + 1}`);
             // Add back to queue with increased retry count
-            this.audioLoadQueue.push({ 
-              category, 
-              name, 
-              index, 
-              retryCount: retryCount + 1 
+            this.audioLoadQueue.push({
+              category,
+              name,
+              index,
+              retryCount: retryCount + 1,
             });
           } else {
             // Track persistent errors
@@ -359,36 +353,35 @@ class AudioManager {
           }
           resolve(); // Resolve anyway to continue queue
         };
-        
+
         // Set timeout for stalled loads
         const timeout = setTimeout(() => {
           if (!this.loadedSounds.has(soundKey)) {
             console.warn(`Timeout loading sound ${soundPath}`);
-            
+
             if (retryCount < this.maxLoadRetries) {
               // Add back to queue with increased retry count
-              this.audioLoadQueue.push({ 
-                category, 
-                name, 
-                index, 
-                retryCount: retryCount + 1 
+              this.audioLoadQueue.push({
+                category,
+                name,
+                index,
+                retryCount: retryCount + 1,
               });
             } else {
-              this.loadErrors.push({ category, name, index, error: 'timeout' });
+              this.loadErrors.push({ category, name, index, error: "timeout" });
             }
             resolve(); // Resolve anyway to continue queue
           }
         }, 5000);
-        
+
         // Set source and load
         audio.src = this.getSoundPath(soundPath);
         audio.load();
-        
+
         // Clean up timeout on success
-        audio.addEventListener('canplaythrough', () => clearTimeout(timeout), { once: true });
+        audio.addEventListener("canplaythrough", () => clearTimeout(timeout), { once: true });
         // Also clean up timeout on error
-        audio.addEventListener('error', () => clearTimeout(timeout), { once: true });
-        
+        audio.addEventListener("error", () => clearTimeout(timeout), { once: true });
       } catch (err) {
         console.error(`Error in loadSoundWithRetry for ${category}.${name}:`, err);
         resolve(); // Resolve anyway to continue queue
@@ -426,7 +419,6 @@ class AudioManager {
     return Promise.resolve();
   }
 
-
   preloadGameSounds() {
     // Clear existing queue and start with most critical sounds
     this.audioLoadQueue = [
@@ -435,12 +427,12 @@ class AudioManager {
       { category: "defense", name: "slap", index: 0 },
       { category: "trump", name: "grab", index: 0 },
       { category: "trump", name: "success", index: 0 },
-      { category: "ui", name: "warning" }
+      { category: "ui", name: "warning" },
     ];
-    
+
     // Start processing queue
     this.processAudioQueue();
-    
+
     // After a delay, add second wave of important sounds
     setTimeout(() => {
       // Add UI instructions and background music
@@ -452,13 +444,12 @@ class AudioManager {
         { category: "trump", name: "sob", index: 0 }
       );
     }, 3000); // Increased from 1000 to 3000
-    
+
     // After a longer delay, queue the remaining sounds
     setTimeout(() => {
       this.queueRemainingAudio();
     }, 8000); // Increased from 5000 to 8000
   }
-
 
   queueRemainingAudio() {
     // Add trump sounds with priority
@@ -467,19 +458,19 @@ class AudioManager {
       for (let i = 0; i < files.length; i++) {
         // Skip index 0 for categories we already loaded
         if (i === 0 && (category === "grab" || category === "success" || category === "sob")) continue;
-        
+
         this.audioLoadQueue.push({ category: "trump", name: category, index: i });
       }
     }
-    
+
     // Queue remaining UI sounds
     for (const name in this.soundFiles.ui) {
       // Skip already queued sounds
       if (["click", "start", "warning", "instruction1", "instruction2", "instruction3"].includes(name)) continue;
-      
+
       this.audioLoadQueue.push({ category: "ui", name: name });
     }
-    
+
     // Queue some protest sounds (will add more later)
     ["eastCanada", "westCanada", "mexico", "greenland"].forEach((country) => {
       if (this.soundFiles.defense.protest[country]) {
@@ -491,22 +482,6 @@ class AudioManager {
       }
     });
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /**
    * Preload all protest sounds
@@ -578,57 +553,114 @@ class AudioManager {
     return this.soundPath + filename;
   }
 
-
   handleError(context, error, fallback = null) {
     // Log the error
     console.warn(`Audio error (${context}): ${error.message}`);
-    
+
     // Track error for analytics if needed
-    if (window.logger && typeof window.logger.error === 'function') {
-      window.logger.error('audio', `${context}: ${error.message}`);
+    if (window.logger && typeof window.logger.error === "function") {
+      window.logger.error("audio", `${context}: ${error.message}`);
     }
-    
+
     // Execute fallback if provided
-    if (typeof fallback === 'function') {
+    if (typeof fallback === "function") {
       try {
         return fallback();
       } catch (fallbackError) {
         console.warn(`Fallback error (${context}): ${fallbackError.message}`);
       }
     }
-    
+
     return null;
   }
 
-  /**
-   * Universal method to play a sound directly with a new Audio element
-   * This is more reliable on mobile devices
-   */
-  playDirect(soundPath, volume = null) {
-    if (!this.initialized || this.muted) return null;
 
+  playDirect(soundPath, volume = null) {
+    if (!this.initialized || this.muted) return Promise.resolve(null);
+  
     try {
+      console.log(`Attempting direct play of: ${soundPath}`);
+      
       // Create a new Audio element for more reliable playback
       const audio = new Audio(this.getSoundPath(soundPath));
-
+  
       // Set volume
       audio.volume = volume !== null ? volume : this.volume;
-
-      // Play the sound
-      const promise = audio.play();
-
-      // Handle play errors
-      if (promise !== undefined) {
-        promise.catch((error) => {
-          console.warn("Direct audio playback prevented:", error);
+      
+      // For iOS, set a short timeout to let Audio initialize
+      const isIOS = /(iPad|iPhone|iPod)/g.test(navigator.userAgent);
+      
+      if (isIOS) {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(error => {
+                console.warn("iOS direct audio play error:", error);
+                // Try again with user interaction
+                this.queueSoundForNextInteraction(soundPath, volume);
+              });
+            }
+            resolve(audio);
+          }, 100);
         });
       }
-
-      return audio;
+  
+      // Play the sound for other platforms
+      const playPromise = audio.play();
+  
+      // Handle play errors
+      if (playPromise !== undefined) {
+        return playPromise
+          .then(() => audio)
+          .catch((error) => {
+            console.warn("Direct audio playback prevented:", error);
+            // Queue for next user interaction
+            this.queueSoundForNextInteraction(soundPath, volume);
+            return null;
+          });
+      }
+  
+      return Promise.resolve(audio);
     } catch (e) {
       console.warn("Error playing direct sound:", e.message);
-      return null;
+      return Promise.resolve(null);
     }
+  }
+  
+  // Add this helper method for mobile
+  queueSoundForNextInteraction(soundPath, volume) {
+    if (!this.pendingSounds) {
+      this.pendingSounds = [];
+      
+      // Set up a one-time listener for user interaction
+      const playQueuedSounds = () => {
+        const sounds = [...this.pendingSounds]; // Copy the array
+        this.pendingSounds = []; // Clear the queue
+        
+        // Play each sound with a small delay
+        sounds.forEach((sound, index) => {
+          setTimeout(() => {
+            const audio = new Audio(this.getSoundPath(sound.path));
+            audio.volume = sound.volume !== null ? sound.volume : this.volume;
+            audio.play().catch(e => console.warn("Queued sound play failed:", e));
+          }, index * 100);
+        });
+        
+        // Remove the event listeners
+        ['touchstart', 'mousedown', 'keydown'].forEach(event => {
+          document.removeEventListener(event, playQueuedSounds);
+        });
+      };
+      
+      // Add event listeners for user interaction
+      ['touchstart', 'mousedown', 'keydown'].forEach(event => {
+        document.addEventListener(event, playQueuedSounds, { once: true });
+      });
+    }
+    
+    // Add the sound to the queue
+    this.pendingSounds.push({ path: soundPath, volume });
   }
 
   /**
@@ -766,62 +798,35 @@ class AudioManager {
 
   play(category, name) {
     if (!this.initialized || this.muted) return Promise.resolve(null);
-  
-    // Always ensure AudioContext is resumed (crucial for mobile)
+
     return this.resumeAudioContext().then(() => {
-      try {
-        // On mobile, use direct approach for reliability
-        if (window.DeviceUtils.isMobileDevice) {
-          const soundPath = this.soundFiles[category][name];
-          if (soundPath) {
-            const audio = this.playDirect(soundPath);
-            return Promise.resolve(audio);
+      // Prefer direct playback for reliability, especially on mobile
+      const soundPath = this.soundFiles[category][name];
+      if (!soundPath) {
+        return Promise.reject(new Error(`Sound not found: ${category}.${name}`));
+      }
+
+      // Try to use cached sound if available
+      if (this.sounds[category][name] && !window.DeviceUtils.isMobileDevice) {
+        const sound = this.sounds[category][name];
+        if (sound && typeof sound.play === "function") {
+          sound.currentTime = 0;
+          sound.volume = this.volume;
+
+          try {
+            return sound.play().catch(() => {
+              // Fall back to direct method if cached play fails
+              return this.playDirect(soundPath);
+            });
+          } catch (e) {
+            // Fall back to direct method
+            return this.playDirect(soundPath);
           }
         }
-  
-        // Otherwise, check if the sound exists in our cache
-        if (!this.sounds[category][name]) {
-          this.loadSound(category, name);
-  
-          // Try direct play after a short delay
-          return new Promise((resolve) => {
-            setTimeout(() => {
-              const soundPath = this.soundFiles[category][name];
-              const audio = this.playDirect(soundPath);
-              resolve(audio);
-            }, 100);
-          });
-        }
-  
-        const sound = this.sounds[category][name];
-  
-        // Make sure it's a valid audio element
-        if (!sound || typeof sound.play !== "function") {
-          return Promise.reject(new Error(`Invalid sound object for ${category}.${name}`));
-        }
-  
-        // Reset and play
-        sound.currentTime = 0;
-        sound.volume = this.volume;
-  
-        const playPromise = sound.play();
-        if (playPromise !== undefined) {
-          return playPromise.catch((error) => {
-            // Use our standardized error handler with a fallback
-            return this.handleError(`Playing ${category}.${name}`, error, () => {
-              // Fall back to direct method if regular play fails
-              return this.playDirect(this.soundFiles[category][name]);
-            });
-          });
-        }
-        
-        return Promise.resolve(sound);
-      } catch (error) {
-        return this.handleError(`Playing ${category}.${name}`, error, () => {
-          // Fall back to direct method
-          return this.playDirect(this.soundFiles[category][name]);
-        });
       }
+
+      // Direct play (more reliable for mobile)
+      return this.playDirect(soundPath);
     });
   }
 
@@ -1003,7 +1008,6 @@ class AudioManager {
         );
       }
       this.stopAllPlayback();
-
     };
 
     return audio;
@@ -1071,21 +1075,46 @@ class AudioManager {
     return this.playDirect(soundFile);
   }
 
-  /**
-   * Play a catchphrase for a specific country
-   */
   playCatchphrase(country) {
-    if (!this.initialized || this.muted) return null;
-
+    if (!this.initialized || this.muted) return Promise.resolve(null);
+  
     // Get shuffled catchphrase sound file
     const soundFile = this.getShuffledCatchphrase(country);
-
+  
     // If no sound file is available, return null
     if (!soundFile) {
-      return null;
+      return Promise.resolve(null);
     }
-
-    // Play directly for reliability
+  
+    console.log(`Playing catchphrase for ${country}: ${soundFile}`);
+    
+    // For mobile, use a more direct approach
+    if (window.DeviceUtils && window.DeviceUtils.isMobileDevice) {
+      try {
+        // Create the full path explicitly
+        const fullPath = this.getSoundPath(soundFile);
+        console.log(`Full catchphrase path: ${fullPath}`);
+        
+        const audio = new Audio(fullPath);
+        audio.volume = this.volume;
+        
+        // Play directly with a short delay
+        setTimeout(() => {
+          audio.play().catch(e => {
+            console.warn(`Mobile catchphrase play failed: ${e}`);
+            // Try to queue for next user interaction as fallback
+            this.queueSoundForNextInteraction(soundFile, this.volume);
+          });
+        }, 50);
+        
+        return Promise.resolve(audio);
+      } catch (e) {
+        console.warn(`Error creating catchphrase audio: ${e}`);
+        return Promise.resolve(null);
+      }
+    }
+    
+    // Use standard approach for non-mobile
     return this.playDirect(soundFile);
   }
 
@@ -1140,36 +1169,61 @@ class AudioManager {
     }
   }
 
-  /**
-   * Start a grab attempt with looping sound and increasing volume
-   */
   playGrabAttempt(country) {
-    if (!this.initialized || this.muted) return null;
-
+    if (!this.initialized || this.muted) return Promise.resolve(null);
+  
     // Stop any existing grab sound
     this.stopGrabSound();
-
+  
+    console.log(`Playing grab attempt for ${country}`);
+  
     try {
       // Get a sound file using our shuffled method
       const soundFile = this.getShuffledSound("trump", "grab");
-
+  
       if (!soundFile) {
-        return null;
+        return Promise.resolve(null);
       }
-
+  
+      const fullPath = this.getSoundPath(soundFile);
+      console.log(`Using grab sound: ${fullPath}`);
+  
       // Create a new audio element
-      const grabSound = new Audio(this.getSoundPath(soundFile));
+      const grabSound = new Audio(fullPath);
       grabSound.loop = true;
       grabSound.volume = this.currentGrabVolume * this.volume;
-
-      // Play the sound
-      grabSound.play().catch((error) => {
-        console.warn(`Grab sound playback prevented: ${error}`);
-      });
-
+  
+      // On mobile, we may need a different approach
+      if (window.DeviceUtils && window.DeviceUtils.isMobileDevice) {
+        // For mobile, use a simpler non-looping approach
+        grabSound.loop = false;
+        
+        // Play the sound with our improved direct method
+        return this.playDirect(soundFile, this.currentGrabVolume * this.volume)
+          .then(audio => {
+            if (audio) {
+              // Save reference
+              this.activeGrabSound = audio;
+              this.currentlyPlaying.push(audio);
+            }
+            return audio;
+          });
+      }
+  
+      // Standard desktop approach
+      const playPromise = grabSound.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.warn(`Grab sound playback error: ${error}`);
+          
+          // Fall back to non-looping sound
+          this.playDirect(soundFile, this.currentGrabVolume * this.volume);
+        });
+      }
+  
       // Save reference to active grab sound
       this.activeGrabSound = grabSound;
-
+  
       // Start increasing volume gradually
       this.grabVolumeInterval = setInterval(() => {
         if (this.activeGrabSound) {
@@ -1177,14 +1231,14 @@ class AudioManager {
           this.activeGrabSound.volume = this.currentGrabVolume * this.volume;
         }
       }, 300);
-
+  
       // Add to currently playing sounds
       this.currentlyPlaying.push(grabSound);
-
-      return grabSound;
+  
+      return Promise.resolve(grabSound);
     } catch (e) {
       console.warn(`Error playing grab sound: ${e.message}`);
-      return null;
+      return Promise.resolve(null);
     }
   }
 
@@ -1304,39 +1358,189 @@ class AudioManager {
     return annexSound;
   }
 
-  startBackgroundMusic() {
-    if (!this.initialized || this.muted) return Promise.resolve(false);
+// In AudioManager class, modify the startBackgroundMusic method:
+startBackgroundMusic() {
+  if (!this.initialized || this.muted) return Promise.resolve(false);
   
-    // Resume AudioContext first (mobile requirement)
-    return this.resumeAudioContext().then(() => {
-      try {
-        // Always create a new Audio element for background music
-        const music = new Audio(this.getSoundPath(this.soundFiles.music.background));
-        music.loop = true;
-        music.volume = this.volume * 0.9;
+  console.log("Starting background music");
   
-        // Play the music
-        const playPromise = music.play();
-        if (playPromise !== undefined) {
-          return playPromise
-            .then(() => {
-              // Store reference to the background music
-              this.backgroundMusic = music;
-              this.backgroundMusicPlaying = true;
-              return true;
-            })
-            .catch((error) => {
-              return this.handleError("Starting background music", error, () => false);
-            });
-        }
+  // If already playing, don't restart
+  if (this.backgroundMusic && this.backgroundMusicPlaying && !this.backgroundMusic.paused) {
+    console.log("Background music already playing");
+    return Promise.resolve(true);
+  }
   
-        // Store reference to the background music
-        this.backgroundMusic = music;
-        this.backgroundMusicPlaying = true;
-        return Promise.resolve(true);
-      } catch (e) {
-        return this.handleError("Creating background music", e, () => false);
+  // Make sure the AudioContext is resumed first
+  return this.resumeAudioContext().then(() => {
+    try {
+      // IMPORTANT: Stop any existing music before creating a new instance
+      if (this.backgroundMusic) {
+        this.backgroundMusic.pause();
+        this.backgroundMusic.currentTime = 0;
       }
+      
+      // Create new Audio element for background music
+      const music = new Audio();
+      
+      // Set attributes before setting source (important for mobile)
+      music.loop = true;
+      music.volume = this.volume * 0.8;
+      music.preload = "auto";
+      
+      // The full path to the background music
+      const musicPath = this.getSoundPath(this.soundFiles.music.background);
+      console.log(`Music path: ${musicPath}`);
+      
+      // Set the source
+      music.src = musicPath;
+      
+      // Store reference immediately
+      this.backgroundMusic = music;
+      
+      // For mobile devices, we need special handling
+      const isMobile = window.DeviceUtils && window.DeviceUtils.isMobileDevice;
+      
+      if (isMobile) {
+        console.log("Mobile background music handling");
+        
+        // Add event listener to keep track of when music stops unexpectedly
+        music.addEventListener('pause', () => {
+          // Only auto-resume if we think it should be playing and it's not at the beginning
+          if (this.backgroundMusicPlaying && music.currentTime > 0.1) {
+            console.log("Background music unexpectedly paused, attempting to resume");
+            // Try to resume after a short delay
+            setTimeout(() => {
+              if (this.backgroundMusicPlaying) {
+                music.play().catch(e => console.warn("Failed to auto-resume music:", e));
+              }
+            }, 100);
+          }
+        });
+        
+        // Try to play immediately
+        const playPromise = music.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            console.log("Background music started successfully");
+            this.backgroundMusicPlaying = true;
+          }).catch(e => {
+            console.warn("Mobile background music failed to start:", e);
+            // Save for later play on interaction
+            this.pendingBackgroundMusic = music;
+            
+            // Try to play on user interaction
+            this.playOnNextInteraction(music);
+          });
+        }
+      } else {
+        // Desktop handling
+        music.play().then(() => {
+          console.log("Background music started on desktop");
+          this.backgroundMusicPlaying = true;
+        }).catch(e => {
+          console.warn("Background music failed to start:", e);
+        });
+      }
+      
+      return true;
+    } catch (e) {
+      console.error("Background music error:", e);
+      return false;
+    }
+  });
+}
+  
+  // Add a helper method to play on next interaction
+  playOnNextInteraction(audioElement) {
+    if (!this.interactionListeners) {
+      this.interactionListeners = new Set();
+      
+      const playAllPending = () => {
+        console.log("User interaction detected, playing pending audio");
+        
+        // Try to play the background music if it exists
+        if (this.pendingBackgroundMusic) {
+          this.pendingBackgroundMusic.play()
+            .then(() => {
+              console.log("Background music started after interaction");
+              this.backgroundMusicPlaying = true;
+            })
+            .catch(e => console.warn("Still failed to play background music:", e));
+        }
+        
+        // Try to play all other pending audio elements
+        this.interactionListeners.forEach(audio => {
+          if (audio && !audio.paused) return;
+          
+          audio.play().catch(e => console.warn("Failed to play audio after interaction:", e));
+        });
+        
+        // Clear the set after playing
+        this.interactionListeners.clear();
+        
+        // Remove the event listeners
+        ['touchstart', 'mousedown', 'keydown'].forEach(evt => {
+          document.removeEventListener(evt, playAllPending);
+        });
+      };
+      
+      // Add event listeners for common user interactions
+      ['touchstart', 'mousedown', 'keydown'].forEach(evt => {
+        document.addEventListener(evt, playAllPending, { once: true });
+      });
+    }
+    
+    // Add this audio element to the pending set
+    this.interactionListeners.add(audioElement);
+  }
+
+
+  unlockAudioForMobile() {
+    // If not mobile, don't bother
+    if (!window.DeviceUtils || !window.DeviceUtils.isMobileDevice) return;
+    
+    console.log("Setting up mobile audio unlock");
+    
+    // Create a silent audio element for unlocking
+    const unlockSound = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjMyLjEwNAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigAooooA//9k=");
+    unlockSound.load();
+    
+    // Try to play the silent sound on first interaction
+    const unlockAudio = () => {
+      console.log("Trying to unlock audio on mobile");
+      unlockSound.play()
+        .then(() => {
+          console.log("Audio context unlocked on mobile");
+          
+          // Now try to play any pending background music
+          if (this.pendingBackgroundMusic) {
+            this.pendingBackgroundMusic.play()
+              .then(() => {
+                console.log("Successfully started background music after unlock");
+                this.backgroundMusicPlaying = true;
+              })
+              .catch(e => console.warn("Still couldn't play background music:", e));
+          }
+          
+          // Resume AudioContext if it exists
+          if (this.audioContext && this.audioContext.state === "suspended") {
+            this.audioContext.resume()
+              .then(() => console.log("AudioContext resumed after interaction"))
+              .catch(e => console.warn("AudioContext resume failed:", e));
+          }
+        })
+        .catch(e => console.warn("Couldn't unlock audio:", e));
+      
+      // Clean up the event listeners
+      ['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(evt => {
+        document.removeEventListener(evt, unlockAudio);
+      });
+    };
+    
+    // Add interaction listeners for the unlock
+    ['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(evt => {
+      document.addEventListener(evt, unlockAudio, { once: true });
     });
   }
 
@@ -1412,21 +1616,18 @@ class AudioManager {
    * Ensure sounds are loaded properly - helps with mobile issues
    */
   ensureSoundsAreLoaded() {
-    // Check if any sounds are loaded
-    if (this.loadedSounds.size === 0 && window.DeviceUtils.isMobileDevice) {
-      // Try with a different path approach for mobile
-      const baseUrl = window.location.origin + window.location.pathname;
-      const altPath = baseUrl.endsWith("/") ? baseUrl + "sounds/" : baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/";
+    // Check if we need to load essential sounds
+    if (this.loadedSounds.size < 4) {
+      // Minimum essential sounds
+      console.log("Loading essential sounds");
+      this.loadEssentialSounds();
+      return;
+    }
 
-      if (this.soundPath !== altPath) {
-        this.soundPath = altPath;
-
-        // Reload essential sounds
-        this.loadSound("ui", "click");
-        this.loadSound("ui", "start");
-        this.loadSound("defense", "slap", 0);
-        this.loadSound("trump", "grab", 0);
-      }
+    // Only preload game sounds if not already queued
+    if (this.audioLoadQueue.length === 0 && this.loadedSounds.size < 10) {
+      console.log("Loading game sounds");
+      this.preloadGameSounds();
     }
   }
 
@@ -1475,6 +1676,106 @@ class AudioManager {
     if (this.backgroundMusic) {
       this.backgroundMusic.volume = this.volume * 0.8;
     }
+  }
+
+
+// In AudioManager - add a proper cleanup method
+stopAllPlayback() {
+  // Stop all sounds immediately
+  this.stopAll();
+  this.stopGrabSound();
+  this.stopAllProtestorSounds();
+  
+  // Cancel all pending actions
+  if (this.grabVolumeInterval) {
+    clearInterval(this.grabVolumeInterval);
+    this.grabVolumeInterval = null;
+  }
+  
+  if (this.musicRateInterval) {
+    clearInterval(this.musicRateInterval);
+    this.musicRateInterval = null;
+  }
+  
+  // Empty the queue
+  this.audioLoadQueue = [];
+  this.isProcessingQueue = false;
+}
+
+destroy() {
+    // Stop all sounds first
+    this.stopAll();
+    this.stopBackgroundMusic();
+    this.stopAllProtestorSounds();
+
+    // Explicitly release all audio elements
+    for (const category in this.sounds) {
+      if (typeof this.sounds[category] === 'object') {
+        for (const name in this.sounds[category]) {
+          if (Array.isArray(this.sounds[category][name])) {
+            // Handle arrays of sounds
+            this.sounds[category][name].forEach(sound => {
+              if (sound instanceof HTMLAudioElement) {
+                sound.oncanplaythrough = null;
+                sound.onerror = null;
+                sound.onended = null;
+                sound.pause();
+                sound.src = '';
+              }
+            });
+            this.sounds[category][name] = [];
+          } else if (this.sounds[category][name] instanceof HTMLAudioElement) {
+            // Handle individual sounds
+            const sound = this.sounds[category][name];
+            sound.oncanplaythrough = null;
+            sound.onerror = null;
+            sound.onended = null;
+            sound.pause();
+            sound.src = '';
+            this.sounds[category][name] = null;
+          }
+        }
+      }
+    }
+
+    // Clear all catchphrases
+    for (const country in this.catchphrases) {
+      if (Array.isArray(this.catchphrases[country])) {
+        this.catchphrases[country].forEach(sound => {
+          if (sound instanceof HTMLAudioElement) {
+            sound.oncanplaythrough = null;
+            sound.onerror = null;
+            sound.pause();
+            sound.src = '';
+          }
+        });
+        this.catchphrases[country] = [];
+      }
+    }
+
+    // Reset state
+    this.shuffledSoundIndexes = {};
+    this.shuffledSoundArrays = {};
+    this.shuffledCatchphraseIndexes = {};
+    this.shuffledCatchphraseArrays = {};
+    this.loadedSounds.clear();
+    this.loadErrors = [];
+    this.audioLoadQueue = [];
+    this.isProcessingQueue = false;
+    
+    // Close AudioContext properly
+    if (this.audioContext) {
+      try {
+        this.audioContext.close();
+      } catch (e) {
+        console.warn("Error closing AudioContext:", e);
+      }
+      this.audioContext = null;
+    }
+    
+    // Reset flags
+    this.initialized = false;
+    this.hasInitialized = false;
   }
 
   /**
@@ -1576,43 +1877,43 @@ class AudioManager {
   }
 
   reset() {
-  // Stop all currently playing sounds
-  this.stopAll();
+    // Stop all currently playing sounds
+    this.stopAll();
 
-  // Reset volume to default
-  this.volume = 1.0;
-  this.muted = false;
+    // Reset volume to default
+    this.volume = 1.0;
+    this.muted = false;
 
-  // Stop background music
-  this.stopBackgroundMusic();
+    // Stop background music
+    this.stopBackgroundMusic();
 
-  // Clear music intensity and related intervals
-  this.musicIntensity = 0;
-  if (this.musicRateInterval) {
-    clearInterval(this.musicRateInterval);
-    this.musicRateInterval = null;
+    // Clear music intensity and related intervals
+    this.musicIntensity = 0;
+    if (this.musicRateInterval) {
+      clearInterval(this.musicRateInterval);
+      this.musicRateInterval = null;
+    }
+
+    // Reset grab sound state
+    this.stopGrabSound();
+    this.currentGrabVolume = 0.2;
+
+    // Clear tracking of currently playing sounds
+    this.currentlyPlaying = [];
+
+    // Clear protestor sound tracking
+    if (this.activeProtestorSounds) {
+      Object.keys(this.activeProtestorSounds).forEach((country) => {
+        this.stopProtestorSounds(country);
+      });
+    }
+
+    // Reinitialize audio system
+    this.initialized = false;
+    this.init();
   }
 
-  // Reset grab sound state
-  this.stopGrabSound();
-  this.currentGrabVolume = 0.2;
-
-  // Clear tracking of currently playing sounds
-  this.currentlyPlaying = [];
-
-  // Clear protestor sound tracking
-  if (this.activeProtestorSounds) {
-    Object.keys(this.activeProtestorSounds).forEach(country => {
-      this.stopProtestorSounds(country);
-    });
-  }
-
-  // Reinitialize audio system
-  this.initialized = false;
-  this.init();
-}
-
-destroy() {
+  destroy() {
     // Stop all sounds first
     this.stopAll();
     this.stopBackgroundMusic();
@@ -1620,17 +1921,17 @@ destroy() {
 
     // Explicitly release all audio elements
     for (const category in this.sounds) {
-      if (typeof this.sounds[category] === 'object') {
+      if (typeof this.sounds[category] === "object") {
         for (const name in this.sounds[category]) {
           if (Array.isArray(this.sounds[category][name])) {
             // Handle arrays of sounds
-            this.sounds[category][name].forEach(sound => {
+            this.sounds[category][name].forEach((sound) => {
               if (sound instanceof HTMLAudioElement) {
                 sound.oncanplaythrough = null;
                 sound.onerror = null;
                 sound.onended = null;
                 sound.pause();
-                sound.src = '';
+                sound.src = "";
               }
             });
             this.sounds[category][name] = [];
@@ -1641,7 +1942,7 @@ destroy() {
             sound.onerror = null;
             sound.onended = null;
             sound.pause();
-            sound.src = '';
+            sound.src = "";
             this.sounds[category][name] = null;
           }
         }
@@ -1651,12 +1952,12 @@ destroy() {
     // Clear all catchphrases
     for (const country in this.catchphrases) {
       if (Array.isArray(this.catchphrases[country])) {
-        this.catchphrases[country].forEach(sound => {
+        this.catchphrases[country].forEach((sound) => {
           if (sound instanceof HTMLAudioElement) {
             sound.oncanplaythrough = null;
             sound.onerror = null;
             sound.pause();
-            sound.src = '';
+            sound.src = "";
           }
         });
         this.catchphrases[country] = [];
@@ -1672,7 +1973,7 @@ destroy() {
     this.loadErrors = [];
     this.audioLoadQueue = [];
     this.isProcessingQueue = false;
-    
+
     // Close AudioContext properly
     if (this.audioContext) {
       try {
@@ -1682,7 +1983,7 @@ destroy() {
       }
       this.audioContext = null;
     }
-    
+
     // Reset flags
     this.initialized = false;
     this.hasInitialized = false;
