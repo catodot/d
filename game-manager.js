@@ -1,24 +1,42 @@
-/**
- * GameManager class to organize the main game logic
- */
+
 class GameManager {
   constructor(options = {}) {
-    // Store configuration options
-    this.DEBUG_MODE = options.debug || false;
+    // Configuration
+    this.config = {
+      DEBUG_MODE: options.debug || false,
+      GAME_DURATION: 168, // 2min 48sec in seconds
+      ANIMATION_DELAY: 650,
+      INITIAL_GRAB_DELAY: 5000,
+      SPEED_INCREASE_INTERVAL: 16000,
+      MAX_SPEED_MULTIPLIER: 3.0,
+      SPEED_INCREASE_STEP: 0.5,
+      AUTO_RESTART_DELAY: 20000
+    };
 
-    // Reference to game state and elements
+    // State & references
     this.gameState = null;
     this.elements = null;
-
-    // Game managers
-    this.audioManager = null;
-    this.animationManager = null;
-    this.freedomManager = null;
-    this.speedManager = null;
-    this.protestorHitboxManager = null;
-    this.smackManager = null;
+    
+    // Manager references
+    this.managers = {
+      audio: null,
+      animation: null,
+      freedom: null,
+      speed: null,
+      protestorHitbox: null,
+      smack: null,
+      ufo: null
+    };
 
     // Bind methods to maintain context
+    this._bindMethods();
+  }
+
+  /**
+   * Bind class methods to maintain 'this' context
+   * @private
+   */
+  _bindMethods() {
     this.initiateGrab = this.initiateGrab.bind(this);
     this.stopGrab = this.stopGrab.bind(this);
     this.grabSuccess = this.grabSuccess.bind(this);
@@ -37,71 +55,88 @@ class GameManager {
     this.restartGame = this.restartGame.bind(this);
   }
 
+  /**
+   * Initialize the game manager
+   * @param {Object} gameState - Game state object
+   * @param {Object} elements - DOM element references
+   * @returns {GameManager} The GameManager instance
+   */
   init(gameState, elements) {
-    // console.log("yo");
-
     this.gameState = gameState;
     this.elements = elements;
 
-    // Log before assigning managers
-    console.log("Global Managers Before Assignment:", {
-      audioManager: window.audioManager,
-      animationManager: window.animationManager,
-    });
+    // Store manager references from global scope
+    this._initializeManagers();
+    
+    // Set up accessibility features
+    this._setupAccessibility();
 
-    // Store manager references directly from window object
-    this.audioManager = window.audioManager;
-    this.animationManager = window.animationManager;
-    this.freedomManager = window.freedomManager;
-    this.speedManager = window.speedManager;
-    this.protestorHitboxManager = window.protestorHitboxManager;
-    this.smackManager = window.smackManager;
-
-    // Log after assigning managers
-    // console.log("GameManager Initialized Managers:", {
-    //   hasAudioManager: !!this.audioManager,
-    //   hasAnimationManager: !!this.animationManager,
-    //   hasElements: !!this.elements,
-    //   hasScreens: !!(this.elements && this.elements.screens),
-    //   hasIntroScreen: !!(this.elements && this.elements.screens && this.elements.screens.intro),
-    //   hasGameScreen: !!(this.elements && this.elements.screens && this.elements.screens.game),
-    // });
-
-    // Rest of the method remains the same
-    this.setupAccessibility();
-
-    if (this.DEBUG_MODE) {
+    if (this.config.DEBUG_MODE) {
       console.log("GameManager initialized");
     }
+    
     return this;
   }
 
   /**
-   * Set up accessibility enhancements
+   * Initialize manager references from global scope
+   * @private
    */
-  setupAccessibility() {
-    // Add keyboard navigation
+  _initializeManagers() {
+    this.managers.audio = window.audioManager;
+    this.managers.animation = window.animationManager;
+    this.managers.freedom = window.freedomManager;
+    this.managers.speed = window.speedManager;
+    this.managers.protestorHitbox = window.protestorHitboxManager;
+    this.managers.smack = window.smackManager;
+    this.managers.ufo = window.ufoManager;
+  }
+
+  /**
+   * Set up accessibility enhancements
+   * @private
+   */
+  _setupAccessibility() {
+    this._setupKeyboardNavigation();
+    this._createScreenReaderAnnouncer();
+  }
+
+  /**
+   * Set up keyboard navigation for game controls
+   * @private
+   */
+  _setupKeyboardNavigation() {
     document.addEventListener("keydown", (e) => {
-      // Space or Enter to start game from intro screen
-      if ((e.key === " " || e.key === "Enter") && !this.gameState.isPlaying && !this.elements.screens.intro.classList.contains("hidden")) {
+      // Start game with Space or Enter from intro screen
+      if ((e.key === " " || e.key === "Enter") && 
+          !this.gameState.isPlaying && 
+          !this.elements.screens.intro.classList.contains("hidden")) {
         e.preventDefault();
         this.startGame();
       }
 
-      // P to pause/unpause during game
+      // Toggle pause with P key during gameplay
       if (e.key === "p" && this.gameState.isPlaying) {
         e.preventDefault();
         this.togglePause();
       }
 
-      // Space to smack hand during game
-      if (e.key === " " && this.gameState.isPlaying && !this.gameState.isPaused && this.gameState.currentTarget) {
+      // Block hand with Space during gameplay
+      if (e.key === " " && 
+          this.gameState.isPlaying && 
+          !this.gameState.isPaused && 
+          this.gameState.currentTarget) {
         e.preventDefault();
         this.stopGrab();
       }
     });
+  }
 
-    // Add a live region for game announcements if it doesn't exist
+  /**
+   * Create screen reader announcer element
+   * @private
+   */
+  _createScreenReaderAnnouncer() {
     if (!document.getElementById("game-announcements")) {
       const announcer = document.createElement("div");
       announcer.id = "game-announcements";
@@ -114,6 +149,7 @@ class GameManager {
 
   /**
    * Announce important game events for screen readers
+   * @param {string} message - Message to announce
    */
   announceForScreenReaders(message) {
     const announcer = document.getElementById("game-announcements");
@@ -126,146 +162,334 @@ class GameManager {
    * Start the game
    */
   startGame() {
-    console.log("GameManager.startGame called start");
+    console.log("[DEBUG] GameManager.startGame called - FIRST PLAYTHROUGH");
 
-    // Always try to resume AudioContext on game start (user interaction)
-    if (this.audioManager) {
-      this.audioManager.resumeAudioContext().then(() => {
-        this.audioManager.ensureSoundsAreLoaded();
+    console.log("GameManager.startGame called");
 
-        this.audioManager.stopBackgroundMusic();
-
-        // Start background music after context is resumed
-        this.audioManager.startBackgroundMusic();
-
-        // Play start game sound immediately
-        this.audioManager.play("ui", "start");
-
-        // Hide intro screen, show game screen
-        this.elements.screens.intro.classList.add("hidden");
-        this.elements.screens.game.classList.remove("hidden");
-
-        // Make sure the map is loaded before positioning
-        if (this.elements.game.map.complete) {
-          this.resetGameState();
-          this.gameState.isPlaying = true;
-
-          // Position elements now that game is visible
-          this.positionElements();
-
-          // Start timers after positioning is done
-          this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
-
-          // Delay the first grab sequence to give player time to get oriented
-          // and see the first instruction
-          setTimeout(() => {
-            // Begin first grab sequence after delay
-            this.initiateGrab();
-
-        //     // Begin loading remaining sounds gradually
-        //     this.audioManager.loadRemainingSounds();
-        //     this.audioManager.preloadAllCatchphrases();
-        //     this.audioManager.preloadAllProtestSounds();
-        //   }, 5000); // 5 second delay before first grab to allow for instructions
-        // } else {
-         // Begin loading remaining sounds using the optimized preload method
-         this.audioManager.preloadGameSounds();
-        }, 5000); // 5 second delay before first grab to allow for instructions
-      } else {
-          // Wait for the map to load
-          this.elements.game.map.onload = () => {
-            this.resetGameState();
-            this.gameState.isPlaying = true;
-
-            // Position elements when map loads
-            this.positionElements();
-
-            // Start timers after positioning is done
-            this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
-
-            // Delay the first grab sequence with longer delay
-            setTimeout(() => {
-              // Begin first grab sequence after delay
-              this.initiateGrab();
-
-                // Begin loading remaining sounds using the optimized preload method
-            this.audioManager.preloadGameSounds();
-          }, 5000); // 5 second delay before first grab to allow for instructions
-   
-            //   // Begin loading remaining sounds gradually
-            //   this.audioManager.loadRemainingSounds();
-            //   this.audioManager.preloadAllCatchphrases();
-            //   this.audioManager.preloadAllProtestSounds();
-            // }, 5000); // 5 second delay before first grab
-          };
-        }
-
-        this.announceForScreenReaders("Game started! Be ready to block Trump's grabbing hand!");
-
-        // Add stars to game screen if function exists
-        if (typeof addStarsToGameScreen === "function") {
-          addStarsToGameScreen();
-        }
+    // Ensure audio is properly initialized
+    if (this.managers.audio) {
+      this.managers.audio.resumeAudioContext().then(() => {
+        this._prepareAudio();
+        this._showGameScreen();
+        this._initializeGameplay();
       });
+    } else {
+      // Fallback if audio manager isn't available
+      this._showGameScreen();
+      this._initializeGameplay();
     }
   }
+
+  /**
+   * Prepare audio for game start
+   * @private
+   */
+  _prepareAudio() {
+    this.managers.audio.ensureSoundsAreLoaded();
+    this.managers.audio.stopBackgroundMusic();
+    this.managers.audio.startBackgroundMusic();
+    this.managers.audio.play("ui", "start");
+  }
+
+/**
+ * Show game screen and hide intro screen
+ * @private
+ */
+_showGameScreen() {
+  this.elements.screens.intro.classList.add("hidden");
+  this.elements.screens.game.classList.remove("hidden");
+  
+  // Hide Trump sprite until animation completes
+  const trumpContainer = document.getElementById("trump-sprite-container");
+  const trumpHandVisual = document.getElementById("trump-hand-visual");
+  
+  if (trumpContainer) trumpContainer.style.visibility = "hidden";
+  if (trumpHandVisual) trumpHandVisual.style.visibility = "hidden";
+  
+  // Create a wrapper for the animation that preserves positioning
+  if (this.elements.game.map) {
+    // Get the original map position
+    const mapRect = this.elements.game.map.getBoundingClientRect();
+    const mapParent = this.elements.game.map.parentElement;
+    
+    // Create a wrapper div that maintains the map's position
+    const wrapper = document.createElement("div");
+    wrapper.style.position = "absolute";
+    wrapper.style.top = "0";
+    wrapper.style.left = "0";
+    wrapper.style.width = "100%";
+    wrapper.style.height = "100%";
+    wrapper.style.display = "flex";
+    wrapper.style.justifyContent = "center";
+    wrapper.style.alignItems = "center";
+    wrapper.style.pointerEvents = "none"; // Don't interfere with clicks
+    
+    // Add animation class with slower animation
+    if (!document.getElementById("world-intro-animation-style")) {
+      const style = document.createElement("style");
+      style.id = "world-intro-animation-style";
+      style.textContent = `
+        @keyframes world-grow {
+          0% {
+            transform: scale(0.2);
+            opacity: 0.2;
+          }
+          40% {
+            transform: scale(0.9);
+            opacity: 0.5;
+          }
+          80% {
+            transform: scale(1.02);
+            opacity: 0.9;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        .world-intro-animation {
+          animation: world-grow 6.5s ease-out forwards;
+          transform-origin: center center;
+          position: relative;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    wrapper.classList.add("world-intro-animation");
+    
+    // Move the map to the wrapper temporarily (visually only)
+    const animatedMap = document.createElement("div");
+    animatedMap.style.width = "100%";
+    animatedMap.style.height = "100%";
+    animatedMap.style.backgroundImage = `url(${this.elements.game.map.src})`;
+    animatedMap.style.backgroundSize = "contain";
+    animatedMap.style.backgroundPosition = "center";
+    animatedMap.style.backgroundRepeat = "no-repeat";
+    
+    wrapper.appendChild(animatedMap);
+    this.elements.screens.game.appendChild(wrapper);
+    
+    // Hide the actual map briefly
+    this.elements.game.map.style.opacity = "0";
+    
+    // Preload sounds during animation
+    if (this.managers.audio) {
+      this.managers.audio.preloadGameSounds();
+    }
+    
+    // Add "READY..." text overlay
+    const readyOverlay = document.createElement("div");
+    readyOverlay.className = "ready-overlay";
+    readyOverlay.innerHTML = "<span>READY...</span>";
+    readyOverlay.style.position = "absolute";
+    readyOverlay.style.top = "50%";
+    readyOverlay.style.left = "50%";
+    readyOverlay.style.transform = "translate(-50%, -50%)";
+    readyOverlay.style.fontSize = "48px";
+    readyOverlay.style.fontWeight = "bold";
+    readyOverlay.style.color = "white";
+    readyOverlay.style.textShadow = "0 0 10px rgba(0,0,0,0.8)";
+    readyOverlay.style.zIndex = "100";
+    readyOverlay.style.opacity = "0";
+    
+    // Add fade-in-out animation with longer duration
+    if (!document.getElementById("fade-animations")) {
+      const style = document.createElement("style");
+      style.id = "fade-animations";
+      style.textContent = `
+        @keyframes fade-in-out {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+          20% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+          40% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+          70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    readyOverlay.style.animation = "fade-in-out 5s ease-in-out forwards";
+    this.elements.screens.game.appendChild(readyOverlay);
+    
+    // After animation completes, remove the wrapper and show the real map and Trump
+    setTimeout(() => {
+      if (wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
+      }
+      this.elements.game.map.style.opacity = "1";
+      
+      // Show Trump sprite after animation completes
+      if (trumpContainer) trumpContainer.style.visibility = "visible";
+      if (trumpHandVisual) trumpHandVisual.style.visibility = "visible";
+      
+      // Also remove the ready overlay
+      if (readyOverlay.parentNode) {
+        readyOverlay.parentNode.removeChild(readyOverlay);
+      }
+    }, 6500); // Match the longer animation duration
+  }
+}
+
+  /**
+   * Initialize gameplay after showing game screen
+   * @private
+   */
+  _initializeGameplay() {
+    // Position game elements based on map state
+    if (this.elements.game.map.complete) {
+      this._startGameSession();
+    } else {
+      // Wait for map to load before starting
+      this.elements.game.map.onload = () => this._startGameSession();
+    }
+  }
+
+/**
+ * Start the actual game session
+ * @private
+ */
+_startGameSession() {
+  this.resetGameState();
+  
+  // Delay gameplay start to allow for the longer intro animation
+  setTimeout(() => {
+    this.gameState.isPlaying = true;
+    this.positionElements();
+    
+    // Start game timers
+    this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
+    
+    // Announce game start
+    this.announceForScreenReaders("Game started! Be ready to block Trump's grabbing hand!");
+    
+    // Add stars to game screen if function exists
+    if (typeof addStarsToGameScreen === "function") {
+      addStarsToGameScreen();
+    }
+    
+    console.log("goind to grab");
+    
+    // Begin first grab sequence after a delay
+    setTimeout(() => {
+      console.log("in the timeout");
+      
+      this.initiateGrab();
+      
+      // Preload remaining game sounds
+      if (this.managers.audio) {
+        this.managers.audio.preloadGameSounds();
+      }
+    }, this.config.INITIAL_GRAB_DELAY);
+  }, 2800); // Increased to match the longer animation time
+
+  if (typeof window.startAnimationLoop === 'function') {
+    window.startAnimationLoop();
+    console.log("Animation loop started for freedom manager");
+  }
+}
+  
 
   /**
    * Reset the game state
    */
   resetGameState() {
+    // Reset core game values
     this.gameState.score = 0;
-    this.gameState.timeRemaining = 168; // 2min 48sec in seconds
+    this.gameState.timeRemaining = this.config.GAME_DURATION;
     this.gameState.consecutiveHits = 0;
+    
+    // Clear any existing speed timer
+    this._resetSpeedProgression();
+    
+    // Reset state for countries
+    this._resetCountries();
+    
+    // Reset animation state
+    if (this.managers.animation) {
+      this.managers.animation.changeState("idle");
+    }
+    
+    // Play start sound
+    if (this.managers.audio) {
+      this.managers.audio.play("ui", "start");
+    }
+    
+    // Reset freedom manager if available
+    if (this.managers.freedom) {
+      this.managers.freedom.reset();
+    }
+    
+    // Start animation loop
+    this.gameState.lastFrameTime = performance.now();
+    window.startAnimationLoop();
+    
+    // Update HUD
+    this.updateHUD();
+  }
 
-    // Clear any existing speed timer to avoid duplicates
+  /**
+   * Reset speed progression system
+   * @private
+   */
+  _resetSpeedProgression() {
+    // Clear existing timer if present
     if (this.gameState.speedIncreaseInterval) {
       clearInterval(this.gameState.speedIncreaseInterval);
       this.gameState.speedIncreaseInterval = null;
     }
 
-    // Reset game speed using the speed manager
-    if (window.speedManager) {
-      window.speedManager.reset();
-      window.speedManager.startSpeedProgression(16000); // 16 seconds between speed increases
+    // Use speed manager if available
+    if (this.managers.speed) {
+      this.managers.speed.reset();
+      this.managers.speed.startSpeedProgression(this.config.SPEED_INCREASE_INTERVAL);
     } else {
-      // Fallback to the original approach if speed manager isn't available
+      // Fallback to basic speed progression
       this.gameState.gameSpeedMultiplier = 1.0;
-      this.animationManager.setGameSpeed(this.gameState.gameSpeedMultiplier);
+      if (this.managers.animation) {
+        this.managers.animation.setGameSpeed(this.gameState.gameSpeedMultiplier);
+      }
 
       // Set up simple speed increase timer
       const speedIncreaseInterval = setInterval(() => {
         if (!this.gameState.isPlaying || this.gameState.isPaused) return;
 
-        // Increase speed by 0.5 every 16 seconds
-        this.gameState.gameSpeedMultiplier = Math.min(3.0, this.gameState.gameSpeedMultiplier + 0.5);
-        this.animationManager.setGameSpeed(this.gameState.gameSpeedMultiplier);
+        // Increase speed by configured step
+        this.gameState.gameSpeedMultiplier = Math.min(
+          this.config.MAX_SPEED_MULTIPLIER, 
+          this.gameState.gameSpeedMultiplier + this.config.SPEED_INCREASE_STEP
+        );
+        
+        if (this.managers.animation) {
+          this.managers.animation.setGameSpeed(this.gameState.gameSpeedMultiplier);
+        }
 
         // Show notification for speed increase
         this.showFasterNotification();
-      }, 16000);
+      }, this.config.SPEED_INCREASE_INTERVAL);
 
       // Store reference to clear on game end
       this.gameState.speedIncreaseInterval = speedIncreaseInterval;
     }
+  }
 
-    this.gameState.countryAnimations = {
-      canada: ["grabEastCanada", "grabWestCanada"], // Randomly select one of these
-      mexico: ["grabMexico"],
-      greenland: ["grabGreenland"],
-    };
-
+  /**
+   * Reset country state
+   * @private
+   */
+  _resetCountries() {
     // Reset stats
     this.gameState.stats.successfulBlocks = 0;
     this.gameState.stats.countriesDefended = 0;
 
-    // Reset Trump animation
-    this.animationManager.changeState("idle");
+    // Set up animation targets
+    this.gameState.countryAnimations = {
+      canada: ["grabEastCanada", "grabWestCanada"],
+      mexico: ["grabMexico"],
+      greenland: ["grabGreenland"],
+    };
 
-    // Play start game sound
-    this.audioManager.play("ui", "start");
-
-    // Reset countries
+    // Reset all country states
     for (let country in this.gameState.countries) {
       this.gameState.countries[country].claims = 0;
 
@@ -275,28 +499,43 @@ class GameManager {
         flagOverlay.style.opacity = 0;
       }
     }
-    if (window.freedomManager) {
-      window.freedomManager.reset();
-    }
-
-    // Start animation frame for freedom mechanics
-    this.gameState.lastFrameTime = performance.now();
-    window.startAnimationLoop();
-
-    // Update HUD
-    this.updateHUD();
   }
 
   /**
    * Update countdown timer
    */
   updateCountdown() {
+    // Skip if game is paused
     if (this.gameState.isPaused) return;
 
+    // Decrement time
     this.gameState.timeRemaining--;
 
-    // Update progress bar width
-    const progressPercentage = ((168 - this.gameState.timeRemaining) / 168) * 100;
+    // Update progress bar
+    this._updateProgressBar();
+    
+    // Update HUD
+    this.updateHUD();
+
+    // Announce time at key intervals
+    this._announceTimeRemaining();
+
+    // Check for time-based win condition
+    if (this.gameState.timeRemaining <= 0) {
+      this.endGame(true); // Win by surviving the time limit
+    }
+  }
+
+  /**
+   * Update the progress bar
+   * @private
+   */
+  _updateProgressBar() {
+    const progressPercentage = (
+      (this.config.GAME_DURATION - this.gameState.timeRemaining) / 
+      this.config.GAME_DURATION
+    ) * 100;
+    
     const progressBar = document.getElementById("term-progress-bar");
     if (progressBar) {
       progressBar.style.width = `${progressPercentage}%`;
@@ -311,20 +550,18 @@ class GameManager {
     // Update label text based on progress
     const progressLabel = document.getElementById("term-progress-label");
     if (progressLabel) {
-      const yearsRemaining = Math.ceil((this.gameState.timeRemaining / 168) * 4);
+      const yearsRemaining = Math.ceil((this.gameState.timeRemaining / this.config.GAME_DURATION) * 4);
       progressLabel.textContent = `${yearsRemaining} ${yearsRemaining === 1 ? "YEAR" : "YEARS"} LEFT`;
     }
+  }
 
-    // Update HUD
-    this.updateHUD();
-
-    // Announce time remaining at certain thresholds
+  /**
+   * Announce time remaining at certain thresholds
+   * @private
+   */
+  _announceTimeRemaining() {
     if (this.gameState.timeRemaining <= 30 && this.gameState.timeRemaining % 10 === 0) {
       this.announceForScreenReaders(`Warning: ${this.gameState.timeRemaining} seconds remaining`);
-    }
-
-    if (this.gameState.timeRemaining <= 0) {
-      this.endGame(true); // Win by surviving the time limit
     }
   }
 
@@ -332,7 +569,9 @@ class GameManager {
    * Update the HUD
    */
   updateHUD() {
-    this.elements.hud.score.textContent = this.gameState.score;
+    if (this.elements.hud.score) {
+      this.elements.hud.score.textContent = this.gameState.score;
+    }
   }
 
   /**
@@ -340,78 +579,115 @@ class GameManager {
    */
   togglePause() {
     this.gameState.isPaused = !this.gameState.isPaused;
-
-    const pauseButton = document.getElementById("pause-button");
-
-    // Update aria-pressed based on current state
-    pauseButton.setAttribute("aria-pressed", this.gameState.isPaused ? "true" : "false");
-
-    // Also update the aria-label to match the current action
-    pauseButton.setAttribute("aria-label", this.gameState.isPaused ? "Resume game" : "Pause game");
-
-    pauseButton.querySelector(".icon").textContent = this.gameState.isPaused ? "▶️" : "⏸️";
-
+    
+    // Update pause button state
+    this._updatePauseButton();
+    
     if (this.gameState.isPaused) {
-      // Stop timers when paused
-      clearInterval(this.gameState.countdownTimer);
-
-      // Pause animations
-      this.animationManager.pause();
-
-      // Show pause overlay
-      const pauseOverlay = document.createElement("div");
-      pauseOverlay.id = "pause-overlay";
-
-      pauseOverlay.innerHTML = '<div class="pause-overlay-message">Game Paused</div>';
-      this.elements.screens.game.appendChild(pauseOverlay);
-
-      // Pause any audio
-      if (this.audioManager && typeof this.audioManager.pauseAll === "function") {
-        this.audioManager.pauseAll();
-      }
-
-      this.announceForScreenReaders("Game paused");
+      this._pauseGame();
     } else {
-      // Remove pause overlay
-      const pauseOverlay = document.getElementById("pause-overlay");
-      if (pauseOverlay) {
-        pauseOverlay.remove();
-      }
-
-      // Resume timers
-      this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
-      this.initiateGrab();
-
-      // Resume animations
-      this.animationManager.resume();
-
-      // Resume audio
-      if (this.audioManager && typeof this.audioManager.resumeAll === "function") {
-        this.audioManager.resumeAll();
-      }
-
-      this.announceForScreenReaders("Game resumed");
+      this._resumeGame();
     }
   }
 
   /**
+   * Update pause button appearance and accessibility
+   * @private
+   */
+  _updatePauseButton() {
+    const pauseButton = document.getElementById("pause-button");
+    if (!pauseButton) return;
+    
+    pauseButton.setAttribute("aria-pressed", this.gameState.isPaused ? "true" : "false");
+    pauseButton.setAttribute("aria-label", this.gameState.isPaused ? "Resume game" : "Pause game");
+    pauseButton.querySelector(".icon").textContent = this.gameState.isPaused ? "▶️" : "⏸️";
+  }
+
+  /**
+   * Pause the game
+   * @private
+   */
+  _pauseGame() {
+    // Stop timers
+    clearInterval(this.gameState.countdownTimer);
+    
+    // Pause animations
+    if (this.managers.animation) {
+      this.managers.animation.pause();
+    }
+    
+    // Show pause overlay
+    this._createPauseOverlay();
+    
+    // Pause audio
+    if (this.managers.audio && typeof this.managers.audio.pauseAll === "function") {
+      this.managers.audio.pauseAll();
+    }
+    
+    this.announceForScreenReaders("Game paused");
+  }
+
+  /**
+   * Create the pause overlay
+   * @private
+   */
+  _createPauseOverlay() {
+    const pauseOverlay = document.createElement("div");
+    pauseOverlay.id = "pause-overlay";
+    pauseOverlay.innerHTML = '<div class="pause-overlay-message">Game Paused</div>';
+    this.elements.screens.game.appendChild(pauseOverlay);
+  }
+
+  /**
+   * Resume the game
+   * @private
+   */
+  _resumeGame() {
+    // Remove pause overlay
+    const pauseOverlay = document.getElementById("pause-overlay");
+    if (pauseOverlay) {
+      pauseOverlay.remove();
+    }
+    
+    // Resume timers
+    this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
+    
+    // Resume animations
+    if (this.managers.animation) {
+      this.managers.animation.resume();
+    }
+    
+    // Restart grab sequence
+    this.initiateGrab();
+    
+    // Resume audio
+    if (this.managers.audio && typeof this.managers.audio.resumeAll === "function") {
+      this.managers.audio.resumeAll();
+    }
+    
+    this.announceForScreenReaders("Game resumed");
+  }
+
+  /**
    * Show notification for speed increase
+   * @param {string} message - Message to display
+   * @param {number} duration - Duration in milliseconds
    */
   showFasterNotification(message = "FASTER!", duration = 3000) {
     // Create notification element
     const notification = document.createElement("div");
     notification.className = "speed-notification";
     notification.textContent = message;
-
-    // Make notification accessible
+    
+    // Add accessibility attributes
     notification.setAttribute("role", "alert");
     notification.setAttribute("aria-live", "assertive");
-
+    
     // Add to game screen
     const gameScreen = document.getElementById("game-screen");
     if (gameScreen) {
       gameScreen.appendChild(notification);
-
+      
       // Remove after duration
       setTimeout(() => {
         notification.classList.add("fade-out");
@@ -422,8 +698,8 @@ class GameManager {
         }, 500); // Fade out transition duration
       }, duration);
     }
-
-    // Also announce for screen readers
+    
+    // Announce for screen readers
     this.announceForScreenReaders(message);
   }
 
@@ -431,19 +707,21 @@ class GameManager {
    * Position game elements based on map size
    */
   positionElements() {
-    // Get map dimensions and position
+    // Get map dimensions
     const mapRect = this.elements.game.map.getBoundingClientRect();
-
-    // Make sure the map has dimensions before calculating
+    
+    // Check if map has loaded
     if (mapRect.width === 0 || mapRect.height === 0) {
       setTimeout(() => this.positionElements(), 100);
       return;
     }
-
+    
+    // Calculate map scale and offset
     this.gameState.mapScale = mapRect.width / this.elements.game.map.naturalWidth;
     this.gameState.mapOffsetX = mapRect.left;
     this.gameState.mapOffsetY = mapRect.top;
-
+    
+    // Position child elements
     this.positionCountryFlagOverlays();
     this.positionTrumpCharacter();
   }
@@ -453,26 +731,29 @@ class GameManager {
    */
   positionCountryFlagOverlays() {
     const mapBackground = this.elements.game.map;
-    if (!mapBackground) {
-      return;
-    }
-
-    // Get the map's current dimensions and position
+    if (!mapBackground) return;
+    
+    // Get map dimensions
     const mapRect = mapBackground.getBoundingClientRect();
-
+    
+    // Countries to position
     const countryFlags = ["canada", "mexico", "greenland"];
-
+    
     countryFlags.forEach((country) => {
       const flagOverlay = document.getElementById(`${country}-flag-overlay`);
       if (!flagOverlay) return;
-
-      // Add a class that handles positioning based on map
+      
+      // Add positioning class
       flagOverlay.classList.add("positioned-flag-overlay");
-
+      
+      // Add accessibility attributes
       flagOverlay.setAttribute("role", "img");
-      flagOverlay.setAttribute("aria-label", `${country.charAt(0).toUpperCase() + country.slice(1)} flag overlay`);
-
-      // Set CSS custom properties if needed for precise positioning
+      flagOverlay.setAttribute(
+        "aria-label", 
+        `${country.charAt(0).toUpperCase() + country.slice(1)} flag overlay`
+      );
+      
+      // Set CSS custom properties for positioning
       flagOverlay.style.setProperty("--map-width", `${mapRect.width}px`);
       flagOverlay.style.setProperty("--map-height", `${mapRect.height}px`);
       flagOverlay.style.setProperty("--map-top", `${mapRect.top}px`);
@@ -484,452 +765,601 @@ class GameManager {
    * Position Trump character
    */
   positionTrumpCharacter() {
+    console.log("posutioning trump character");
+    
     const trumpContainer = document.getElementById("trump-sprite-container");
     const trumpSprite = document.getElementById("trump-sprite");
-
+    
     if (!trumpContainer || !trumpSprite) return;
-
+    
     const mapRect = this.elements.game.map.getBoundingClientRect();
-
-    // Set Trump container to match the map's size and position
+    
+    // Size and position container
     trumpContainer.style.width = mapRect.width + "px";
     trumpContainer.style.height = mapRect.height + "px";
     trumpContainer.style.left = mapRect.left + "px";
     trumpContainer.style.top = mapRect.top + "px";
-
-    // Set transform origin to center top to prevent downward drift
     trumpContainer.style.transformOrigin = "center top";
-
-    // Ensure the Trump sprite fills the container properly
+    
+    // Configure sprite appearance
     trumpSprite.style.width = "100%";
     trumpSprite.style.height = "100%";
-    trumpSprite.style.backgroundSize = "auto 100%"; // Keep aspect ratio, fill height
+    trumpSprite.style.backgroundSize = "auto 100%";
     trumpSprite.style.position = "absolute";
-    trumpSprite.style.top = "0"; // Reset position to top
+    trumpSprite.style.top = "0";
   }
 
-
-/**
- * Start a grab sequence
- */
-initiateGrab() {
-  if (!this.gameState.isPlaying || this.gameState.isPaused) {
-    return;
-  }
-
-  // Select a country to grab
-  const availableCountries = Object.keys(this.gameState.countries).filter((country) => {
-    return this.gameState.countries[country].claims < this.gameState.countries[country].maxClaims;
-  });
-
-  if (availableCountries.length === 0) {
-    this.initiateGrab(); // Restart loop if no countries left
-    return;
-  }
-
-  // Select random country and animation
-  const targetCountry = availableCountries[Math.floor(Math.random() * availableCountries.length)];
-  const possibleAnimations = this.gameState.countryAnimations[targetCountry];
-  const animationName = possibleAnimations[Math.floor(Math.random() * possibleAnimations.length)];
-
-  // Set necessary state flags
-  this.gameState.currentTarget = targetCountry;
-  this.gameState.isEastCanadaGrab = animationName === "grabEastCanada";
-  this.gameState.isWestCanadaGrab = animationName === "grabWestCanada";
-
-  // Play warning sound
-  this.audioManager.playGrabWarning();
-
-  // Announce for screen readers
-  this.announceForScreenReaders(`Trump is trying to grab ${targetCountry}! Smack his hand!`);
-
-  // Get visual and hitbox elements
-  const visual = document.getElementById("trump-hand-visual");
-  const hitbox = document.getElementById("trump-hand-hitbox");
-
-  // Check if this is before the first successful block
-  const isBeforeFirstBlock = this.gameState.stats.successfulBlocks === 0;
-
-  // Use the effects controller if available, otherwise use legacy approach
-  if (window.trumpHandEffects) {
-    window.trumpHandEffects.makeHittable(isBeforeFirstBlock);
-    window.trumpHandEffects.highlightTargetCountry(targetCountry, true);
-  } else {
-    // Legacy approach - direct DOM manipulation
-    if (visual) {
-      visual.classList.add("hittable");
-      visual.style.display = "block";
-      
-      if (isBeforeFirstBlock) {
-        visual.style.opacity = "0.6";
-        visual.style.border = "5px dashed black";
-        visual.style.borderRadius = "50%";
-      } else {
-        visual.style.opacity = "0.3";
-        visual.style.border = "none";
-      }
-      
-      visual.style.backgroundColor = "transparent";
-      visual.style.transform = "scale(1.0)";
+  /**
+   * Start a grab sequence
+   */
+  initiateGrab() {
+    console.log("in the function");
+    
+    // Skip if game isn't actively playing
+    if (!this.gameState.isPlaying || this.gameState.isPaused) {
+      return;
     }
     
-    if (hitbox) {
-      hitbox.classList.add("hittable");
-      
-      if (isBeforeFirstBlock) {
-        const handleMouseEnter = () => {
-          if (visual) {
-            visual.style.opacity = "0.6";
-          }
-        };
-        
-        const handleMouseLeave = () => {
-          if (visual) {
-            visual.style.opacity = "0.4";
-          }
-        };
-        
-        hitbox.addEventListener("mouseenter", handleMouseEnter);
-        hitbox.addEventListener("mouseleave", handleMouseLeave);
-        
-        hitbox._enterHandler = handleMouseEnter;
-        hitbox._leaveHandler = handleMouseLeave;
-      }
+    // Select target country
+    const targetCountry = this._selectTargetCountry();
+    if (!targetCountry) {
+      console.log("no target country");
+
+      this.initiateGrab(); // Retry if no country available
+      return;
+    }
+    
+    // Select animation for target
+    const { animationName } = this._selectAnimationForCountry(targetCountry);
+    
+    // Set up grab sequence
+    this._prepareGrabSequence(targetCountry, animationName);
+    
+    // Play audio warnings
+    if (this.managers.audio) {
+      console.log("playing sonic warning");
+
+      this.managers.audio.playGrabWarning();
+      this.managers.audio.playGrabAttempt(targetCountry);
+    }
+    
+    // Announce for screen readers
+    this.announceForScreenReaders(`Trump is trying to grab ${targetCountry}! Smack his hand!`);
+    
+    // Start animation sequence
+    this._startGrabAnimation(targetCountry, animationName);
+  }
+
+  /**
+   * Select a target country for grabbing
+   * @private
+   * @returns {string|null} The selected country name or null if none available
+   */
+  _selectTargetCountry() {
+    const availableCountries = Object.keys(this.gameState.countries).filter((country) => {
+      return this.gameState.countries[country].claims < this.gameState.countries[country].maxClaims;
+    });
+    
+    if (availableCountries.length === 0) {
+      return null;
+    }
+    
+    return availableCountries[Math.floor(Math.random() * availableCountries.length)];
+  }
+
+  /**
+   * Select an animation for the target country
+   * @private
+   * @param {string} targetCountry - The target country
+   * @returns {Object} Animation info with name and type
+   */
+  _selectAnimationForCountry(targetCountry) {
+    const possibleAnimations = this.gameState.countryAnimations[targetCountry];
+    const animationName = possibleAnimations[Math.floor(Math.random() * possibleAnimations.length)];
+    
+    return { 
+      animationName,
+      isEastCanada: animationName === "grabEastCanada",
+      isWestCanada: animationName === "grabWestCanada"
+    };
+  }
+
+  /**
+   * Prepare the grab sequence visual elements and state
+   * @private
+   * @param {string} targetCountry - The target country
+   * @param {string} animationName - The animation name
+   */
+  _prepareGrabSequence(targetCountry, animationName) {
+    // Set state flags
+    this.gameState.currentTarget = targetCountry;
+    this.gameState.isEastCanadaGrab = animationName === "grabEastCanada";
+    this.gameState.isWestCanadaGrab = animationName === "grabWestCanada";
+    
+    // Get visual elements
+    const visual = document.getElementById("trump-hand-visual");
+    const hitbox = document.getElementById("trump-hand-hitbox");
+    
+    // Check if this is the first block
+    const isBeforeFirstBlock = this.gameState.stats.successfulBlocks === 0;
+    
+    // Use TrumpHandEffects or fallback to direct DOM manipulation
+    if (window.trumpHandEffects) {
+      window.trumpHandEffects.makeHittable(isBeforeFirstBlock);
+      window.trumpHandEffects.highlightTargetCountry(targetCountry, true);
+    } else {
+      this._legacyPrepareGrabVisuals(visual, hitbox, isBeforeFirstBlock);
     }
   }
 
-  // Play the grab animation
-  this.animationManager.changeState(animationName, () => {
-    // This runs when grab completes without being blocked
-    if (this.gameState.currentTarget === targetCountry && this.gameState.isPlaying && !this.gameState.isPaused) {
-      // Handle successful grab
-      this.grabSuccess(targetCountry);
-    } else if (this.gameState.isPlaying && !this.gameState.isPaused) {
-      // Grab was interrupted or blocked - start next cycle
-      this.initiateGrab();
-    }
+  /**
+   * Legacy method to prepare grab visuals (direct DOM manipulation)
+   * @private
+   * @param {HTMLElement} visual - The visual element
+   * @param {HTMLElement} hitbox - The hitbox element
+   * @param {boolean} isBeforeFirstBlock - Whether this is before the first block
+   */
 
-    // Clean up event listeners
-    if (hitbox && isBeforeFirstBlock) {
+  /**
+   * Start the grab animation
+   * @private
+   * @param {string} targetCountry - The target country
+   * @param {string} animationName - The animation name
+   */
+  _startGrabAnimation(targetCountry, animationName) {
+    console.log("starting grab animation");
+    
+    if (!this.managers.animation) return;
+    
+    // Start the animation with completion callback
+    this.managers.animation.changeState(animationName, () => {
+      console.log("starting completion callback ");
+
+      const visual = document.getElementById("trump-hand-visual");
+      const hitbox = document.getElementById("trump-hand-hitbox");
+      
+      // This runs when grab completes without being blocked
+      if (this.gameState.currentTarget === targetCountry && 
+          this.gameState.isPlaying && 
+          !this.gameState.isPaused) {
+        // Handle successful grab
+        this.grabSuccess(targetCountry);
+      } else if (this.gameState.isPlaying && !this.gameState.isPaused) {
+        // Grab was interrupted or blocked - start next cycle
+        this.initiateGrab();
+      }
+
+      // Clean up event listeners
+      this._cleanupGrabEventListeners(hitbox);
+
+      // Hide the visual completely when animation completes
+      if (visual && !window.trumpHandEffects) {
+        visual.style.display = "none";
+        visual.style.opacity = "0";
+        visual.style.border = "none";
+        visual.classList.remove("hittable");
+      }
+    });
+  }
+
+  /**
+   * Clean up grab sequence event listeners
+   * @private
+   * @param {HTMLElement} hitbox - The hitbox element
+   */
+  _cleanupGrabEventListeners(hitbox) {
+    if (!hitbox) return;
+    
+    const isBeforeFirstBlock = this.gameState.stats.successfulBlocks === 0;
+    
+    if (isBeforeFirstBlock) {
       if (hitbox._enterHandler) hitbox.removeEventListener("mouseenter", hitbox._enterHandler);
       if (hitbox._leaveHandler) hitbox.removeEventListener("mouseleave", hitbox._leaveHandler);
       hitbox._enterHandler = null;
       hitbox._leaveHandler = null;
     }
+  }
 
-    // IMPORTANT: Hide the visual completely when animation completes
-    if (visual && !window.trumpHandEffects) {
-      visual.style.display = "none";
-      visual.style.opacity = "0";
+  /**
+   * Stop the grab (player successfully blocked)
+   * @param {Event} event - The event that triggered the block
+   */
+  stopGrab(event) {
+    const targetCountry = this.gameState.currentTarget;
+    if (!targetCountry) return;
+    
+    // Get visual elements
+    const visual = document.getElementById("trump-hand-visual");
+    const hitbox = document.getElementById("trump-hand-hitbox");
+    
+    // Apply visual effects for the block
+    this._applyBlockVisualEffects(visual, hitbox);
+    
+    // Determine specific grab region
+    const smackCountry = this._determineSmackRegion(targetCountry);
+    
+    // Reset target immediately to prevent double-handling
+    this._resetGrabTarget();
+    
+    // Play sound effects
+    this._playBlockSoundEffects(smackCountry);
+    
+    // Update game state and score
+    this._updateScoreAfterBlock();
+    
+    // Play animation sequence for successful block
+    this._playBlockAnimationSequence(smackCountry);
+  }
+
+  /**
+   * Apply visual effects for a successful block
+   * @private
+   * @param {HTMLElement} visual - The visual element
+   * @param {HTMLElement} hitbox - The hitbox element
+   */
+  _applyBlockVisualEffects(visual, hitbox) {
+    const targetCountry = this.gameState.currentTarget;
+    
+    // Use the effects controller if available
+    if (window.trumpHandEffects) {
+      window.trumpHandEffects.applyHitEffect();
+      window.trumpHandEffects.highlightTargetCountry(targetCountry, false);
+    } else if (visual) {
+      // Legacy approach - direct DOM manipulation
+      visual.classList.remove("hittable");
+      visual.style.opacity = "1";
       visual.style.border = "none";
-      visual.classList.remove("hittable");
-    }
-  });
-
-  // Play grab sound
-  this.audioManager.playGrabAttempt(targetCountry);
-}
-
-/**
- * Stop the grab (player successfully blocked)
- */
-stopGrab(event) {
-  const targetCountry = this.gameState.currentTarget;
-
-  const visual = document.getElementById("trump-hand-visual");
-  const hitbox = document.getElementById("trump-hand-hitbox");
-
-  // Use the effects controller if available, otherwise use legacy approach
-  if (window.trumpHandEffects) {
-    window.trumpHandEffects.applyHitEffect();
-    window.trumpHandEffects.highlightTargetCountry(targetCountry, false);
-  } else {
-    // Legacy approach - direct DOM manipulation
-    if (visual) {
-      visual.classList.remove("hittable");
-      visual.style.opacity = "1"; // Force full opacity when hit starts
-      visual.style.border = "none"; // Remove border when blocked
       visual.classList.add("hit");
-
-      // Apply the effect setup
+      
+      // Apply cartoon hit effect
       this.applyCartoonyHitEffect();
-
+      
+      // Handle animation timing
       setTimeout(() => {
         visual.classList.remove("hit");
         visual.classList.add("animation-completed");
-
-        // Remove the class and HIDE the visual after a short delay
+        
         setTimeout(() => {
           visual.classList.remove("animation-completed");
           visual.style.display = "none";
           visual.style.opacity = "0";
         }, 100);
-      }, 650);
+      }, this.config.ANIMATION_DELAY);
+    }
+    
+    // Clean up hitbox
+    if (hitbox) {
+      this._cleanupGrabEventListeners(hitbox);
+      hitbox.classList.remove("hittable");
     }
   }
 
-  // Clean up event listeners if they exist
-  if (hitbox) {
-    if (hitbox._enterHandler) hitbox.removeEventListener("mouseenter", hitbox._enterHandler);
-    if (hitbox._leaveHandler) hitbox.removeEventListener("mouseleave", hitbox._leaveHandler);
-    hitbox._enterHandler = null;
-    hitbox._leaveHandler = null;
+  /**
+   * Determine the specific region being smacked
+   * @private
+   * @param {string} targetCountry - The target country
+   * @returns {string} The specific region being smacked
+   */
+  _determineSmackRegion(targetCountry) {
+    if (targetCountry === "canada") {
+      if (this.gameState.isEastCanadaGrab) {
+        return "eastCanada";
+      } else if (this.gameState.isWestCanadaGrab) {
+        return "westCanada";
+      }
+    }
+    return targetCountry;
   }
 
-  if (hitbox) {
-    hitbox.classList.remove("hittable"); // Remove cursor style
+  /**
+   * Reset the grab target to prevent double-handling
+   * @private
+   */
+  _resetGrabTarget() {
+    this.gameState.currentTarget = null;
+    this.gameState.isEastCanadaGrab = false;
+    this.gameState.isWestCanadaGrab = false;
   }
 
-  if (!targetCountry) {
-    return;
-  }
+  /**
+   * Play sound effects for a successful block
+   * @private
+   * @param {string} smackCountry - The region being smacked
+   */
+  _playBlockSoundEffects(smackCountry) {
+    // DIRECT APPROACH: Play slap sound directly on mobile devices
+    if (window.DeviceUtils && window.DeviceUtils.isMobileDevice) {
+      try {
+        // Create a direct path to the sound file
+        const baseUrl = window.location.origin + window.location.pathname;
+        const soundPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/slap1.mp3";
 
-  // Determine specific grab region
-  const smackCountry =
-    targetCountry === "canada"
-      ? this.gameState.isEastCanadaGrab
-        ? "eastCanada"
-        : this.gameState.isWestCanadaGrab
-        ? "westCanada"
-        : targetCountry
-      : targetCountry;
+        // Create and play a new Audio element directly
+        const directSlap = new Audio(soundPath);
+        directSlap.volume = 1.0;
+        directSlap.play();
+      } catch (e) {
+        // Silently handle any errors
+      }
+    }
 
-  // Reset target immediately to prevent double-handling
-  this.gameState.currentTarget = null;
-  this.gameState.isEastCanadaGrab = false;
-  this.gameState.isWestCanadaGrab = false;
-
-  // DIRECT APPROACH: Play the slap sound directly if on mobile
-  if (window.DeviceUtils && window.DeviceUtils.isMobileDevice) {
-    try {
-      // Create a direct path to the sound file
-      const baseUrl = window.location.origin + window.location.pathname;
-      const soundPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/slap1.mp3";
-
-      // Create and play a new Audio element directly - bypassing the audio manager
-      const directSlap = new Audio(soundPath);
-      directSlap.volume = 1.0; // Full volume
-      directSlap.play();
-    } catch (e) {
-      // Error handling
+    // Also use the audioManager for redundancy
+    if (this.managers.audio) {
+      this.managers.audio.playSuccessfulBlock(smackCountry);
     }
   }
 
-  // Also use the audioManager (both approaches for redundancy)
-  if (this.audioManager) {
-    this.audioManager.playSuccessfulBlock(smackCountry);
+  _updateScoreAfterBlock() {
+    // Check if this is the FIRST successful block (before we increment the counter)
+    if (this.gameState.stats.successfulBlocks === 0 && window.handHitboxManager) {
+      // First successful block, remove the prompt
+      window.handHitboxManager.handleSuccessfulHit();
+    }
+    
+    // Increase score
+    this.gameState.score += 10;
+  
+    // Track consecutive hits and stats
+    this.gameState.consecutiveHits++;
+    this.gameState.stats.successfulBlocks++;
+  
+    // Update HUD
+    this.updateHUD();
+  
+    // Announce for screen readers
+    this.announceForScreenReaders(`Hand blocked! +10 points. Total score: ${this.gameState.score}`);
   }
 
-  // Increase score
-  this.gameState.score += 10;
-
-  // Track consecutive hits and stats
-  this.gameState.consecutiveHits++;
-  this.gameState.stats.successfulBlocks++;
-
-  // Update HUD
-  this.updateHUD();
-
-  // Announce for screen readers
-  this.announceForScreenReaders(`Hand blocked! +10 points. Total score: ${this.gameState.score}`);
-
-  // Handle animation sequence with clear transitions
-  if (window.smackManager) {
-    this.smackManager.playSmackAnimation(smackCountry, () => {
-      // After smack completes, play slapped animation
-      this.animationManager.changeState("slapped", () => {
-        // After slapped completes, restart animation loop
+  /**
+   * Play animation sequence for a successful block
+   * @private
+   * @param {string} smackCountry - The region being smacked
+   */
+  _playBlockAnimationSequence(smackCountry) {
+    if (this.managers.smack) {
+      // Use smack manager if available
+      this.managers.smack.playSmackAnimation(smackCountry, () => {
+        // After smack completes, play slapped animation
+        if (this.managers.animation) {
+          this.managers.animation.changeState("slapped", () => {
+            // After slapped completes, restart animation loop
+            this.initiateGrab();
+          });
+        }
+      });
+    } else if (this.managers.animation) {
+      // Fallback path if no smack manager
+      this.managers.animation.changeState("slapped", () => {
         this.initiateGrab();
       });
-    });
-  } else {
-    // Fallback path if no smack manager
-    this.animationManager.changeState("slapped", () => {
-      this.initiateGrab();
-    });
+    } else {
+      // Last resort fallback
+      setTimeout(() => this.initiateGrab(), 1000);
+    }
   }
-}
 
-/**
- * Handle successful grab by Trump
- */
-grabSuccess(country) {
-  // Reset consecutive hits
-  this.gameState.consecutiveHits = 0;
+  grabSuccess(country) {
+    // Reset consecutive hits
+    this.gameState.consecutiveHits = 0;
+  
+    // Use TrumpHandEffects controller if available
+    if (window.trumpHandEffects) {
+      window.trumpHandEffects.handleGrabSuccess();
+    } else {
+      // Legacy approach - direct DOM manipulation
+      this._applyGrabSuccessVisuals(country);
+    }
+  
+    // Handle country-specific logic
+    if (country === "eastCanada" || country === "westCanada") {
+      this._handleCanadaGrab();
+    } else {
+      this._handleStandardCountryGrab(country);
+    }
+  
+    // Check for game over condition
+    if (this._checkGameOverCondition()) {
+      this.endGame(false); // Game over, player lost
+      return;
+    }
+  
+    // Play victory animation and continue game
+    if (this.managers.animation) {
+      this.managers.animation.changeState("victory", () => {
+        // Continue animation loop
+        this.initiateGrab();
+      });
+    } else {
+      // Fallback if no animation manager
+      setTimeout(() => this.initiateGrab(), 1000);
+    }
+  }
 
-  const visual = document.getElementById("trump-hand-visual");
-  const hitbox = document.getElementById("trump-hand-hitbox");
+  /**
+   * Apply visual effects for a successful grab
+   * @private
+   * @param {string} country - The country being grabbed
+   */
+  _applyGrabSuccessVisuals(country) {
+    const visual = document.getElementById("trump-hand-visual");
+    const hitbox = document.getElementById("trump-hand-hitbox");
 
-  // Use the effects controller if available, otherwise use legacy approach
-  if (window.trumpHandEffects) {
-    window.trumpHandEffects.applyGrabSuccessEffect();
-    window.trumpHandEffects.highlightTargetCountry(country, false);
-  } else {
-    // Legacy approach - direct DOM manipulation
-    if (visual) {
+    // Use the effects controller if available
+    if (window.trumpHandEffects) {
+      window.trumpHandEffects.applyGrabSuccessEffect();
+      window.trumpHandEffects.highlightTargetCountry(country, false);
+    } else if (visual) {
+      // Legacy approach - direct DOM manipulation
       visual.classList.remove("hittable");
 
-      // IMPORTANT: Make sure the visual is visible before applying effects
+      // Ensure visibility before applying effects
       visual.style.display = "block";
-      visual.style.opacity = "1"; // Full opacity for the animation to be visible
+      visual.style.opacity = "1";
 
-      // Add the class AFTER ensuring visibility
+      // Add the success class
       visual.classList.add("grab-success");
 
       // Apply the effect setup
       this.applyGrabSuccessEffect();
 
-      // This timing matches stopGrab
+      // Handle animation timing
       setTimeout(() => {
         visual.classList.remove("grab-success");
         visual.classList.add("animation-completed");
 
-        // Remove the class and HIDE the visual after a short delay
         setTimeout(() => {
           visual.classList.remove("animation-completed");
           visual.style.display = "none";
           visual.style.opacity = "0";
         }, 100);
-      }, 650);
+      }, this.config.ANIMATION_DELAY);
+    }
+
+    // Clean up hitbox
+    if (hitbox) {
+      hitbox.classList.remove("hittable");
     }
   }
 
-  if (hitbox) {
-    hitbox.classList.remove("hittable");
-  }
-
-  // Reset current target
-  this.gameState.currentTarget = null;
-
-  // Handle East/West Canada special case
-  if (country === "eastCanada" || country === "westCanada") {
+  /**
+   * Handle a successful grab of Canada
+   * @private
+   */
+  _handleCanadaGrab() {
     // Increment claim on the shared Canada entity
-    this.gameState.countries.canada.claims = Math.min(this.gameState.countries.canada.claims + 1, this.gameState.countries.canada.maxClaims);
+    this.gameState.countries.canada.claims = Math.min(
+      this.gameState.countries.canada.claims + 1, 
+      this.gameState.countries.canada.maxClaims
+    );
 
-    // Get current claim count from the shared Canada entity
+    // Get current claim count
     const claimCount = this.gameState.countries.canada.claims;
 
     // Play appropriate sounds based on grab count
-    if (claimCount < this.gameState.countries.canada.maxClaims) {
-      // First and second grabs - success sound
-      this.audioManager.playSuccessfulGrab("canada");
-    } else {
-      // Final grab (complete annexation) - annexation sound
-      this.audioManager.playCountryAnnexed("canada");
+    if (this.managers.audio) {
+      if (claimCount < this.gameState.countries.canada.maxClaims) {
+        // First and second grabs
+        this.managers.audio.playSuccessfulGrab("canada");
+      } else {
+        // Final grab (complete annexation)
+        this.managers.audio.playCountryAnnexed("canada");
+      }
     }
 
     // Update flag overlay
-    const flagOverlay = document.getElementById(`canada-flag-overlay`);
-    if (flagOverlay) {
-      // Remove previous opacity classes
-      flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100");
-
-      if (claimCount === 1) {
-        flagOverlay.classList.add("opacity-33");
-      } else if (claimCount === 2) {
-        flagOverlay.classList.add("opacity-66");
-      } else if (claimCount === 3) {
-        flagOverlay.classList.add("opacity-100");
-      }
-    }
+    this._updateFlagOverlay("canada", claimCount);
 
     // Announce for screen readers
     this.announceForScreenReaders(`Trump has claimed part of Canada! ${claimCount} out of 3 parts taken.`);
-  } else {
-    // Normal processing for other countries
-    this.gameState.countries[country].claims = Math.min(this.gameState.countries[country].claims + 1, this.gameState.countries[country].maxClaims);
+  }
 
+  /**
+   * Handle a successful grab of a standard country
+   * @private
+   * @param {string} country - The country being grabbed
+   */
+  _handleStandardCountryGrab(country) {
+    // Log previous and new claim counts
+    const previousClaims = this.gameState.countries[country].claims;
+    
+    // Increment claim count
+    this.gameState.countries[country].claims = Math.min(
+      this.gameState.countries[country].claims + 1, 
+      this.gameState.countries[country].maxClaims
+    );
+  
     // Get current claim count
     const claimCount = this.gameState.countries[country].claims;
-
+    
+    console.log(`[DEBUG] Country ${country} claims increased from ${previousClaims} to ${claimCount}`);
+    console.log(`[DEBUG] Freedom manager exists: ${!!this.managers.freedom}, update cycle should be triggered`);
+  
     // Play appropriate sounds based on grab count
-    if (claimCount < this.gameState.countries[country].maxClaims) {
-      // First and second grabs - success sound
-      this.audioManager.playSuccessfulGrab(country);
-    } else {
-      // Final grab (complete annexation) - annexation sound
-      this.audioManager.playCountryAnnexed(country);
+    if (this.managers.audio) {
+      if (claimCount < this.gameState.countries[country].maxClaims) {
+        // First and second grabs
+        this.managers.audio.playSuccessfulGrab(country);
+      } else {
+        // Final grab (complete annexation)
+        this.managers.audio.playCountryAnnexed(country);
+      }
     }
 
     // Update flag overlay
-    const flagOverlay = document.getElementById(`${country}-flag-overlay`);
-    if (flagOverlay) {
-      // Remove previous opacity classes
-      flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100");
-
-      if (claimCount === 1) {
-        flagOverlay.classList.add("opacity-33");
-      } else if (claimCount === 2) {
-        flagOverlay.classList.add("opacity-66");
-      } else if (claimCount === 3) {
-        flagOverlay.classList.add("opacity-100");
-      }
-    }
+    this._updateFlagOverlay(country, claimCount);
 
     // Announce for screen readers
     this.announceForScreenReaders(`Trump has claimed part of ${country}! ${claimCount} out of 3 parts taken.`);
   }
 
-  // Check if country is fully claimed
-  let checkCountry = country;
-  if (country === "eastCanada" || country === "westCanada") {
-    checkCountry = "canada";
-  }
+  /**
+   * Update a country's flag overlay based on claim count
+   * @private
+   * @param {string} country - The country to update
+   * @param {number} claimCount - The number of claims
+   */
+  _updateFlagOverlay(country, claimCount) {
+    const flagOverlay = document.getElementById(`${country}-flag-overlay`);
+    if (!flagOverlay) return;
 
-  const claimCount = this.gameState.countries[checkCountry].claims;
-  if (claimCount >= this.gameState.countries[checkCountry].maxClaims) {
-    // Count total annexed countries
-    const annexedCount = Object.keys(this.gameState.countries).filter(
-      (c) => this.gameState.countries[c].claims >= this.gameState.countries[c].maxClaims
-    ).length;
+    // Remove previous opacity classes
+    flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100");
 
-    // Update music intensity
-    this.audioManager.updateMusicIntensity(annexedCount);
-
-    // Announce for screen readers
-    this.announceForScreenReaders(`${checkCountry} has been completely annexed by Trump!`);
-
-    // Check if all countries are claimed (lose condition)
-    const countriesToCheck = ["canada", "mexico", "greenland"];
-    const claimedCountries = countriesToCheck.filter((c) => this.gameState.countries[c].claims >= this.gameState.countries[c].maxClaims);
-
-    if (claimedCountries.length >= countriesToCheck.length) {
-      this.endGame(false); // Game over, player lost
-      return;
+    // Add appropriate opacity class based on claim count
+    if (claimCount === 1) {
+      flagOverlay.classList.add("opacity-33");
+    } else if (claimCount === 2) {
+      flagOverlay.classList.add("opacity-66");
+    } else if (claimCount === 3) {
+      flagOverlay.classList.add("opacity-100");
     }
   }
 
-  this.animationManager.changeState("victory", () => {
-    // Continue animation loop
-    this.initiateGrab();
-  });
-}
+  /**
+   * Check if game over condition has been met
+   * @private
+   * @returns {boolean} True if game over condition is met
+   */
+  _checkGameOverCondition() {
+    // Count annexed countries
+    const countriesToCheck = ["canada", "mexico", "greenland"];
+    const claimedCountries = countriesToCheck.filter((c) => 
+      this.gameState.countries[c].claims >= this.gameState.countries[c].maxClaims
+    );
+
+    // Update music intensity if audio manager exists
+    if (this.managers.audio) {
+      this.managers.audio.updateMusicIntensity(claimedCountries.length);
+    }
+
+    // Game over if all countries are claimed
+    return claimedCountries.length >= countriesToCheck.length;
+  }
 
   /**
    * Add cartoon hit effect when player successfully blocks
    */
   applyCartoonyHitEffect() {
     const visual = document.getElementById("trump-hand-visual");
-
     if (!visual) return;
 
-    // Make sure the visual element has position relative or absolute
+    // Set position if needed
     const currentPosition = window.getComputedStyle(visual).position;
     if (currentPosition === "static") {
       visual.style.position = "absolute";
     }
 
-    // Ensure the visual is fully opaque for the animation
+    // Ensure full opacity for animation
     visual.style.opacity = "1";
 
-    // Add a small screen shake
+    // Add screen shake
     const gameContainer = document.getElementById("game-container") || document.body;
     gameContainer.classList.add("screen-shake");
 
-    // Force layout recalculation to ensure animations are applied
+    // Force layout recalculation
     void visual.offsetWidth;
 
-    // Clean up screen shake after animations complete
+    // Remove shake class after animation
     setTimeout(() => {
       gameContainer.classList.remove("screen-shake");
     }, 700);
@@ -940,13 +1370,12 @@ grabSuccess(country) {
    */
   applyGrabSuccessEffect() {
     const visual = document.getElementById("trump-hand-visual");
-
     if (!visual) return;
 
     // Ensure full opacity
     visual.style.opacity = "1";
 
-    // Make sure the visual element has position relative or absolute
+    // Set position if needed
     const currentPosition = window.getComputedStyle(visual).position;
     if (currentPosition === "static") {
       visual.style.position = "absolute";
@@ -962,18 +1391,18 @@ grabSuccess(country) {
       visual.appendChild(shard);
     }
 
-    // Add a small screen shake (reduced intensity)
+    // Add screen shake
     const gameContainer = document.getElementById("game-container") || document.body;
     gameContainer.classList.add("grab-screen-shake");
 
-    // Force layout recalculation to ensure animations are applied
+    // Force layout recalculation
     void visual.offsetWidth;
 
-    // Clean up screen shake after animations complete
+    // Clean up after animation
     setTimeout(() => {
       gameContainer.classList.remove("grab-screen-shake");
 
-      // Remove shard elements after animation completes
+      // Remove shard elements
       setTimeout(() => {
         for (let i = 3; i <= 8; i++) {
           const shard = visual.querySelector(`.shard${i}`);
@@ -984,10 +1413,36 @@ grabSuccess(country) {
     }, 700);
   }
 
+  /**
+   * Restart the game
+   */
   restartGame() {
-    // Play UI click sound
-    this.audioManager.play("ui", "click");
+    console.log("[DEBUG] GameManager.restartGame called - SUBSEQUENT PLAYTHROUGH");
+    sessionStorage.setItem('gameRestarted', 'true');
 
+    // Play UI sound
+    if (this.managers.audio) {
+      this.managers.audio.play("ui", "click");
+    }
+
+    // Reset visual state
+    this._resetVisualState();
+    
+    // Reset managers
+    this._resetGameManagers();
+    
+    // Reset game state and start new game
+    this._startNewGame();
+
+    // Announce restart for screen readers
+    this.announceForScreenReaders("Game restarted! Get ready to block!");
+  }
+
+  /**
+   * Reset visual state for game restart
+   * @private
+   */
+  _resetVisualState() {
     // Reset flag overlays
     const flagOverlays = document.querySelectorAll(".country-flag-overlay");
     flagOverlays.forEach((overlay) => {
@@ -998,41 +1453,63 @@ grabSuccess(country) {
     // Hide game over screen, show game screen
     this.elements.screens.gameOver.classList.add("hidden");
     this.elements.screens.game.classList.remove("hidden");
+  }
 
-    // Instead of destroying, RESET managers
-    if (this.audioManager) {
-      this.audioManager.stopAll();
-      this.audioManager.stopBackgroundMusic();
+  _resetGameManagers() {
+    console.log("[DEBUG] _resetGameManagers called, managers state:", {
+      audio: !!this.managers.audio,
+      animation: !!this.managers.animation,
+      freedom: !!this.managers.freedom,
+      speed: !!this.managers.speed,
+      protestorHitbox: !!this.managers.protestorHitbox
+    });
+  
+    // Reset audio
+    if (this.managers.audio) {
+      this.managers.audio.stopAll();
+      this.managers.audio.stopBackgroundMusic();
     }
-
-    if (window.animationManager) {
-      window.animationManager.stop(); // Stop, don't destroy
-      window.animationManager.changeState("idle"); // Reset to initial state
+  
+    // Reset animation
+    if (this.managers.animation) {
+      this.managers.animation.stop();
+      this.managers.animation.changeState("idle");
     }
-
-    if (window.speedManager) {
-      window.speedManager.reset(); // Use existing reset method
-      window.speedManager.startSpeedProgression();
+  
+    // Reset speed manager
+    if (this.managers.speed) {
+      this.managers.speed.reset();
+      this.managers.speed.startSpeedProgression();
     }
-
-    if (window.freedomManager) {
-      window.freedomManager.reset();
+  
+    // Reset freedom manager
+    if (this.managers.freedom) {
+      console.log("[DEBUG] Resetting freedom manager");
+      this.managers.freedom.reset();
     }
-
-    if (window.protestorHitboxManager) {
-      window.protestorHitboxManager.cleanupAll(); // Clean up, don't fully destroy
+  
+    // Reset protestor hitboxes
+    if (this.managers.protestorHitbox) {
+      console.log("[DEBUG] Cleaning up protestor hitboxes");
+      this.managers.protestorHitbox.cleanupAll();
     }
+  }
 
+  /**
+   * Start a new game after restart
+   * @private
+   */
+  _startNewGame() {
     // Reset game state
     this.resetGameState();
 
     // Restart countdown timer
     this.gameState.countdownTimer = setInterval(this.updateCountdown, 1000);
 
-    // Reposition all game elements
+    // Reposition elements
     this.positionElements();
 
-    // Start game state
+    // Set playing state
     this.gameState.isPlaying = true;
 
     // Restart animation and grab sequence
@@ -1040,62 +1517,122 @@ grabSuccess(country) {
 
     // Restart background music
     setTimeout(() => {
-      this.audioManager.startBackgroundMusic();
+      if (this.managers.audio) {
+        this.managers.audio.startBackgroundMusic();
+      }
     }, 1000);
-
-    // Announce restart for screen readers
-    this.announceForScreenReaders("Game restarted! Get ready to block!");
   }
 
   /**
    * End the game
+   * @param {boolean} playerWon - Whether the player won
    */
   endGame(playerWon) {
-    // Stop the game state
+    // Stop game state
     this.gameState.isPlaying = false;
 
-    // Clean up audio
-    this.audioManager.stopAll();
-    this.audioManager.stopBackgroundMusic();
-    this.audioManager.destroyAllListeners();
+    // Clean up game systems
+    this._cleanupGameSystems();
+    
+    // Show game over screen
+    this._showGameOverScreen(playerWon);
+    
+    // Schedule auto-restart if appropriate
+    this._scheduleAutoRestart();
+  }
+
+  /**
+   * Clean up game systems for game end
+   * @private
+   */
+  _cleanupGameSystems() {
+    // Stop audio
+    if (this.managers.audio) {
+      this.managers.audio.stopAll();
+      this.managers.audio.stopBackgroundMusic();
+      this.managers.audio.destroyAllListeners();
+    }
 
     // Clear timers
     clearInterval(this.gameState.countdownTimer);
 
     // Stop speed progression
-    if (window.speedManager) {
-      window.speedManager.stopSpeedProgression();
+    if (this.managers.speed) {
+      this.managers.speed.stopSpeedProgression();
     } else if (this.gameState.speedIncreaseInterval) {
       clearInterval(this.gameState.speedIncreaseInterval);
     }
 
-    // Clean up animation manager
-    this.animationManager.stop();
-
-    // Clean up freedom manager (protestors)
-    if (window.freedomManager) {
-      // Full reset of freedom manager
-      window.freedomManager.destroy();
-      window.freedomManager.reset();
+    // Stop animations
+    if (this.managers.animation) {
+      this.managers.animation.stop();
+      
+      // Set final animation state based on outcome
+      // this.managers.animation.changeState(playerWon ? "slapped" : "victory");
+      
+      // Reset game speed
+      this.gameState.gameSpeedMultiplier = 1.0;
+      this.managers.animation.setGameSpeed(this.gameState.gameSpeedMultiplier);
     }
 
-    // Clean up UFO manager (Elon/UFO)
-    if (window.ufoManager) {
-      window.ufoManager.destroy();
+    // Clean up other managers
+    if (this.managers.freedom) {
+      this.managers.freedom.destroy();
+      this.managers.freedom.reset();
     }
 
-    // Reset game speed
-    this.gameState.gameSpeedMultiplier = 1.0;
-    this.animationManager.setGameSpeed(this.gameState.gameSpeedMultiplier);
+    if (this.managers.ufo) {
+      this.managers.ufo.destroy();
+    }
+  }
 
+  /**
+   * Show the game over screen
+   * @private
+   * @param {boolean} playerWon - Whether the player won
+   */
+  _showGameOverScreen(playerWon) {
     // Hide game screen, show game over screen
     this.elements.screens.game.classList.add("hidden");
     this.elements.screens.gameOver.classList.remove("hidden");
 
-    const totalGameTime = 168; // 2min 48sec
+    // Calculate time statistics
+    const totalGameTime = this.config.GAME_DURATION;
     const timeSurvived = totalGameTime - this.gameState.timeRemaining;
+    const timeDisplay = this._formatTimeSurvived(timeSurvived, totalGameTime);
 
-    // Calculate years and months survived
+    // Update game over animation
+    this._updateGameOverAnimation(playerWon);
+
+    // Update game over stats
+    this._updateGameOverStats(timeDisplay, playerWon);
+
+    // Play appropriate sound
+    if (this.managers.audio) {
+      this.managers.audio.play("ui", playerWon ? "win" : "lose");
+    }
+
+    // Announce result for screen readers
+    const announcement = playerWon 
+      ? "Victory! You successfully defended the neighboring countries!"
+      : "Game over. The neighboring countries have been claimed by Trump.";
+    this.announceForScreenReaders(announcement);
+
+    // Initialize share buttons if function exists
+    if (typeof initializeShareButtonsOnGameOver === "function") {
+      initializeShareButtonsOnGameOver();
+    }
+  }
+
+  /**
+   * Format the time survived for display
+   * @private
+   * @param {number} timeSurvived - Time survived in seconds
+   * @param {number} totalGameTime - Total game time in seconds
+   * @returns {string} Formatted time string
+   */
+  _formatTimeSurvived(timeSurvived, totalGameTime) {
+    // Calculate years and months based on 4-year term
     const totalYears = 4;
     const yearsSurvived = Math.floor((timeSurvived / totalGameTime) * totalYears);
     const monthsSurvived = Math.floor(((timeSurvived / totalGameTime) * totalYears * 12) % 12);
@@ -1113,86 +1650,84 @@ grabSuccess(country) {
       timeDisplay = `${monthsSurvived} ${monthsSurvived === 1 ? "month" : "months"}`;
     }
 
-    this.updateGameOverAnimation(playerWon);
+    return timeDisplay;
+  }
 
-    // Update game over screen with meaningful stats
-    if (this.elements.hud.finalScore) this.elements.hud.finalScore.textContent = this.gameState.score;
+  /**
+   * Update game over animation
+   * @private
+   * @param {boolean} playerWon - Whether the player won
+   */
+  _updateGameOverAnimation(playerWon) {
+    const trumpAnimation = document.getElementById("trump-game-over-animation");
+    if (!trumpAnimation) return;
 
-    // Create grammatically correct blocks text
+    // Remove existing animation classes
+    trumpAnimation.classList.remove("trump-victory-animation", "trump-slapped-animation");
+
+    // Add appropriate animation class
+    trumpAnimation.classList.add(playerWon ? "trump-slapped-animation" : "trump-victory-animation");
+  }
+
+  /**
+   * Update game over stats display
+   * @private
+   * @param {string} timeDisplay - Formatted time survived
+   * @param {boolean} playerWon - Whether the player won
+   */
+  _updateGameOverStats(timeDisplay, playerWon) {
+    // Update score
+    if (this.elements.hud.finalScore) {
+      this.elements.hud.finalScore.textContent = this.gameState.score;
+    }
+
+    // Format blocks text
     const blocks = this.gameState.stats.successfulBlocks;
     const blocksText = `${blocks} ${blocks === 1 ? "attack" : "attacks"}`;
 
-    // Update stats text with proper grammar
+    // Update stats text
     if (this.elements.hud.stats.blocks) {
-      // Change this to update the entire sentence instead of just the number
       const statsTextElement = document.querySelector(".stats-text.game-over-stat-value");
       if (statsTextElement) {
         statsTextElement.innerHTML = `YOU BLOCKED <span id="blocks-stat">${blocksText}</span> AND SURVIVED <span id="time-stat">${timeDisplay}</span>`;
       } else {
-        // Fallback if the element structure is different
+        // Fallback if element structure is different
         this.elements.hud.stats.blocks.textContent = blocksText;
-        if (this.elements.hud.stats.time) this.elements.hud.stats.time.textContent = timeDisplay;
+        if (this.elements.hud.stats.time) {
+          this.elements.hud.stats.time.textContent = timeDisplay;
+        }
       }
     }
 
-    if (playerWon) {
-      if (this.elements.hud.result) this.elements.hud.result.textContent = "Victory!";
-      if (this.elements.hud.message)
-        this.elements.hud.message.innerHTML = "You successfully defended the neighboring countries from annexation! Together we will prevail.";
-      this.audioManager.play("ui", "win");
-
-      // Trump looks defeated
-      this.animationManager.changeState("slapped");
-
-      // Announce for screen readers
-      this.announceForScreenReaders("Victory! You successfully defended the neighboring countries!");
-    } else {
-      if (this.elements.hud.result) this.elements.hud.result.textContent = "Game Over";
-      if (this.elements.hud.message)
-        this.elements.hud.message.innerHTML = "The neighboring countries have been claimed.<br><br>Alone we fail. Together we'd be unstoppable.";
-      this.audioManager.play("ui", "lose");
-
-      // Trump looks victorious
-      this.animationManager.changeState("victory");
-
-      // Announce for screen readers
-      this.announceForScreenReaders("Game over. The neighboring countries have been claimed by Trump.");
+    // Update result and message
+    if (this.elements.hud.result) {
+      this.elements.hud.result.textContent = playerWon ? "Victory!" : "Game Over";
     }
 
-    // Initialize share buttons
-    if (typeof initializeShareButtonsOnGameOver === "function") {
-      initializeShareButtonsOnGameOver();
+    if (this.elements.hud.message) {
+      this.elements.hud.message.innerHTML = playerWon
+        ? "You successfully defended the neighboring countries from annexation! Together we will prevail."
+        : "The neighboring countries have been claimed.<br><br>Alone we fail. Together we'd be unstoppable.";
     }
-
-    // Auto-restart after delay
-    // Auto-restart after delay
-setTimeout(() => {
-  const recorderModal = document.getElementById("voice-recorder-modal");
-  const thankYouModal = document.getElementById("thank-you-message");
-  
-  // Check if both modals are hidden AND no interaction occurred
-  if ((!recorderModal || recorderModal.classList.contains('hidden')) && 
-      (!thankYouModal || thankYouModal.classList.contains('hidden')) &&
-      (!window.voiceRecorder || !window.voiceRecorder.hasUserInteracted())) {
-      this.restartGame();
-  }
-}, 20000); // 20 seconds
   }
 
   /**
-   * Update the game over animation based on win/loss
+   * Schedule auto-restart if appropriate
+   * @private
    */
-  updateGameOverAnimation(playerWon) {
-    const trumpAnimation = document.getElementById("trump-game-over-animation");
-
-    // Remove any existing animation classes
-    trumpAnimation.classList.remove("trump-victory-animation", "trump-slapped-animation");
-
-    // Add the appropriate animation class based on game outcome
-    if (playerWon) {
-      trumpAnimation.classList.add("trump-slapped-animation");
-    } else {
-      trumpAnimation.classList.add("trump-victory-animation");
-    }
+  _scheduleAutoRestart() {
+    setTimeout(() => {
+      const recorderModal = document.getElementById("voice-recorder-modal");
+      const thankYouModal = document.getElementById("thank-you-message");
+      
+      // Check if both modals are hidden AND no interaction occurred
+      const canAutoRestart = (!recorderModal || recorderModal.classList.contains('hidden')) && 
+                             (!thankYouModal || thankYouModal.classList.contains('hidden')) &&
+                             (!window.voiceRecorder || !window.voiceRecorder.hasUserInteracted());
+                             
+      if (canAutoRestart) {
+        this.restartGame();
+      }
+    }, this.config.AUTO_RESTART_DELAY);
   }
 }

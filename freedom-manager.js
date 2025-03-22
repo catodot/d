@@ -16,6 +16,7 @@ class FreedomManager {
    * @param {Object} [config] - Optional configuration
    */
   constructor(gameState, elements, audioManager, config = {}) {
+    console.log("[DEBUG] FreedomManager constructor called");
     this.gameState = gameState;
     this.elements = elements;
     this.audioManager = audioManager;
@@ -133,37 +134,33 @@ class FreedomManager {
     });
   }
 
-
-  /**
-   * Modified update method to add logging around resistance checking
-   * @param {number} deltaTime - Time since last frame in milliseconds
-   */
   update(deltaTime) {
     if (!this.gameState.isPlaying || this.gameState.isPaused) return;
-
+  
     // Convert deltaTime from ms to seconds for chance calculation
     const deltaSeconds = deltaTime / 1000;
-
+  
     // Process each country
     Object.keys(this.countries).forEach((countryId) => {
       const country = this.countries[countryId];
       const gameCountry = this.gameState.countries[countryId];
-
+  
       if (!gameCountry) return;
-
-      // Check if country is fully annexed
+  
+      // FIXED: Only update annexation time and show protestors for FULLY annexed countries
       if (gameCountry.claims >= gameCountry.maxClaims) {
         // Update annexation timer
         country.annexTime += deltaTime;
-
-        // Show protestors when at the configured delay threshold
+  
+        // Original threshold for showing protestors
         const protestorThreshold = this.config.fullAnnexationTime * this.config.protestorShowDelay;
+        
         if (country.annexTime >= protestorThreshold && !country.protestorsShown) {
           this.logger.info("freedom", `[THRESHOLD] ${countryId} reached protestor show threshold at ${country.annexTime}ms`);
-          this.showProtestors(countryId);
-          country.protestorsShown = true;
+          const result = this.showProtestors(countryId);
+          country.protestorsShown = !!result;
         }
-
+  
         // Check if country has been annexed long enough to enable resistance
         if (country.annexTime >= this.config.fullAnnexationTime && !country.resistanceAvailable) {
           country.resistanceAvailable = true;
@@ -171,22 +168,21 @@ class FreedomManager {
             "freedom",
             `[RESISTANCE AVAILABLE] ${countryId} now able to resist after ${(country.annexTime / 1000).toFixed(1)}s of full annexation`
           );
-
+  
           // Show subtle indicator that resistance is possible
           this.showResistancePossibleIndicator(countryId);
         }
-
+  
         // Check for resistance for countries that have been annexed long enough
-        // MODIFIED: Add extra check to prevent auto-resistance if protestors are showing
         if (country.resistanceAvailable && !country.protestorsShown) {
           // Calculate per-frame chance based on per-second chance
           const frameResistanceChance = this.config.resistanceChance * deltaSeconds;
-
+  
           // Random check if resistance should happen now
           if (Math.random() < frameResistanceChance) {
             this.logger.info("freedom", `[AUTO UPRISING] Random resistance triggered in ${countryId}!`);
             this.triggerCountryResistance(countryId);
-
+  
             // Reset after successful resistance
             country.resistanceAvailable = false;
             country.annexTime = 0;
@@ -205,7 +201,6 @@ class FreedomManager {
       }
     });
   }
-
   /**
    * Show indicator that resistance is possible
    * @param {string} countryId - Country identifier
@@ -1138,7 +1133,7 @@ createAdditionalProtestors(countryId, clickCount) {
    * Reset the freedom manager state
    */
   reset() {
-    this.logger.info("freedom", "Resetting freedom system");
+    console.log("[DEBUG] FreedomManager.reset() called");
 
     // Clean up all effects and animations
     this.cleanupAllEffects();
@@ -1249,19 +1244,22 @@ createAdditionalProtestors(countryId, clickCount) {
 
 
 
-/**
- * Method to initialize the Protestor Hitbox Manager
- */
-initProtestorHitboxManager() {
-  // Create the protestor hitbox manager if it doesn't exist
-  if (!window.protestorHitboxManager) {
-    window.protestorHitboxManager = new ProtestorHitboxManager();
-    this.logger.info("freedom", "Created new Protestor Hitbox Manager");
+  initProtestorHitboxManager() {
+    console.log("[FREEDOM DEBUG] Initializing protestor hitbox manager connection");
+    
+    // Create the protestor hitbox manager if it doesn't exist
+    if (!window.protestorHitboxManager) {
+      console.log("[FREEDOM DEBUG] Creating new ProtestorHitboxManager");
+      window.protestorHitboxManager = new ProtestorHitboxManager();
+      this.logger.info("freedom", "Created new Protestor Hitbox Manager");
+    } else {
+      console.log("[FREEDOM DEBUG] Using existing ProtestorHitboxManager");
+    }
+    
+    this.protestorHitboxManager = window.protestorHitboxManager;
+    console.log("[FREEDOM DEBUG] ProtestorHitboxManager reference established:", !!this.protestorHitboxManager);
+    this.logger.info("freedom", "Protestor Hitbox Manager initialized");
   }
-  
-  this.protestorHitboxManager = window.protestorHitboxManager;
-  this.logger.info("freedom", "Protestor Hitbox Manager initialized");
-}
 
 // Modified handleProtestorClick method for more protestors with specific positioning
 handleProtestorClick(countryId) {
@@ -1502,19 +1500,26 @@ shrinkAndHideProtestors(countryId) {
 
 // Keep this implementation and remove the duplicate
 showProtestors(countryId) {
-  // Clean up any existing protestors
+  console.log(`[FREEDOM DEBUG] Beginning showProtestors for ${countryId}`);
+
   this.hideProtestors(countryId);
   
+  console.log(`[FREEDOM DEBUG] Selecting spawn location for ${countryId}`);
   this.protestorHitboxManager.selectNewRandomSpawnLocation(countryId);
 
   this.logger.info("freedom", `Showing protestors for ${countryId}`);
   
   // Get the hitbox
+  console.log(`[FREEDOM DEBUG] Calling showHitbox for ${countryId}`);
   const hitbox = this.protestorHitboxManager.showHitbox(countryId, this);
   if (!hitbox) {
+    console.error(`[FREEDOM ERROR] Failed to create protestor hitbox for ${countryId}`);
     this.logger.error("freedom", `Failed to create protestor hitbox for ${countryId}`);
     return null;
   }
+  
+  console.log(`[FREEDOM DEBUG] Hitbox created successfully for ${countryId}`);
+  
   
   // Get hitbox position and size directly from the style
   const left = parseInt(hitbox.style.left) || 0;

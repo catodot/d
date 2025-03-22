@@ -266,7 +266,6 @@ class AudioManager {
   }
 
 
-
   loadSoundWithRetry(category, name, index = null, retryCount = 0) {
     return new Promise((resolve) => {
       try {
@@ -281,23 +280,49 @@ class AudioManager {
         
         let soundPath;
         let destination;
-
-        if (index !== null) {
-          // Array sound (like trump.grab[0])
-          soundPath = this.soundFiles[category][name][index];
-          
-          // Make sure the array exists before trying to use it
-          if (!this.sounds[category][name]) {
-            this.sounds[category][name] = [];
+  
+        // Handle nested categories (like "defense.protest")
+        const categories = category.split('.');
+        let soundFileRef = this.soundFiles;
+        let soundsRef = this.sounds;
+        
+        // Navigate through the nested categories
+        for (let i = 0; i < categories.length; i++) {
+          const cat = categories[i];
+          if (!soundFileRef[cat]) {
+            console.warn(`Invalid category path: ${category}`);
+            resolve();
+            return;
           }
+          soundFileRef = soundFileRef[cat];
+          soundsRef = soundsRef[cat];
+        }
+  
+        if (index !== null) {
+          // Array sound (like defense.protest.eastCanada[0])
+          if (!soundFileRef[name] || !soundFileRef[name][index]) {
+            console.warn(`Invalid sound path for ${category}.${name}[${index}]`);
+            resolve();
+            return;
+          }
+          soundPath = soundFileRef[name][index];
           
-          destination = this.sounds[category][name];
+          // Make sure the destination array exists
+          if (!soundsRef[name]) {
+            soundsRef[name] = [];
+          }
+          destination = soundsRef[name];
         } else {
           // Named sound (like ui.click)
-          soundPath = this.soundFiles[category][name];
-          destination = this.sounds[category];
+          if (!soundFileRef[name]) {
+            console.warn(`Invalid sound path for ${category}.${name}`);
+            resolve();
+            return;
+          }
+          soundPath = soundFileRef[name];
+          destination = soundsRef;
         }
-
+  
         // Create and load the audio with proper error handling
         const audio = new Audio();
         
@@ -331,8 +356,8 @@ class AudioManager {
           } else {
             // Track persistent errors
             this.loadErrors.push({ category, name, index, error: e.type });
-            resolve(); // Resolve anyway to continue queue
           }
+          resolve(); // Resolve anyway to continue queue
         };
         
         // Set timeout for stalled loads
@@ -361,13 +386,15 @@ class AudioManager {
         
         // Clean up timeout on success
         audio.addEventListener('canplaythrough', () => clearTimeout(timeout), { once: true });
+        // Also clean up timeout on error
+        audio.addEventListener('error', () => clearTimeout(timeout), { once: true });
+        
       } catch (err) {
         console.error(`Error in loadSoundWithRetry for ${category}.${name}:`, err);
         resolve(); // Resolve anyway to continue queue
       }
     });
   }
-
 
   resumeAudioContext() {
     if (!this.audioContext) {
@@ -424,12 +451,12 @@ class AudioManager {
         { category: "music", name: "background" },
         { category: "trump", name: "sob", index: 0 }
       );
-    }, 1000);
+    }, 3000); // Increased from 1000 to 3000
     
     // After a longer delay, queue the remaining sounds
     setTimeout(() => {
       this.queueRemainingAudio();
-    }, 5000);
+    }, 8000); // Increased from 5000 to 8000
   }
 
 

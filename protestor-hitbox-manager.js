@@ -230,35 +230,42 @@ hitbox.setAttribute("aria-label", `Support ${countryId.charAt(0).toUpperCase() +
     }
   
     showHitbox(countryId, freedomManager) {
+      console.log(`[HITBOX DEBUG] Starting showHitbox for ${countryId}`);
+      
       if (!this.protestorHitboxes[countryId]) {
+        console.error(`[HITBOX ERROR] Invalid country ID: ${countryId}`);
         logger.error("protestor-hitbox", `Invalid country ID: ${countryId}`);
         return null;
       }
-  
+    
       // Store reference to the freedom manager for click handling
       this.freedomManager = freedomManager;
-  
+    
       // Create or ensure hitbox exists
       let hitbox = this.protestorHitboxes[countryId].element;
       if (!hitbox) {
+        console.log(`[HITBOX DEBUG] Creating new hitbox for ${countryId}`);
         hitbox = this.createHitbox(countryId);
       }
-  
+    
       // Position the hitbox
+      console.log(`[HITBOX DEBUG] Positioning hitbox for ${countryId}`);
       this.positionHitbox(countryId);
-  
+    
       // Make it visible
       hitbox.style.display = "block";
       this.protestorHitboxes[countryId].isVisible = true;
-  
+    
       // Add click handler that calls the freedomManager's handleProtestorClick
+      console.log(`[HITBOX DEBUG] Setting click handler for ${countryId}`);
       this.setClickHandler(countryId, hitbox, freedomManager);
-  
+    
+      console.log(`[HITBOX INFO] Successfully showed hitbox for ${countryId}`);
       logger.info("protestor-hitbox", `Showing protestor hitbox for ${countryId}`);
-  
+    
       return hitbox;
     }
-  
+    
     hideHitbox(countryId) {
       const hitboxInfo = this.protestorHitboxes[countryId];
       if (hitboxInfo && hitboxInfo.element) {
@@ -475,7 +482,7 @@ hitbox.setAttribute("aria-label", `Support ${countryId.charAt(0).toUpperCase() +
       });
   
       logger.debug("protestor-hitbox", "Repositioned all visible protestor hitboxes");
-    }
+    } 
   
     // Clean up all hitboxes
     cleanupAll() {

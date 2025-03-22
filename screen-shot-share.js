@@ -1,16 +1,46 @@
-
+/**
+ * Combined function to initialize both social sharing and voice recording
+ */
 function initializeSocialSharing() {
-  console.log("Setting up social sharing functionality");
-
-  // Get references to buttons
-  const shareBtn = document.getElementById("share-button");
-
+  console.log("Setting up social sharing and voice recording functionality");
+  
+  // Get references to social share buttons
+  const downloadBtn = document.getElementById('download-screenshot');
+  const twitterBtn = document.getElementById('share-twitter');
+  const facebookBtn = document.getElementById('share-facebook');
+  const blueskyBtn = document.getElementById('share-bluesky');
+  const mastodonBtn = document.getElementById('share-mastodon');
+  const shareBtn = document.getElementById('share-button');
+  
+  // Add native share button if supported
+  if (navigator.share && !document.querySelector('.native-share-button')) {
+    const buttonsRow = document.querySelector('.social-buttons-row');
+    if (buttonsRow) {
+      const nativeShareBtn = document.createElement('button');
+      nativeShareBtn.className = 'social-button native-share-button';
+      nativeShareBtn.setAttribute('aria-label', 'Share');
+      nativeShareBtn.textContent = '↑';
+      buttonsRow.insertBefore(nativeShareBtn, buttonsRow.firstChild);
+      
+      // Set up native share handler
+      nativeShareBtn.addEventListener('click', () => shareContent('native'));
+    }
+  }
+  
+  // Set up social button click handlers
+  if (downloadBtn) downloadBtn.addEventListener('click', () => captureAndDownload());
+  if (twitterBtn) twitterBtn.addEventListener('click', () => shareContent('twitter'));
+  if (facebookBtn) facebookBtn.addEventListener('click', () => shareContent('facebook'));
+  if (blueskyBtn) blueskyBtn.addEventListener('click', () => shareContent('bluesky'));
+  if (mastodonBtn) mastodonBtn.addEventListener('click', () => shareContent('mastodon'));
+  
+  // Special handling for the generic share button with possible data-action attribute
   if (shareBtn) {
     shareBtn.addEventListener('click', () => {
       const action = shareBtn.getAttribute('data-action');
       
       console.log("Share button clicked, action:", action); // Debug log
-
+      
       if (action === "record-voice") {
         console.log("Opening voice recording interface"); // Debug log
         openVoiceRecordingInterface();
@@ -20,12 +50,109 @@ function initializeSocialSharing() {
           window.open(link, "_blank");
         }
       } else {
-        console.log("No action specified for button");
+        // Default share behavior if no specific action
+        shareContent(navigator.share ? 'native' : 'twitter');
       }
     });
   }
+  
+  // Helper function to get share text
+  function getShareText() {
+    const score = document.getElementById('final-score')?.textContent || '0';
+    const blocksText = document.getElementById('blocks-stat')?.textContent || '0 attacks';
+    const timeText = document.getElementById('time-stat')?.textContent || '0 months';
+    
+    return `I scored ${score} points in Shout! Smack! Fight back!! Blocked ${blocksText} and survived for ${timeText}. Join the resistance!`;
+  }
+  
+  // Function to capture screenshot and download
+  function captureAndDownload() {
+    const gameOverScreen = document.getElementById('game-over-screen');
+    if (!gameOverScreen) return;
+    
+    // Use html2canvas to capture the screen
+    html2canvas(gameOverScreen).then(canvas => {
+      // Get the score for filename
+      const score = document.getElementById('final-score')?.textContent || '0';
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `welcome-to-the-resistance-score-${score}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      // Copy share text to clipboard
+      const shareText = getShareText();
+      navigator.clipboard.writeText(shareText)
+        .then(() => {
+          // Show visual feedback
+          if (downloadBtn) {
+            downloadBtn.textContent = '✓';
+            setTimeout(() => {
+              downloadBtn.textContent = '↓';
+            }, 2000);
+          }
+        })
+        .catch(err => console.log('Could not copy text:', err));
+    }).catch(err => {
+      console.error('Screenshot capture failed:', err);
+    });
+  }
+  
+  // Function to share content
+  function shareContent(platform) {
+    // Get data elements directly
+    const score = document.getElementById('final-score')?.textContent || '0';
+    const blocksText = document.getElementById('blocks-stat')?.textContent || '0 attacks';
+    const timeText = document.getElementById('time-stat')?.textContent || '0 months';
+    const shareUrl = window.location.href;
+    
+    let shareText = '';
+    
+    switch(platform) {
+      case 'native':
+        shareText = `I scored ${score} points in Presidential Grab! Blocked ${blocksText} and survived for ${timeText}. Join the resistance!`;
+        if (navigator.share) {
+          navigator.share({
+            title: 'Presidential Grab Game',
+            text: shareText,
+            url: shareUrl
+          }).catch(err => console.log('Share failed:', err));
+        }
+        break;
+        
+      case 'twitter':
+        // Twitter with line breaks
+        shareText = `I scored ${score} points in Presidential Grab!\nBlocked ${blocksText} and survived for ${timeText}.\nJoin the resistance!\n\n(PS: After you play, let's meet up on Mastodon or Bluesky or really anywhere but here)`;
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+        break;
+        
+      case 'facebook':
+        // For Facebook, we'll use the simple share dialog
+        shareText = `I scored ${score} points in Presidential Grab! Blocked ${blocksText} and survived for ${timeText}. Join the resistance!`;
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
+        break;
+        
+      case 'bluesky':
+        // Bluesky with line breaks
+        shareText = `I scored ${score} points in Presidential Grab!\n\nBlocked ${blocksText} and survived for ${timeText}.\n\nJoin the resistance!`;
+        window.open(`https://bsky.app/intent/compose?text=${encodeURIComponent(shareText + '\n\n' + shareUrl)}`, '_blank');
+        break;
+        
+      case 'mastodon':
+        // Mastodon with line breaks
+        shareText = `I scored ${score} points in Presidential Grab!\n\nBlocked ${blocksText} and survived for ${timeText}.\n\nJoin the resistance!`;
+        // Add image URL to help Mastodon pick up the preview
+        const mastodonShareUrl = `${shareUrl}${shareUrl.includes('?') ? '&' : '?'}og_image=https://catodot.github.io/d/images/grab.png`;
+        window.open(`https://mastodon.social/share?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(mastodonShareUrl)}`, '_blank');
+        break;
+    }
+  }
 }
 
+/**
+ * Opens the voice recording interface modal
+ */
 function openVoiceRecordingInterface() {
   const recorderModal = document.getElementById('voice-recorder-modal');
   
@@ -52,6 +179,9 @@ function openVoiceRecordingInterface() {
   }
 }
 
+/**
+ * Sets up the voice recorder modal close functionality
+ */
 function setupVoiceRecorderModal() {
   const closeBtn = document.getElementById('close-recorder');
   const recorderModal = document.getElementById('voice-recorder-modal');
@@ -70,10 +200,9 @@ function setupVoiceRecorderModal() {
   }
 }
 
-// Call this when initializing your app
-document.addEventListener('DOMContentLoaded', setupVoiceRecorderModal);
-
-// Ensure social sharing is initialized after the game over screen is shown
+/**
+ * Initialize everything when the game over screen is shown
+ */
 function initializeShareButtonsOnGameOver() {
   console.log("Initializing share buttons"); // Debug log
   
@@ -83,3 +212,5 @@ function initializeShareButtonsOnGameOver() {
   }, 100);
 }
 
+// Set up voice recorder modal when DOM content is loaded
+document.addEventListener('DOMContentLoaded', setupVoiceRecorderModal);

@@ -135,10 +135,29 @@
     }
 
     init() {
+      console.log("init animation manager");
+      
       logger.info("animation", "Initializing Animation Manager");
+        this._preloadImportantSprites();
+
       // Start with idle animation
       this.changeState("idle");
       logger.debug("animation", "Animation Manager initialized");
+    }
+
+    _preloadImportantSprites() {
+      // Create and load images for critical animations
+      const preloadSprites = [
+        this.animations.grabEastCanada.spriteSheet,
+        this.animations.grabWestCanada.spriteSheet,
+        this.animations.grabMexico.spriteSheet,
+        this.animations.grabGreenland.spriteSheet
+      ];
+      
+      preloadSprites.forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
     }
 
     createOverlayElement() {
@@ -341,22 +360,23 @@
     }
 
     destroy() {
-      // Stop all animations
       this.stop();
+      this.handHitboxManager.destroy();
       
-      // Clean up hand hitbox manager
-      if (this.handHitboxManager && typeof this.handHitboxManager.destroy === 'function') {
-        this.handHitboxManager.destroy();
-      }
-      
-      // Clean up any other resources
+      // Clear all references
       this.trumpSprite = null;
+      this.animations = null;
       this.currentState = "";
       this.onAnimationEnd = null;
       
+      // Remove overlay
+      const overlay = document.getElementById("smack-overlay");
+      if (overlay && overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+      
       logger.debug("animation", "Animation Manager destroyed");
     }
-    
 
     stop() {
       if (this.animationInterval) {

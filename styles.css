@@ -718,32 +718,67 @@ h3 {
   border-radius: 5px;
 }
 
-/* Animations related to hand interaction */
+
+/* Improve hitbox interaction */
 #trump-hand-hitbox {
   position: absolute;
   background: transparent;
-  pointer-events: all;
   cursor: pointer;
   border-radius: 50%;
   transition: all 0.2s ease;
   border: none;
-  background-color: transparent;
-  z-index: 10;
+  z-index: 300 !important; /* Ensure it's above visual elements */
+  pointer-events: all !important; /* Force pointer events to be enabled */
 }
 
-/* Hitbox debug mode visibility */
+#trump-hand-hitbox.hittable {
+  cursor: pointer !important;
+  pointer-events: all !important;
+}
+
+/* Ensure the visual element doesn't interfere with hitbox clicks */
+#trump-hand-visual {
+  pointer-events: none !important; /* Never capture clicks on the visual */
+  overflow: visible !important;
+}
+
+#trump-hand-visual.grab-success {
+  pointer-events: none !important;
+}
+
+/* Make sure shards don't interfere with clicks */
+#trump-hand-visual.grab-success .shard3,
+#trump-hand-visual.grab-success .shard4,
+#trump-hand-visual.grab-success .shard5,
+#trump-hand-visual.grab-success .shard6,
+#trump-hand-visual.grab-success .shard7,
+#trump-hand-visual.grab-success .shard8 {
+  pointer-events: none !important;
+}
+
+/* Make any overlaid elements non-blocking for clicks */
+.click-prompt {
+  pointer-events: none !important;
+}
+
+/* Debug mode enhancements for better visibility */
 body.debug-mode #trump-hand-hitbox {
-  /* Debug styling enabled only in debug mode */
+  background-color: rgba(255, 0, 0, 0.2) !important;
+  border: 2px dashed red !important;
+}
+
+/* Add subtle hover effect to improve user feedback */
+#trump-hand-hitbox:hover {
+  cursor: pointer !important;
 }
 
 
-
-#trump-hand-visual.hittable {
+/* #trump-hand-visual.hittable {
   display: block;
   transform: scale(1.0);
   background-color: rgb(255, 255, 255);
   opacity: 0.2;
-}
+} */
 
 /* Animation keyframes for interactions */
 @keyframes subtle-pulse {
@@ -844,6 +879,7 @@ body.debug-mode #trump-hand-hitbox {
 
 
 
+/* Ensure animation keyframes don't reset visibility */
 @keyframes cartoony-grab-success {
   0% {
     transform: scale(1);
@@ -859,9 +895,7 @@ body.debug-mode #trump-hand-hitbox {
   }
 }
 
-/* Shard effects for grab success */
-#trump-hand-visual.grab-success::before,
-#trump-hand-visual.grab-success::after,
+/* Fix grab shard visibility */
 #trump-hand-visual.grab-success .shard3,
 #trump-hand-visual.grab-success .shard4,
 #trump-hand-visual.grab-success .shard5,
@@ -869,204 +903,359 @@ body.debug-mode #trump-hand-hitbox {
 #trump-hand-visual.grab-success .shard7,
 #trump-hand-visual.grab-success .shard8 {
   content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  z-index: 100;
-  pointer-events: none;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 0 !important;
+  z-index: 200 !important;
+  pointer-events: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
 }
 
-/* Shard 1 - Top Right */
-#trump-hand-visual.grab-success::before {
-  content: "";
-  border-left: 10px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 30px solid rgb(255, 50, 50);
-  transform-origin: center;
-  animation: shard1-burst 0.6s ease-out forwards;
-}
-
-/* Shard 2 - Top Left */
-#trump-hand-visual.grab-success::after {
-  content: "";
-  border-left: 8px solid transparent;
-  border-right: 9px solid transparent;
-  border-bottom: 25px solid rgb(255, 80, 80);
-  transform-origin: center;
-  animation: shard2-burst 0.6s ease-out forwards;
-}
-
-/* Additional shard styles */
-#trump-hand-visual.grab-success .shard3 {
-  border-left: 12px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 28px solid rgb(255, 100, 50);
-  transform-origin: center;
-  animation: shard3-burst 0.6s ease-out forwards;
-}
-
-#trump-hand-visual.grab-success .shard4 {
-  border-left: 7px solid transparent;
-  border-right: 10px solid transparent;
-  border-bottom: 22px solid rgb(255, 120, 80);
-  transform-origin: center;
-  animation: shard4-burst 0.6s ease-out forwards;
-}
-
-#trump-hand-visual.grab-success .shard5 {
-  border-left: 6px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 18px solid rgb(255, 160, 80);
-  transform-origin: center;
-  animation: shard5-burst 0.7s ease-out forwards;
-}
-
-#trump-hand-visual.grab-success .shard6 {
-  border-left: 9px solid transparent;
-  border-right: 4px solid transparent;
-  border-bottom: 20px solid rgb(255, 180, 100);
-  transform-origin: center;
-  animation: shard6-burst 0.65s ease-out forwards;
-}
-
-#trump-hand-visual.grab-success .shard7 {
-  border-left: 5px solid transparent;
-  border-right: 7px solid transparent;
-  border-bottom: 16px solid rgb(255, 140, 60);
-  transform-origin: center;
-  animation: shard7-burst 0.7s ease-out forwards;
-}
-
-#trump-hand-visual.grab-success .shard8 {
-  border-left: 8px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 19px solid rgb(255, 200, 120);
-  transform-origin: center;
-  animation: shard8-burst 0.75s ease-out forwards;
-}
-
-/* Shard animation keyframes */
+/* Adjust shard animations to ensure they remain visible */
 @keyframes shard1-burst {
   0% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
   }
   25% {
     opacity: 1;
     transform: translate(40px, -30px) scale(0.6) rotate(45deg);
+    visibility: visible;
   }
   100% {
     opacity: 0;
     transform: translate(80px, -60px) scale(0.8) rotate(90deg);
+    visibility: visible;
   }
 }
 
 @keyframes shard2-burst {
   0% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
   }
   25% {
     opacity: 1;
     transform: translate(-50px, -20px) scale(0.6) rotate(-30deg);
+    visibility: visible;
   }
   100% {
     opacity: 0;
     transform: translate(-100px, -40px) scale(0.9) rotate(-60deg);
+    visibility: visible;
   }
 }
 
 @keyframes shard3-burst {
   0% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
   }
   25% {
     opacity: 1;
     transform: translate(30px, 40px) scale(0.5) rotate(60deg);
+    visibility: visible;
   }
   100% {
     opacity: 0;
     transform: translate(60px, 80px) scale(0.7) rotate(120deg);
+    visibility: visible;
   }
 }
 
 @keyframes shard4-burst {
   0% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
   }
   25% {
     opacity: 1;
     transform: translate(-40px, 30px) scale(0.5) rotate(-45deg);
+    visibility: visible;
   }
   100% {
     opacity: 0;
     transform: translate(-80px, 60px) scale(0.8) rotate(-90deg);
+    visibility: visible;
   }
 }
 
 @keyframes shard5-burst {
   0% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
   }
   25% {
     opacity: 1;
     transform: translate(20px, -50px) scale(0.5) rotate(30deg);
+    visibility: visible;
   }
   100% {
     opacity: 0;
     transform: translate(40px, -100px) scale(0.7) rotate(60deg);
+    visibility: visible;
+  }
+}
+
+/* Update the grab-success class to fix visibility issues */
+#trump-hand-visual.grab-success {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: absolute !important;
+  z-index: 100 !important;
+  transform: scale(1) !important;
+  animation: cartoony-grab-success 0.6s ease-out forwards !important;
+}
+
+/* Ensure animation keyframes don't reset visibility */
+@keyframes cartoony-grab-success {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  20% {
+    transform: scale(1.15);
+    filter: brightness(1.5);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* Fix grab shard visibility */
+#trump-hand-visual.grab-success .shard3,
+#trump-hand-visual.grab-success .shard4,
+#trump-hand-visual.grab-success .shard5,
+#trump-hand-visual.grab-success .shard6,
+#trump-hand-visual.grab-success .shard7,
+#trump-hand-visual.grab-success .shard8 {
+  content: "";
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 0 !important;
+  z-index: 200 !important;
+  pointer-events: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+/* Adjust shard animations to ensure they remain visible */
+@keyframes shard1-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
+  }
+  25% {
+    opacity: 1;
+    transform: translate(40px, -30px) scale(0.6) rotate(45deg);
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(80px, -60px) scale(0.8) rotate(90deg);
+    visibility: visible;
+  }
+}
+
+@keyframes shard2-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50px, -20px) scale(0.6) rotate(-30deg);
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-100px, -40px) scale(0.9) rotate(-60deg);
+    visibility: visible;
+  }
+}
+
+@keyframes shard3-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
+  }
+  25% {
+    opacity: 1;
+    transform: translate(30px, 40px) scale(0.5) rotate(60deg);
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(60px, 80px) scale(0.7) rotate(120deg);
+    visibility: visible;
+  }
+}
+
+@keyframes shard4-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-40px, 30px) scale(0.5) rotate(-45deg);
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-80px, 60px) scale(0.8) rotate(-90deg);
+    visibility: visible;
+  }
+}
+
+@keyframes shard5-burst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
+  }
+  25% {
+    opacity: 1;
+    transform: translate(20px, -50px) scale(0.5) rotate(30deg);
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(40px, -100px) scale(0.7) rotate(60deg);
+    visibility: visible;
   }
 }
 
 @keyframes shard6-burst {
   0% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
   }
   25% {
     opacity: 1;
     transform: translate(-30px, -40px) scale(0.4) rotate(-50deg);
+    visibility: visible;
   }
   100% {
     opacity: 0;
     transform: translate(-60px, -80px) scale(0.6) rotate(-100deg);
+    visibility: visible;
   }
 }
 
 @keyframes shard7-burst {
   0% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
   }
   25% {
     opacity: 1;
     transform: translate(45px, 15px) scale(0.5) rotate(40deg);
+    visibility: visible;
   }
   100% {
     opacity: 0;
     transform: translate(90px, 30px) scale(0.7) rotate(80deg);
+    visibility: visible;
   }
 }
 
 @keyframes shard8-burst {
   0% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(0, 0) scale(0.1) rotate(0deg);
+    visibility: visible;
   }
   25% {
     opacity: 1;
     transform: translate(-25px, 45px) scale(0.5) rotate(-35deg);
+    visibility: visible;
   }
   100% {
     opacity: 0;
     transform: translate(-50px, 90px) scale(0.7) rotate(-70deg);
+    visibility: visible;
   }
 }
+
+/* Define specific shard styles to ensure proper visibility */
+#trump-hand-visual.grab-success .shard3 {
+  border-left: 12px solid transparent !important;
+  border-right: 5px solid transparent !important;
+  border-bottom: 28px solid rgb(255, 100, 50) !important;
+  animation: shard3-burst 0.6s ease-out forwards !important;
+}
+
+#trump-hand-visual.grab-success .shard4 {
+  border-left: 7px solid transparent !important;
+  border-right: 10px solid transparent !important;
+  border-bottom: 22px solid rgb(255, 120, 80) !important;
+  animation: shard4-burst 0.6s ease-out forwards !important;
+}
+
+#trump-hand-visual.grab-success .shard5 {
+  border-left: 6px solid transparent !important;
+  border-right: 8px solid transparent !important;
+  border-bottom: 18px solid rgb(255, 160, 80) !important;
+  animation: shard5-burst 0.7s ease-out forwards !important;
+}
+
+#trump-hand-visual.grab-success .shard6 {
+  border-left: 9px solid transparent !important;
+  border-right: 4px solid transparent !important;
+  border-bottom: 20px solid rgb(255, 180, 100) !important;
+  animation: shard6-burst 0.65s ease-out forwards !important;
+}
+
+#trump-hand-visual.grab-success .shard7 {
+  border-left: 5px solid transparent !important;
+  border-right: 7px solid transparent !important;
+  border-bottom: 16px solid rgb(255, 140, 60) !important;
+  animation: shard7-burst 0.7s ease-out forwards !important;
+}
+
+#trump-hand-visual.grab-success .shard8 {
+  border-left: 8px solid transparent !important;
+  border-right: 6px solid transparent !important;
+  border-bottom: 19px solid rgb(255, 200, 120) !important;
+  animation: shard8-burst 0.75s ease-out forwards !important;
+}
+
+
+
+/* Ensure the hand hitbox is properly configured */
+#trump-hand-hitbox {
+  position: absolute;
+  background: transparent;
+  pointer-events: all;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  border: none;
+  background-color: transparent;
+  z-index: 10;
+}
+
 
 /* Grab screen shake */
 @keyframes grab-screen-shake {
@@ -2145,3 +2334,7 @@ body.debug-mode .protestor-hitbox {
     padding: 30px 20px;
   }
 }
+
+
+
+
