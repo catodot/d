@@ -379,31 +379,65 @@ class AnimationManager {
       // logger.debug("animation", "Animation Manager initialized");
     }
   
-    _preloadImportantSprites(sizes = ['normal']) {
-      if (!this.animations) return; // Safety check
+// In AnimationManager, replace the existing _preloadImportantSprites with:
+
+_preloadImportantSprites(sizes = ['normal']) {
+  return new Promise((resolve, reject) => {
+    if (!this.animations) {
+      console.warn('No animations defined for preloading');
+      resolve();
+      return;
+    }
+
+    const spritesToLoad = [];
+    const loadingPromises = [];
     
-      const spritesToLoad = [];
+    sizes.forEach(size => {
+      const suffix = size === 'normal' ? '' : size.charAt(0).toUpperCase() + size.slice(1);
+      const baseAnimations = ['idle', 'grabEastCanada', 'grabWestCanada', 'grabMexico', 'grabGreenland'];
       
-      sizes.forEach(size => {
-        const suffix = size === 'normal' ? '' : size.charAt(0).toUpperCase() + size.slice(1);
-        const baseAnimations = ['idle', 'grabEastCanada', 'grabWestCanada', 'grabMexico', 'grabGreenland'];
-        
-        baseAnimations.forEach(baseAnim => {
-          const animName = baseAnim + suffix;
-          if (this.animations[animName]) {
-            spritesToLoad.push(this.animations[animName].spriteSheet);
-          }
-        });
-      });
-    
-      spritesToLoad.forEach(src => {
-        if (!this.loadedSprites.has(src)) {
-          const img = new Image();
-          img.src = src;
-          this.loadedSprites.add(src);
+      baseAnimations.forEach(baseAnim => {
+        const animName = baseAnim + suffix;
+        if (this.animations[animName] && !this.loadedSprites.has(this.animations[animName].spriteSheet)) {
+          spritesToLoad.push(this.animations[animName].spriteSheet);
         }
       });
-    }
+    });
+
+    // Load all sprites
+    spritesToLoad.forEach(src => {
+      if (!this.loadedSprites.has(src)) {
+        const loadPromise = new Promise((resolveLoad) => {
+          const img = new Image();
+          img.onload = () => {
+            this.loadedSprites.add(src);
+            console.log(`Preloaded sprite: ${src}`);
+            resolveLoad();
+          };
+          img.onerror = () => {
+            console.warn(`Failed to preload sprite: ${src}`);
+            resolveLoad(); // Resolve anyway to not block the chain
+          };
+          img.src = src;
+        });
+        loadingPromises.push(loadPromise);
+      }
+    });
+
+    // Wait for all sprites to load
+    Promise.all(loadingPromises)
+      .then(() => {
+        console.log(`Successfully preloaded ${spritesToLoad.length} sprites`);
+        resolve();
+      })
+      .catch(error => {
+        console.error('Error preloading sprites:', error);
+        resolve(); // Resolve anyway to not block the game
+      });
+  });
+}
+
+
   
     createOverlayElement() {
       // Check if overlay already exists
@@ -447,17 +481,11 @@ class AnimationManager {
       // logger.debug("animation", `Game speed set to ${speedMultiplier.toFixed(2)}x`);
     }
   
+
     changeState(stateName, onEndCallback = null) {
-      // If we're using small sprites, use small version
-      if (this.sizeState !== 'normal') {
-        const sizedStateName = stateName + this.sizeState.charAt(0).toUpperCase() + this.sizeState.slice(1);
-        if (this.animations[sizedStateName]) {
-          stateName = sizedStateName;
-        }
-      }
-    
       // Don't change animation if requested state doesn't exist
       if (!this.animations[stateName]) {
+        console.warn(`Animation state not found: ${stateName}`);
         return;
       }
     
@@ -476,17 +504,10 @@ class AnimationManager {
         this.trumpSprite.style.backgroundImage = `url('${animation.spriteSheet}')`;
       }
     
-      // Update hitbox for the new state
-      if (animation.handVisible) {
-        this.handHitboxManager.updateStateAndFrame(stateName, 0);
-      } else {
-        this.handHitboxManager.hideHitbox();
-      }
-    
       // Update initial frame
       this.updateFrame(0);
     
-      // Small delay to ensure first frame renders properly
+      // Start playing
       setTimeout(() => {
         this.play();
       }, 1);

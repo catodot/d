@@ -111,6 +111,7 @@ class AudioManager {
         canada: ["canadaResist1.mp3", "canadaResist2.mp3", "canadaResist3.mp3"],
         mexico: ["mexicoResist1.mp3", "mexicoResist2.mp3", "mexicoResist3.mp3"],
         greenland: ["greenlandResist1.mp3", "greenlandResist2.mp3", "greenlandResist3.mp3"],
+        usa: ["greenlandResist1.mp3", "greenlandResist2.mp3"],
       },
       defense: {
         slap: ["slap1.mp3", "slap2.mp3", "slap3.mp3", "slap4.mp3"],
@@ -709,7 +710,7 @@ class AudioManager {
     }, 2500);
   }
   preloadProtestSounds() {
-    const countries = ["eastCanada", "westCanada", "mexico", "greenland"];
+    const countries = ["eastCanada", "westCanada", "mexico", "greenland", "usa"];
 
     // First, load all the protestor sounds (one per country)
     countries.forEach((country) => {
@@ -1337,10 +1338,11 @@ playProtestorSound(country, volume = 0.5) {
       }
 
       // Ensure it's a valid country
-      if (!["eastCanada", "westCanada", "mexico", "greenland"].includes(soundCountry)) {
+      if (!["eastCanada", "westCanada", "mexico", "greenland", "usa"].includes(soundCountry)) {
         console.warn(`[Audio] Unknown country for protestor sound: ${soundCountry}`);
         soundCountry = "eastCanada"; // Default fallback
       }
+console.log("soundCountry");
 
       // Create key with "Protestors" suffix
       const protestorKey = soundCountry + "Protestors";

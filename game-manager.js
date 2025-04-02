@@ -25,17 +25,42 @@ class GameEngine {
     this.config = {
       DEBUG_MODE: config.debug || false,
       GAME_DURATION: 168, // 2min 48sec in seconds
-      ANIMATION_DELAY: 650,
-      SPEED_INCREASE_INTERVAL: 16000,
-      MAX_SPEED_MULTIPLIER: 3.0,
-      SPEED_INCREASE_STEP: 0.5,
       AUTO_RESTART_DELAY: 10000,
-      GLOBE_ANIMATION_DURATION: 4000,
-      READY_TEXT_DURATION: 3500,
-      TRUMP_ENTRANCE_DURATION: 2000,
-      IDLE_BEFORE_GRAB_DURATION: 2000,
       INITIAL_GRAB_DELAY: 8000,
       COUNTRIES: ["canada", "mexico", "greenland"],
+    };
+
+    this.END_STATES = {
+      TRUMP_VICTORY: 'trump_victory',
+      RESISTANCE_WIN: 'resistance_win',
+      TRUMP_DESTROYED: 'trump_destroyed'
+    };
+
+    this.endGameSequences = {
+      trump_victory: {
+        trumpAnimation: "victory",
+        audioSequence: ["evilLaugh", "lose"],
+        message: "GAME OVER\nyou lost the fight",
+        shardType: "defeat",
+        keepTrumpVisible: true,
+        animationDuration: 2000
+      },
+      resistance_win: {
+        trumpAnimation: "defeat",
+        audioSequence: ["defeatCry", "victory"],
+        message: "GAME OVER\nyou survived 4 years",
+        shardType: "victory",
+        keepTrumpVisible: false,
+        animationDuration: 2000
+      },
+      trump_destroyed: {
+        trumpAnimation: "shrinkDefeat",
+        audioSequence: ["defeatScream", "victory"],
+        message: "VICTORY\nthe people have spoken, the resistance has won",
+        shardType: "victory",
+        keepTrumpVisible: false,
+        animationDuration: 2000
+      }
     };
 
     // Override with provided config
@@ -241,7 +266,7 @@ class GameEngine {
     });
   }
 
-  startGame() {
+  startGame() {   
     console.log("[Engine] Starting new game");
 
     // Unlock audio system - MUST be called in response to user interaction
@@ -269,6 +294,104 @@ class GameEngine {
       this.initiateGrab();
     }, this.config.INITIAL_GRAB_DELAY);
   }
+
+  _createShards(type, count = 12) {
+    const container = document.createElement('div');
+    container.className = `${type}-shards`;
+    
+    for (let i = 0; i < count; i++) {
+      const shard = document.createElement('div');
+      shard.className = `${type}-shard`;
+      
+      // Calculate random trajectory
+      const angle = (i / count) * 360 + (Math.random() * 30 - 15);
+      const distance = 100 + Math.random() * 50;
+      const flyX = `${Math.cos(angle * Math.PI / 180) * distance}vw`;
+      const flyY = `${Math.sin(angle * Math.PI / 180) * distance}vh`;
+      const rotation = Math.random() * 720 - 360;
+
+      shard.style.setProperty('--flyX', flyX);
+      shard.style.setProperty('--flyY', flyY);
+      shard.style.setProperty('--rotation', `${rotation}deg`);
+      
+      // Random size and initial position
+      const size = 20 + Math.random() * 40;
+      shard.style.width = `${size}px`;
+      shard.style.height = `${size}px`;
+      shard.style.left = '50%';
+      shard.style.top = '50%';
+      
+      container.appendChild(shard);
+    }
+    
+    document.body.appendChild(container);
+    return container;
+  }
+
+  // _createEndText(message) {
+  //   const text = document.createElement('div');
+  //   text.className = 'game-end-text';
+  //   text.textContent = message;
+  //   document.body.appendChild(text);
+  //   return text;
+  // }
+
+  async triggerGameEnd(endState) {
+    const sequence = this.endGameSequences[endState];
+    
+    // Start final trump animation
+    if (this.systems.animation) {
+      this.systems.animation.changeState(sequence.trumpAnimation);
+    }
+    
+    // Fade out background music
+    if (this.systems.audio?.backgroundMusic) {
+      await this.systems.audio.fadeTo(
+        this.systems.audio.backgroundMusic,
+        0,
+        1000
+      );
+      this.systems.audio.stopBackgroundMusic();
+    }
+
+    // Create flash effect
+    const flash = document.createElement('div');
+    flash.className = 'end-game-flash';
+    document.body.appendChild(flash);
+
+    // Create and animate shards
+    const shards = this._createShards(sequence.shardType);
+    
+    // Show end text
+    // const text = this._createEndText(sequence.message);
+
+    // Play sequence sounds
+    sequence.audioSequence.forEach((sound, index) => {
+      setTimeout(() => {
+        this.systems.audio?.play('ui', sound);
+      }, index * 500);
+    });
+
+    // Wait for animations to complete
+    await new Promise(resolve => setTimeout(resolve, sequence.animationDuration));
+
+    // Clean up effects
+    if (flash.parentNode) flash.parentNode.removeChild(flash);
+    if (shards.parentNode) shards.parentNode.removeChild(shards);
+    // if (text.parentNode) text.parentNode.removeChild(text);
+
+    // Start world shrink
+    this.endGame(endState !== this.END_STATES.TRUMP_VICTORY, {
+      showWorldShrinkAnimation: true,
+      keepTrumpAnimating: sequence.keepTrumpVisible,
+      animationDuration: 7000,
+      endState: endState
+    });
+  } 
+
+
+
+  
 
   /**
    * End the game and show results
@@ -570,59 +693,7 @@ class GameEngine {
         window.UFOManager.state.autoSpawnEnabled = false;
         window.UFOManager.destroy();
       }
-
-      // IMPROVED SOUND HANDLING: Stop all sounds in one call
-      if (this.systems.audio) {
-        // Stop all sounds except background
-        this.systems.audio.stopAll({ exceptBackgroundMusic: true });
-
-        // Fade out background music over 2 seconds
-        if (this.systems.audio.backgroundMusic) {
-          this.systems.audio.fadeTo(
-            this.systems.audio.backgroundMusic,
-            0, // Target volume
-            2000, // Duration in ms
-            () => {
-              this.systems.audio.stopBackgroundMusic();
-
-              // MODIFIED: Play both sounds simultaneously
-              setTimeout(() => {
-                this.systems.audio.play("trump", "evilLaugh");
-
-                // Play the lose sound at lower volume (0.4) this doesn't work
-                this.systems.audio.play("ui", "lose", 0.1);
-
-              }, 500); // Slight delay after music fade-out
-            }
-          );
-        } else {
-          // No background music playing, just play both sounds
-          setTimeout(() => {
-            this.systems.audio.play("trump", "evilLaugh");
-
-            // Play the lose sound at lower volume (0.4)
-            this.systems.audio.play("ui", "lose", 0.1);
-
-            // Play Trump's evil laugh at normal volume
-          }, 300);
-        }
-      }
-
-      // Start with Trump's victory animation - but DON'T wait for it to finish
-      if (this.systems.animation) {
-        // Change to victory state but don't pass a callback
-        this.systems.animation.changeState("victory");
-      }
-
-      // Start the world shrinking WHILE Trump is animating
-      // Slight delay to let Trump start celebrating first
-      setTimeout(() => {
-        this.endGame(false, {
-          showWorldShrinkAnimation: true,
-          animationDuration: 7000, // REDUCED from 20000 to 7000ms
-          keepTrumpAnimating: true,
-        });
-      }, 1000);
+      this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY);
 
       return;
     }
@@ -746,9 +817,16 @@ class GameEngine {
 
     if (typeof FreedomManager === "function") {
       if (!window.freedomManager) {
-        window.freedomManager = new FreedomManager(this.systems.state, this.systems.ui.elements, audioManager);
+        window.freedomManager = new FreedomManager(
+          this.systems.state, 
+          this.systems.ui.elements, 
+          audioManager,
+          {},  // Default config
+          this  // Pass the game engine instance
+        );
       }
       this.systems.freedom = window.freedomManager;
+
 
       // Connect protestor hitbox manager to freedom manager
       if (this.systems.protestorHitbox) {
@@ -786,13 +864,6 @@ class GameEngine {
       this.systems.speed = window.speedManager;
     }
 
-    // UFO manager
-    // if (typeof UFOManager === "function") {
-    //   if (!window.UFOManager) {
-    //     window.UFOManager = new UFOManager(this.systems.audio);  // Passing audioManager here
-    //   }
-    //   this.systems.ufo = window.UFOManager;
-    // }
 
     console.log("[Engine] Additional managers initialized:", {
       handHitbox: !!this.systems.collision,
@@ -1011,7 +1082,9 @@ class GameEngine {
 
     // Check for time-based win condition
     if (this.systems.state.timeRemaining <= 0) {
-      this.endGame(true); // Win by surviving the time limit
+      // this.endGame(true); // Win by surviving the time limit
+      this.triggerGameEnd(this.END_STATES.RESISTANCE_WIN);
+
     }
   }
 
@@ -1441,6 +1514,9 @@ class GameEngine {
   }
 }
 
+window.GameEngine = GameEngine;
+
+
 /**
  * Game State - Manages all game data and state
  */
@@ -1517,6 +1593,9 @@ class GameState {
     return countries;
   }
 }
+
+window.GameState = GameState;
+
 
 /**
  * UI Manager - Handles all DOM interactions and visual updates
@@ -1779,6 +1858,22 @@ class UIManager {
     const gameContainer = this.elements.game.container;
     const gameScreen = this.elements.screens.game;
 
+      const gameOverTextContent = document.createElement("div");
+
+      switch(options.endState) {
+        case 'trump_victory':
+          gameOverTextContent.textContent = "GAME OVER\nyou lost the fight";
+          break;
+        case 'resistance_win':
+          gameOverTextContent.textContent = "GAME OVER\nyou survived 4 years";
+          break;
+        case 'trump_destroyed':
+          gameOverTextContent.textContent = "VICTORY\nthe people have spoken,\nthe resistance has won";
+          break;
+        default:
+          gameOverTextContent.textContent = "GAME OVER";
+      }
+
     if (!gameContainer || !gameScreen) {
       console.error("Required game elements not found");
       if (typeof onCompleteCallback === "function") onCompleteCallback();
@@ -1804,7 +1899,7 @@ class UIManager {
 
     // Add game over text
     const gameOverText = document.createElement("div");
-    gameOverText.textContent = "GAME OVER";
+    gameOverText.innerHTML = gameOverTextContent.textContent.replace(/\n/g, '<br>');
     gameOverText.classList.add("game-over-zoom");
     // gameOverText.style.color = "white";
     // gameOverText.style.fontSize = "clamp(14px, 5vmin, 42px)";
@@ -2655,6 +2750,9 @@ class UIManager {
     }
   }
 }
+
+window.UIManager = UIManager;
+
 
 /**
  * Input Manager - Handles all user input
