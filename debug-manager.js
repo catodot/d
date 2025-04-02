@@ -1079,7 +1079,7 @@ _updateGameStateDisplay() {
         position: absolute;
         width: 10px;
         height: 10px;
-        background: red;
+        background: #ea1487;
         border-radius: 50%;
         pointer-events: none;
         display: none;

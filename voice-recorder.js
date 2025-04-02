@@ -194,7 +194,7 @@ class VoiceRecorder {
             
             // Update glow color based on state
             if (this.isRecording) {
-                this.glowOutline.updateGlowColor(this.buttonGlow, '#e74c3c'); // Red when recording
+                this.glowOutline.updateGlowColor(this.buttonGlow, '#ea1487'); // Red when recording
             } else if (this.elements.recordButton.classList.contains('waiting')) {
                 this.glowOutline.updateGlowColor(this.buttonGlow, '#f39c12'); // Yellow when waiting
             } else {
