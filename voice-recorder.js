@@ -782,7 +782,9 @@ class VoiceRecorder {
           }, 30000); // 30 second timeout
     
           // Upload to Cloudinary
-          fetch(`https://api.cloudinary.com/v1_1/${this.cloudName}/upload`, {
+                    fetch(`https://meadowbreeze.anondns.net/upload/upload`, {
+
+          // fetch(`https://api.cloudinary.com/v1_1/${this.cloudName}/upload`, {
             method: "POST",
             body: formData,
           })
