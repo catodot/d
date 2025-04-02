@@ -51,6 +51,9 @@ class AudioManager {
           westCanadaProtestors: null,
           mexicoProtestors: null,
           greenlandProtestors: null,
+          usaProtestors: null,
+
+
         },
       },
       resistance: {
@@ -100,7 +103,7 @@ class AudioManager {
         fullAnnexCry: ["fullAnnex1.mp3", "fullAnnex2.mp3", "fullAnnex3.mp3"],
         trumpVictorySounds: ["victory1.mp3", "victory2.mp3", "victory3.mp3"],
         trumpSob: ["trumpSob1.mp3", "trumpSob2.mp3"],
-        trumpYa: ["bing1.mp3", "bing2.mp3"],
+        trumpYa: ["bing1.mp3", "bing2.mp3", "bing3.mp3"],
         evilLaugh: "trump-laugh.mp3",
       },
 
@@ -145,9 +148,6 @@ class AudioManager {
             "protestWestCan11.mp3",
             "protestWestCan12.mp3",
             "protestWestCan13.mp3",
-            "protestWestCan14.mp3",
-            "protestWestCan15.mp3",
-            "protestWestCan16.mp3",
           ],
           mexicoSaysNo: [
             "protestMex1.mp3",
@@ -188,6 +188,7 @@ class AudioManager {
           westCanadaProtestors: ["protestorsWestCan1.mp3"],
           mexicoProtestors: ["protestorsMex1.mp3"],
           greenlandProtestors: ["protestorsGreen1.mp3"],
+          usaProtestors: ["protestorsUSA.mp3"],
         },
       },
       particles: {
@@ -1896,7 +1897,7 @@ playProtestorSound(country, volume = 0.5) {
       const yaSound = this._playDirect(yaFile, volume);
   
       // Default duration if we can't get it from audio element
-      let yaDuration = 0.5; // shorter default since ya is short
+      let yaDuration = 0.2; // shorter default since ya is short
       if (yaSound && yaSound.duration && !isNaN(yaSound.duration)) {
         yaDuration = yaSound.duration;
       }

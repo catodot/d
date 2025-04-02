@@ -23,13 +23,13 @@ class GameEngine {
   constructor(config = {}) {
     // Configuration with defaults
     this.config = {
-      DEBUG_MODE: config.debug || true,
+      DEBUG_MODE: config.debug || false,
       GAME_DURATION: 168, // 2min 48sec in seconds
       ANIMATION_DELAY: 650,
       SPEED_INCREASE_INTERVAL: 16000,
       MAX_SPEED_MULTIPLIER: 3.0,
       SPEED_INCREASE_STEP: 0.5,
-      AUTO_RESTART_DELAY: 5000,
+      AUTO_RESTART_DELAY: 10000,
       GLOBE_ANIMATION_DURATION: 4000,
       READY_TEXT_DURATION: 3500,
       TRUMP_ENTRANCE_DURATION: 2000,
@@ -1617,6 +1617,23 @@ class UIManager {
     requestAnimationFrame(shake);
   }
 
+  _addMapInteractionHandlers() {
+    const mapBackground = this.elements.game.map;
+    if (!mapBackground) return;
+  
+    mapBackground.addEventListener('click', () => {
+      const gameContainer = this.elements.game.container;
+      if (gameContainer) {
+        gameContainer.classList.add('screen-shake');
+        
+        // Remove the shake class after animation completes
+        setTimeout(() => {
+          gameContainer.classList.remove('screen-shake');
+        }, 700);
+      }
+    });
+  }
+
   /**
    * Show a brief game over scene before the full screen
    * @param {boolean} playerWon - Whether player won
@@ -2598,8 +2615,8 @@ class UIManager {
           this.elements.game.map.style.transition = "opacity 0.8s ease-in";
           this.elements.game.map.style.opacity = "1";
         }
-      }, 600);  // Reduced from 1000 to 800
-    }, 700);   // Reduced from 3000 to 2000
+      }, 700);  // Reduced from 1000 to 800
+    }, 800);   // Reduced from 3000 to 2000
 
     // Complete Trump entrance
     setTimeout(() => {

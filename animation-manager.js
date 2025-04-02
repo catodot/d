@@ -15,6 +15,9 @@ class AnimationManager {
       this.loopCount = 0;
       this.isPaused = false;
       this.debug = false;
+
+
+
   
       // Speed control
       this.gameSpeed = 1.0;
@@ -89,6 +92,9 @@ class AnimationManager {
           calibrationScale: 0.23,
           smackAnimation: "smackMexico",
         },
+
+
+        
         slapped: {
           spriteSheet: "images/trump-slapped-sprite.png",
           frameCount: 2,
@@ -132,8 +138,232 @@ class AnimationManager {
           loopCount: 4, // Play once
           handVisible: false,
         },
+
+
+
+        idleSmall: {
+          spriteSheet: "images/trump-idle-sprite-small.png",
+          frameCount: 2,
+          loopCount: Infinity,
+          handVisible: false
+        },
+        grabEastCanadaSmall: {
+          spriteSheet: "images/trump-grab-east-canada-sprite-small.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 1608, y: 1439, width: 737, height: 737 },
+            { x: 1469, y: 1344, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackEastCanada"
+        },
+        grabWestCanadaSmall: {
+          spriteSheet: "images/trump-grab-west-canada-sprite-small.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 286, y: 1248, width: 737, height: 737 },
+            { x: 282, y: 1140, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackWestCanada"
+        },
+        grabGreenlandSmall: {
+          spriteSheet: "images/trump-grab-greenland-sprite-small.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 2163, y: 754, width: 737, height: 737 },
+            { x: 2072, y: 789, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackGreenland"
+        },
+        grabMexicoSmall: {
+          spriteSheet: "images/trump-grab-mexico-sprite-small.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 1118, y: 2319, width: 737, height: 737 },
+            { x: 906, y: 2445, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackMexico"
+        },
+        slappedSmall: {
+          spriteSheet: "images/trump-slapped-sprite-small.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: false
+        },
+        victorySmall: {
+          spriteSheet: "images/trump-happy-sprite-small.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: false
+        },
+
+
+
+
+
+
+
+
+        idleSmaller: {
+          spriteSheet: "images/trump-idle-sprite-smaller.png",
+          frameCount: 2,
+          loopCount: Infinity,
+          handVisible: false
+        },
+        grabEastCanadaSmaller: {
+          spriteSheet: "images/trump-grab-east-canada-sprite-smaller.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 1608, y: 1439, width: 737, height: 737 },
+            { x: 1469, y: 1344, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackEastCanada"
+        },
+        grabWestCanadaSmaller: {
+          spriteSheet: "images/trump-grab-west-canada-sprite-smaller.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 286, y: 1248, width: 737, height: 737 },
+            { x: 282, y: 1140, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackWestCanada"
+        },
+        grabGreenlandSmaller: {
+          spriteSheet: "images/trump-grab-greenland-sprite-smaller.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 2163, y: 754, width: 737, height: 737 },
+            { x: 2072, y: 789, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackGreenland"
+        },
+        grabMexicoSmaller: {
+          spriteSheet: "images/trump-grab-mexico-sprite-smaller.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 1118, y: 2319, width: 737, height: 737 },
+            { x: 906, y: 2445, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackMexico"
+        },
+        slappedSmaller: {
+          spriteSheet: "images/trump-slapped-sprite-smaller.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: false
+        },
+        victorySmaller: {
+          spriteSheet: "images/trump-happy-sprite-smaller.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: false
+        },
+
+
+        
+
+
+
+
+
+
+
+        idleSmallest: {
+          spriteSheet: "images/trump-idle-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: Infinity,
+          handVisible: false
+        },
+        grabEastCanadaSmallest: {
+          spriteSheet: "images/trump-grab-east-canada-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 1608, y: 1439, width: 737, height: 737 },
+            { x: 1469, y: 1344, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackEastCanada"
+        },
+        grabWestCanadaSmallest: {
+          spriteSheet: "images/trump-grab-west-canada-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 286, y: 1248, width: 737, height: 737 },
+            { x: 282, y: 1140, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackWestCanada"
+        },
+        grabGreenlandSmallest: {
+          spriteSheet: "images/trump-grab-greenland-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 2163, y: 754, width: 737, height: 737 },
+            { x: 2072, y: 789, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackGreenland"
+        },
+        grabMexicoSmallest: {
+          spriteSheet: "images/trump-grab-mexico-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 1118, y: 2319, width: 737, height: 737 },
+            { x: 906, y: 2445, width: 737, height: 737 }
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackMexico"
+        },
+        slappedSmallest: {
+          spriteSheet: "images/trump-slapped-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: false
+        },
+        victorySmallest: {
+          spriteSheet: "images/trump-happy-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: false
+        },
+
       };
   
+      this.sizeState = 'normal'; // Can be: 'normal', 'small', 'smaller', 'smallest'
+      this.loadedSprites = new Set();
+      this._preloadImportantSprites(['normal']);
+
       // Pass animations data to hand hitbox manager
       this.handHitboxManager.setAnimationsData(this.animations);
     }
@@ -149,18 +379,29 @@ class AnimationManager {
       // logger.debug("animation", "Animation Manager initialized");
     }
   
-    _preloadImportantSprites() {
-      // Create and load images for critical animations
-      const preloadSprites = [
-        this.animations.grabEastCanada.spriteSheet,
-        this.animations.grabWestCanada.spriteSheet,
-        this.animations.grabMexico.spriteSheet,
-        this.animations.grabGreenland.spriteSheet,
-      ];
-  
-      preloadSprites.forEach((src) => {
-        const img = new Image();
-        img.src = src;
+    _preloadImportantSprites(sizes = ['normal']) {
+      if (!this.animations) return; // Safety check
+    
+      const spritesToLoad = [];
+      
+      sizes.forEach(size => {
+        const suffix = size === 'normal' ? '' : size.charAt(0).toUpperCase() + size.slice(1);
+        const baseAnimations = ['idle', 'grabEastCanada', 'grabWestCanada', 'grabMexico', 'grabGreenland'];
+        
+        baseAnimations.forEach(baseAnim => {
+          const animName = baseAnim + suffix;
+          if (this.animations[animName]) {
+            spritesToLoad.push(this.animations[animName].spriteSheet);
+          }
+        });
+      });
+    
+      spritesToLoad.forEach(src => {
+        if (!this.loadedSprites.has(src)) {
+          const img = new Image();
+          img.src = src;
+          this.loadedSprites.add(src);
+        }
       });
     }
   
@@ -207,52 +448,48 @@ class AnimationManager {
     }
   
     changeState(stateName, onEndCallback = null) {
-      // logger.debug("animation", `changeState to "${stateName}"`);
-  
+      // If we're using small sprites, use small version
+      if (this.sizeState !== 'normal') {
+        const sizedStateName = stateName + this.sizeState.charAt(0).toUpperCase() + this.sizeState.slice(1);
+        if (this.animations[sizedStateName]) {
+          stateName = sizedStateName;
+        }
+      }
+    
       // Don't change animation if requested state doesn't exist
       if (!this.animations[stateName]) {
-        // logger.error("animation", `Animation state '${stateName}' does not exist`);
         return;
       }
-  
-      // Log previous state details before changing
-      if (this.currentState) {
-        // logger.debug("animation", `Changing from ${this.currentState} (frame ${this.currentFrame}, loop ${this.loopCount}) to ${stateName}`);
-      }
-  
+    
       // Stop current animation
       this.stop();
-  
+    
       // Get animation data
       const animation = this.animations[stateName];
       this.currentState = stateName;
       this.currentFrame = 0;
       this.loopCount = 0;
       this.onAnimationEnd = onEndCallback;
-  
+    
       // Update sprite image
       if (this.trumpSprite) {
         this.trumpSprite.style.backgroundImage = `url('${animation.spriteSheet}')`;
-        // logger.debug("animation", `Set sprite image to ${animation.spriteSheet}`);
-      } else {
-        // logger.error("animation", "Trump sprite element not found");
       }
-  
+    
       // Update hitbox for the new state
       if (animation.handVisible) {
         this.handHitboxManager.updateStateAndFrame(stateName, 0);
       } else {
         this.handHitboxManager.hideHitbox();
       }
-  
+    
       // Update initial frame
       this.updateFrame(0);
-  
+    
       // Small delay to ensure first frame renders properly
       setTimeout(() => {
-        // Start animation loop
         this.play();
-      }, 16);
+      }, 1);
     }
   
     updateFrame(frameIndex) {
@@ -287,6 +524,7 @@ class AnimationManager {
           onComplete();
         }
       });
+    
     }
   
     play() {
@@ -600,6 +838,15 @@ class AnimationManager {
     getHitboxInfo() {
       return this.handHitboxManager.getHitboxInfo();
     }
+
+    reset() {
+      this.sizeState = 'normal';
+      if (this.trumpSprite) {
+        this.trumpSprite.style.display = 'block';  // Make sure Trump is visible again
+      }
+      this.changeState('idle');  // Return to normal idle state
+    }
+    
   }
   
   window.AnimationManager = AnimationManager;

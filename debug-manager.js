@@ -1,4 +1,3 @@
-// New code with overly complex hip box and protester calibration that doesn't even work
 
 class DebugManager {
   /**
@@ -1003,141 +1002,374 @@ _updateGameStateDisplay() {
     }
   }
 
-  setupHitboxControlsSection() {
-    const { content } = this.createSection("hitbox", "Hitbox Controls");
+
   
-    // Toggle hitbox visibility
+
+  setupHitboxControlsSection() {
+    const { content } = this.createSection("hitboxes", "Hitbox Controls");
+  
+    // Basic hitbox visibility toggle
     const visibilityControls = document.createElement("div");
     visibilityControls.className = "dbg-group";
   
-    const toggleVisibilityBtn = this.createButton(
-      "Toggle Hitbox Overlay",
-      () => {
-        this.toggleHitboxVisibility();
-      },
-      { showEffect: true, tooltip: "Toggle hitbox visibility (Ctrl+A)" }
+    const toggleHitboxBtn = this.createButton(
+      "Toggle Hitboxes",
+      () => this.toggleHitboxVisibility(),
+      { tooltip: "Toggle hitbox visibility (Ctrl+A)" }
     );
   
-    visibilityControls.appendChild(toggleVisibilityBtn);
+    visibilityControls.appendChild(toggleHitboxBtn);
     content.appendChild(visibilityControls);
   
-    // Hitbox size controls
-    const sizeControls = document.createElement("div");
-    sizeControls.className = "dbg-group";
-    sizeControls.innerHTML = `
-        <div class="dbg-label">
-          Width:
-          <input type="number" id="debug-hitbox-width" class="dbg-input" min="50" max="1000" value="300">
-        </div>
-        <div class="dbg-label">
-          Height:
-          <input type="number" id="debug-hitbox-height" class="dbg-input" min="50" max="1000" value="300">
-        </div>
-      `;
+    // Calibration controls
+    const calibrationControls = document.createElement("div");
+    calibrationControls.className = "dbg-group";
   
-    const setSizeBtn = this.createButton(
-      "Set Size",
+    // Animation selector for calibration
+    const animSelect = document.createElement("select");
+    animSelect.id = "calibration-anim-select";
+    animSelect.className = "dbg-select";
+  
+    // Start with basic grab animations
+    const basicAnims = ["grabEastCanada", "grabWestCanada", "grabMexico", "grabGreenland"];
+    basicAnims.forEach(anim => {
+      const option = document.createElement("option");
+      option.value = anim;
+      option.textContent = anim;
+      animSelect.appendChild(option);
+    });
+  
+    const startCalibrationBtn = this.createButton(
+      "Start Calibration",
       () => {
-        const width = parseInt(document.getElementById("debug-hitbox-width").value);
-        const height = parseInt(document.getElementById("debug-hitbox-height").value);
-  
-        if (isNaN(width) || isNaN(height)) return;
-  
-        if (this.handHitboxManager) {
-          this.handHitboxManager.adjustHitboxSize(width, height);
-        }
+        const selectedAnim = animSelect.value;
+        this.startCalibration(selectedAnim);
       },
-      { showEffect: true }
+      { tooltip: "Start hitbox calibration (Ctrl+S)" }
     );
   
-    sizeControls.appendChild(setSizeBtn);
-    content.appendChild(sizeControls);
+    calibrationControls.appendChild(document.createTextNode("Animation: "));
+    calibrationControls.appendChild(animSelect);
+    calibrationControls.appendChild(startCalibrationBtn);
+    content.appendChild(calibrationControls);
   
-    // Hitbox test buttons
-    const testControls = document.createElement("div");
-    testControls.className = "dbg-group";
-  
-    const makeHittableBtn = this.createButton("Make Hittable", () => {
-      if (window.trumpHandEffects) {
-        const isFirstBlock = this.gameState?.stats?.successfulBlocks === 0;
-        window.trumpHandEffects.makeHittable(isFirstBlock);
-      } else if (this.handHitboxManager && this.handHitboxManager.showHitbox) {
-        this.handHitboxManager.showHitbox();
-      }
-    });
-  
-    const hideHitboxBtn = this.createButton("Hide Hitbox", () => {
-      if (window.trumpHandEffects) {
-        window.trumpHandEffects.resetVisual();
-      } else if (this.handHitboxManager && this.handHitboxManager.hideHitbox) {
-        this.handHitboxManager.hideHitbox();
-      }
-    });
-  
-    testControls.appendChild(makeHittableBtn);
-    testControls.appendChild(hideHitboxBtn);
-    content.appendChild(testControls);
-  
-    // Add effect test buttons
-    const effectControls = document.createElement("div");
-    effectControls.className = "dbg-group";
-  
-    const hitEffectBtn = this.createButton("Test Hit Effect", () => {
-      if (window.trumpHandEffects) {
-        window.trumpHandEffects.applyHitEffect();
-      } else if (window.gameEngine && window.gameEngine.systems && window.gameEngine.systems.ui) {
-        window.gameEngine.systems.ui.applyBlockVisualEffects("mexico");
-      }
-    });
-  
-    const grabEffectBtn = this.createButton("Test Grab Effect", () => {
-      if (window.trumpHandEffects) {
-        window.trumpHandEffects.applyGrabSuccessEffect();
-      } else if (window.gameEngine && window.gameEngine.systems && window.gameEngine.systems.ui) {
-        window.gameEngine.systems.ui.applyGrabSuccessVisuals("mexico");
-      }
-    });
-  
-    // Add button to highlight a country
-    const highlightCountryBtn = this.createButton("Highlight Country", () => {
-      const country = document.getElementById("debug-protestor-country")?.value || "mexico";
-      if (window.trumpHandEffects) {
-        window.trumpHandEffects.highlightTargetCountry(country, true);
-      }
-    });
-  
-    effectControls.appendChild(hitEffectBtn);
-    effectControls.appendChild(grabEffectBtn);
-    effectControls.appendChild(highlightCountryBtn);
-    content.appendChild(effectControls);
-  
-    
+    // Add calibration info display
+    const calibrationStatus = this.createStatus(
+      "calibration-status", 
+      "Calibration status information"
+    );
+    content.appendChild(calibrationStatus);
   }
-
-  /**
-   * Toggle hitbox visibility debugging
-   */
+  
   toggleHitboxVisibility() {
-    // Toggle global debug body class
     document.body.classList.toggle("debug-mode");
-
-    // Notify hitbox managers of debug mode change
     const isDebugMode = document.body.classList.contains("debug-mode");
-
-    if (this.handHitboxManager && typeof this.handHitboxManager.setDebugMode === "function") {
-      this.handHitboxManager.setDebugMode(isDebugMode);
+    
+    // Update animation manager if available
+    if (this.animationManager) {
+      this.animationManager.setDebugMode?.(isDebugMode);
     }
-
-    if (this.protestorHitboxManager && typeof this.protestorHitboxManager.setDebugMode === "function") {
-      this.protestorHitboxManager.setDebugMode(isDebugMode);
+    
+    // For now, just create a red dot placeholder if in debug mode
+    let hitboxDot = document.getElementById("debug-hitbox-dot");
+    if (isDebugMode && !hitboxDot) {
+      hitboxDot = document.createElement("div");
+      hitboxDot.id = "debug-hitbox-dot";
+      hitboxDot.style.cssText = `
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: red;
+        border-radius: 50%;
+        pointer-events: none;
+        display: none;
+        z-index: 9999;
+      `;
+      document.body.appendChild(hitboxDot);
+    } else if (!isDebugMode && hitboxDot) {
+      hitboxDot.remove();
     }
-
-    if (this.animationManager && typeof this.animationManager.setDebugMode === "function") {
-      this.animationManager.setDebugMode(isDebugMode);
-    }
-
-    console.log(`[Debug] Hitbox debug mode ${isDebugMode ? "enabled" : "disabled"}`);
   }
+  
+// Update the calibration panel creation to be floating instead of in the debug panel
+_createCalibrationPanel(animationName) {
+  // Remove existing panel if there is one
+  const existingPanel = document.getElementById("calibration-panel");
+  if (existingPanel) existingPanel.remove();
+
+  const panel = document.createElement("div");
+  panel.id = "calibration-panel";
+  panel.style.cssText = `
+    position: fixed;
+    top: 7rem;
+    right: 13rem;
+
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 50000;
+  `;
+
+  panel.innerHTML = `
+    <h4 style="margin: 0 0 10px 0">Calibrating: ${animationName}</h4>
+    <div style="margin-bottom: 10px">
+      Frame: <span id="current-frame">0</span>
+      <button id="prev-frame" style="margin: 0 5px">◀</button>
+      <button id="next-frame" style="margin: 0 5px">▶</button>
+    </div>
+    <div id="coords-display" style="margin-bottom: 10px">Click to place hitbox</div>
+    <div style="display: flex; gap: 5px;">
+      <button id="save-calib">Save</button>
+      <button id="cancel-calib">Cancel</button>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  // Add event listeners
+  panel.querySelector("#prev-frame").addEventListener("click", () => {
+    console.log("Previous frame");
+  });
+
+  panel.querySelector("#next-frame").addEventListener("click", () => {
+    console.log("Next frame");
+  });
+
+  panel.querySelector("#save-calib").addEventListener("click", () => {
+    this.endCalibration(true);
+  });
+
+  panel.querySelector("#cancel-calib").addEventListener("click", () => {
+    this.endCalibration(false);
+  });
+}
+
+// Update the hitbox dragging functionality to match the old code
+_makeHitboxDraggable() {
+  const hitbox = document.getElementById("calibration-hitbox");
+  const container = document.getElementById("trump-sprite-container");
+  if (!hitbox || !container) return;
+
+  let isDragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  const onMouseDown = (e) => {
+    isDragging = true;
+    const hitboxRect = hitbox.getBoundingClientRect();
+    offsetX = e.clientX - hitboxRect.left;
+    offsetY = e.clientY - hitboxRect.top;
+    e.preventDefault();
+  };
+
+  const onMouseMove = (e) => {
+    if (!isDragging) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const x = e.clientX - containerRect.left - offsetX;
+    const y = e.clientY - containerRect.top - offsetY;
+
+    hitbox.style.left = `${x}px`;
+    hitbox.style.top = `${y}px`;
+    hitbox.style.transform = 'none';
+
+    // Update coordinate display
+    const coordsDisplay = document.getElementById("coords-display");
+    if (coordsDisplay) {
+      coordsDisplay.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
+    }
+
+    // Store coordinates for current frame
+    const currentFrame = parseInt(document.getElementById("current-frame").textContent);
+    this.calibration.frameCoordinates[currentFrame] = {
+      x: Math.round(x),
+      y: Math.round(y),
+      width: parseInt(hitbox.style.width) || 50,
+      height: parseInt(hitbox.style.height) || 50
+    };
+  };
+
+  const onMouseUp = () => {
+    isDragging = false;
+  };
+
+  // Add both mouse and touch events
+  hitbox.addEventListener('mousedown', onMouseDown);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+
+  // Touch events
+  hitbox.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    onMouseDown(touch);
+  });
+
+  document.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    onMouseMove(touch);
+  });
+
+  document.addEventListener('touchend', onMouseUp);
+}
+
+// Update the calibration start to position elements correctly
+startCalibration(animationName) {
+  // Store current game state
+  this.calibration = {
+    isCalibrating: true,
+    originalAnimState: this.animationManager?.currentState || null,
+    currentAnimation: animationName,
+    frameCoordinates: [],
+    wasPlaying: this.gameState.isPlaying,
+    wasPaused: this.gameState.isPaused
+  };
+
+  // Pause the game
+  if (this.calibration.wasPlaying) {
+    this.gameState.isPlaying = false;
+    this.gameState.isPaused = true;
+    clearTimeout(this.gameState.grabTimer);
+    clearInterval(this.gameState.countdownTimer);
+    
+    if (this.animationManager) {
+      this.animationManager.stop();
+    }
+  }
+
+  // Create placeholders in the correct container
+  const container = document.getElementById("trump-sprite-container");
+  if (!container) {
+    console.error("Could not find game container");
+    return;
+  }
+
+  // Animation frame placeholder
+  const placeholderBox = document.createElement("div");
+  placeholderBox.id = "calibration-placeholder";
+  placeholderBox.style.cssText = `
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    background: rgba(0, 255, 0, 0.2);
+    border: 2px solid green;
+    z-index: 999;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  `;
+  container.appendChild(placeholderBox);
+
+  // Hitbox
+  const hitboxPlaceholder = document.createElement("div");
+  hitboxPlaceholder.id = "calibration-hitbox";
+  hitboxPlaceholder.style.cssText = `
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 0, 0, 0.3);
+    border: 2px solid red;
+    cursor: move;
+    z-index: 40000;
+    left: 25%;
+    top: 25%;
+  `;
+  container.appendChild(hitboxPlaceholder);
+
+  // Show debug markers
+  document.body.classList.add("debug-mode");
+  
+  // Create calibration panel
+  this._createCalibrationPanel(animationName);
+
+  // Make hitbox draggable
+  this._makeHitboxDraggable();
+
+  // Update animation preview
+  if (this.animationManager) {
+    const animation = this.animationManager.animations[animationName];
+    if (animation) {
+      this.animationManager.currentState = animationName;
+      if (this.animationManager.trumpSprite) {
+        this.animationManager.trumpSprite.style.backgroundImage = `url('${animation.spriteSheet}')`;
+      }
+    }
+  }
+}
+  
+  _handleCalibrationClick(e) {
+    if (!this.calibration?.isCalibrating) return;
+  
+    const dot = document.getElementById("debug-hitbox-dot");
+    if (!dot) return;
+  
+    // Get click coordinates relative to the game container
+    const container = document.getElementById("game-container") || document.body;
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+  
+    // Update dot position
+    dot.style.left = `${x}px`;
+    dot.style.top = `${y}px`;
+    dot.style.display = "block";
+  
+    // Update coordinates display
+    const coordsDisplay = document.getElementById("coords-display");
+    if (coordsDisplay) {
+      coordsDisplay.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
+    }
+  }
+
+ 
+  
+
+
+  
+  endCalibration(save = false) {
+    if (!this.calibration) return;
+  
+    // Remove calibration panel
+    const panel = document.getElementById("calibration-panel");
+    if (panel) panel.remove();
+  
+    // Remove placeholders
+    const hitboxPlaceholder = document.getElementById("calibration-hitbox");
+    if (hitboxPlaceholder) hitboxPlaceholder.remove();
+  
+    const animPlaceholder = document.getElementById("calibration-placeholder");
+    if (animPlaceholder) animPlaceholder.remove();
+  
+    // Restore game state
+    if (this.calibration.wasPlaying && !this.calibration.wasPaused) {
+      this.gameState.isPlaying = true;
+      this.gameState.isPaused = false;
+      this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
+      window.scheduleNextGrab?.();
+  
+      // Restore animation state
+      if (this.animationManager && this.calibration.originalAnimState) {
+        this.animationManager.changeState(this.calibration.originalAnimState);
+      }
+    }
+  
+    // Update status
+    const status = document.getElementById("calibration-status");
+    if (status) {
+      status.textContent = save ? 
+        "Calibration saved!" : 
+        "Calibration cancelled";
+    }
+  
+    // Clean up calibration state
+    this.calibration = null;
+  
+    // Remove body class if we're not in regular debug mode
+    if (!this.enabled) {
+      document.body.classList.remove("debug-mode");
+    }
+  }
+
 
   /**
    * Test animation sequence
@@ -2212,6 +2444,463 @@ _updateGameStateDisplay() {
     if (fpsMonitor) {
       fpsMonitor.textContent = "FPS: --";
       fpsMonitor.style.color = "";
+    }
+  }
+
+  // new
+
+
+  // Toggle hitbox visibility
+  toggleHitboxVisibility() {
+    document.body.classList.toggle("debug-mode");
+    const handHitbox = document.getElementById("hand-hitbox");
+
+    const isDebugMode = document.body.classList.contains("debug-mode");
+    if (this.animationManager) {
+      this.animationManager.setDebugMode(isDebugMode);
+    }
+  }
+
+  // Show animation test dialog
+  showAnimationTestDialog() {
+    let animationStates = [];
+    if (this.animationManager && this.animationManager.animations) {
+      animationStates = Object.keys(this.animationManager.animations);
+    } else if (window.trumpAnimations) {
+      animationStates = Object.keys(window.trumpAnimations);
+    }
+
+    const animSelect = document.createElement("select");
+    animSelect.id = "animation-select";
+
+    animationStates.forEach((state) => {
+      const option = document.createElement("option");
+      option.value = state;
+      option.textContent = state;
+      animSelect.appendChild(option);
+    });
+
+    const dialog = document.createElement("div");
+    dialog.classList.add('animation-test-dialog');
+    dialog.appendChild(animSelect);
+
+    const testBtn = document.createElement("button");
+    testBtn.textContent = "Test";
+    testBtn.addEventListener("click", () => {
+      const selectedAnimation = animSelect.value;
+      if (this.animationManager) {
+        const isGrabAnim = selectedAnimation.startsWith("grab");
+        if (isGrabAnim && this.animationManager.currentState !== "idle") {
+          this.animationManager.changeState("idle", () => {
+            this.animationManager.changeState(selectedAnimation);
+          });
+        } else {
+          this.animationManager.changeState(selectedAnimation);
+        }
+      } else if (typeof changeAnimationState === "function") {
+        changeAnimationState(selectedAnimation);
+      }
+    });
+
+    dialog.appendChild(testBtn);
+    document.body.appendChild(dialog);
+  }
+
+  // Start hitbox calibration process
+  startCalibration() {
+    const wasPlaying = this.gameState.isPlaying;
+    if (wasPlaying) {
+      this.gameState.isPlaying = false;
+      clearTimeout(this.gameState.grabTimer);
+      clearInterval(this.gameState.countdownTimer);
+    }
+
+    const dialog = document.createElement("div");
+    dialog.classList.add('calibration-dialog');
+
+    const title = document.createElement("h3");
+    title.textContent = "Hitbox Calibration";
+    dialog.appendChild(title);
+
+    const animSelect = document.createElement("select");
+    const animationStates = ["grabEastCanada", "grabWestCanada", "grabMexico", "grabGreenland"];
+
+    animationStates.forEach((state) => {
+      const option = document.createElement("option");
+      option.value = state;
+      option.textContent = state;
+      animSelect.appendChild(option);
+    });
+
+    dialog.appendChild(animSelect);
+
+    const startBtn = document.createElement("button");
+    startBtn.classList.add('calibration-dialog-button');
+    startBtn.textContent = "Start Calibration";
+    startBtn.addEventListener("click", () => {
+      this.beginCalibration(animSelect.value, wasPlaying);
+      dialog.remove();
+    });
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.classList.add('calibration-dialog-button');
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.addEventListener("click", () => {
+      dialog.remove();
+      if (wasPlaying) {
+        this.gameState.isPlaying = true;
+        this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
+        window.scheduleNextGrab();
+      }
+    });
+
+    dialog.appendChild(startBtn);
+    dialog.appendChild(cancelBtn);
+    document.body.appendChild(dialog);
+  }
+
+  // Make the hitbox draggable for calibration
+  makeHitboxDraggable() {
+    const hitbox = document.getElementById("hand-hitbox");
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    const newHitbox = hitbox.cloneNode(true);
+    hitbox.parentNode.replaceChild(newHitbox, hitbox);
+
+    newHitbox.addEventListener("mousedown", (e) => {
+      if (!this.calibration.isCalibrating) return;
+
+      isDragging = true;
+      const hitboxRect = newHitbox.getBoundingClientRect();
+      offsetX = e.clientX - hitboxRect.left;
+      offsetY = e.clientY - hitboxRect.top;
+
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+
+      const container = document.getElementById("trump-sprite-container");
+      const containerRect = container.getBoundingClientRect();
+
+      const x = e.clientX - containerRect.left - offsetX;
+      const y = e.clientY - containerRect.top - offsetY;
+
+      newHitbox.style.left = `${x}px`;
+      newHitbox.style.top = `${y}px`;
+
+      const currentFrame = parseInt(document.getElementById("current-frame").textContent);
+      this.calibration.frameCoordinates[currentFrame] = {
+        x: Math.round(x),
+        y: Math.round(y),
+        width: parseInt(newHitbox.style.width) || 50,
+        height: parseInt(newHitbox.style.height) || 50,
+      };
+
+      this.updateCoordsDisplay(currentFrame);
+    });
+
+    document.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+  }
+
+  // Update coordinates display
+  updateCoordsDisplay(frameIndex) {
+    const coords = this.calibration.frameCoordinates[frameIndex];
+    const display = document.getElementById("coords-display");
+    if (display && coords) {
+      display.textContent = `X: ${coords.x}, Y: ${coords.y}, W: ${coords.width}, H: ${coords.height}`;
+
+      const output = document.getElementById("calib-output");
+      if (output) {
+        output.textContent = this.formatCoordinatesOutput();
+      }
+    }
+  }
+
+  beginCalibration(animationName, wasPlaying) {
+    this.calibration = {
+      isCalibrating: true,
+      originalAnimState: this.animationManager ? this.animationManager.currentState : null,
+      currentAnimation: animationName,
+      frameCoordinates: [],
+      wasPlaying: wasPlaying,
+      originalHandlerClick: null,
+      originalHandlerTouch: null,
+      originalContainerClick: null,
+    };
+
+    document.body.classList.add("debug-mode");
+
+    const handHitbox = document.getElementById("hand-hitbox");
+    if (handHitbox) {
+      this.calibration.originalHandlerClick = handHitbox.onclick;
+      this.calibration.originalHandlerTouch = handHitbox.ontouchstart;
+
+      handHitbox.onclick = null;
+      handHitbox.ontouchstart = null;
+    }
+
+    const panel = document.createElement("div");
+    panel.id = "calibration-panel";
+    panel.classList.add('calibration-panel');
+
+    let frameCount = 5;
+    if (this.animationManager && this.animationManager.animations[animationName]) {
+      frameCount = this.animationManager.animations[animationName].frameCount;
+    } else if (this.trumpAnimations && this.trumpAnimations[animationName]) {
+      frameCount = this.trumpAnimations[animationName].frameCount;
+    }
+
+    panel.innerHTML = `
+      <h4>Calibrating: ${animationName}</h4>
+      <div>Frame: <span id="current-frame">0</span>/<span id="total-frames">${frameCount - 1}</span></div>
+      <div id="coords-display"></div>
+      <button id="prev-frame">Previous Frame</button>
+      <button id="next-frame">Next Frame</button>
+      <button id="save-coords">Save Coordinates</button>
+      <button id="cancel-calib">Cancel</button>
+      <div id="calib-output" style="margin-top:10px;font-size:10px;max-height:100px;overflow-y:auto;"></div>
+    `;
+
+    document.body.appendChild(panel);
+
+    let originalCoords = [];
+    if (this.animationManager && this.animationManager.animations[animationName] && this.animationManager.animations[animationName].handCoordinates) {
+      originalCoords = this.animationManager.animations[animationName].handCoordinates;
+    } else if (this.trumpAnimations && this.trumpAnimations[animationName] && this.trumpAnimations[animationName].handCoordinates) {
+      originalCoords = this.trumpAnimations[animationName].handCoordinates;
+    }
+
+    originalCoords.forEach((coord) => {
+      this.calibration.frameCoordinates.push({ ...coord });
+    });
+
+    while (this.calibration.frameCoordinates.length < frameCount) {
+      this.calibration.frameCoordinates.push({ x: 100, y: 50, width: 50, height: 50 });
+    }
+
+    if (this.animationManager) {
+      this.animationManager.stop();
+    }
+
+    if (this.animationManager) {
+      const animation = this.animationManager.animations[animationName];
+      if (animation) {
+        this.animationManager.currentState = animationName;
+        if (this.animationManager.trumpSprite) {
+          this.animationManager.trumpSprite.style.backgroundImage = `url('${animation.spriteSheet}')`;
+        }
+      }
+    } else if (typeof window.changeAnimationState === "function") {
+      window.changeAnimationState(animationName);
+    }
+
+    this.updateCalibrationFrame(0);
+
+    document.getElementById("prev-frame").addEventListener("click", () => {
+      const currentFrame = parseInt(document.getElementById("current-frame").textContent);
+      if (currentFrame > 0) {
+        this.updateCalibrationFrame(currentFrame - 1);
+      }
+    });
+
+    document.getElementById("next-frame").addEventListener("click", () => {
+      const currentFrame = parseInt(document.getElementById("current-frame").textContent);
+      const totalFrames = parseInt(document.getElementById("total-frames").textContent);
+      if (currentFrame < totalFrames) {
+        this.updateCalibrationFrame(currentFrame + 1);
+      }
+    });
+
+    document.getElementById("save-coords").addEventListener("click", () => {
+      this.saveCalibration();
+    });
+
+    document.getElementById("cancel-calib").addEventListener("click", () => {
+      this.cancelCalibration();
+    });
+
+    this.makeHitboxDraggable();
+
+    const trumpContainer = document.getElementById("trump-sprite-container");
+    if (trumpContainer) {
+      this.calibration.originalContainerClick = trumpContainer.onclick;
+      trumpContainer.onclick = (e) => {
+        if (!this.calibration.isCalibrating) return;
+
+        const containerRect = trumpContainer.getBoundingClientRect();
+        const x = e.clientX - containerRect.left - 25;
+        const y = e.clientY - containerRect.top - 25;
+
+        const handHitbox = document.getElementById("hand-hitbox");
+        if (handHitbox) {
+          handHitbox.style.left = `${x}px`;
+          handHitbox.style.top = `${y}px`;
+
+          const currentFrame = parseInt(document.getElementById("current-frame").textContent);
+          this.calibration.frameCoordinates[currentFrame] = {
+            x: Math.round(x),
+            y: Math.round(y),
+            width: 50,
+            height: 50,
+          };
+
+          this.updateCoordsDisplay(currentFrame);
+        }
+      };
+    }
+  }
+
+  updateCalibrationFrame(frameIndex) {
+    const currentFrameElement = document.getElementById("current-frame");
+    if (currentFrameElement) {
+      currentFrameElement.textContent = frameIndex;
+    }
+
+    if (this.animationManager) {
+      this.animationManager.setFrame(frameIndex);
+    } else if (this.gameState.animation) {
+      this.gameState.animation.currentFrame = frameIndex;
+      if (typeof window.updateAnimationFrame === "function") {
+        window.updateAnimationFrame(frameIndex);
+      }
+    }
+
+    const handHitbox = document.getElementById("hand-hitbox");
+    if (!handHitbox) return;
+
+    const coords = this.calibration.frameCoordinates[frameIndex];
+    if (!coords) return;
+
+    handHitbox.style.left = `${coords.x}px`;
+    handHitbox.style.top = `${coords.y}px`;
+    handHitbox.style.width = `${coords.width}px`;
+    handHitbox.style.height = `${coords.height}px`;
+    handHitbox.style.display = "block";
+    handHitbox.classList.add('calibration-mode');
+
+    this.updateCoordsDisplay(frameIndex);
+  }
+
+  formatCoordinatesOutput(deviceType) {
+    const animName = this.calibration.currentAnimation;
+    
+    let output = `${animName}: {\n`;
+    
+    if (deviceType === "mobile") {
+      output += `  deviceCoordinates: {\n`;
+      output += `    mobile: [\n`;
+      
+      this.calibration.frameCoordinates.forEach((coords, index) => {
+        output += `      { x: ${coords.x}, y: ${coords.y}, width: ${coords.width}, height: ${coords.height} }`;
+        if (index < this.calibration.frameCoordinates.length - 1) {
+          output += ",";
+        }
+        output += ` // Frame ${index}\n`;
+      });
+      
+      output += `    ]\n`;
+      output += `  },\n`;
+    } else {
+      output += `  handCoordinates: [\n`;
+      
+      this.calibration.frameCoordinates.forEach((coords, index) => {
+        output += `    { x: ${coords.x}, y: ${coords.y}, width: ${coords.width}, height: ${coords.height} }`;
+        if (index < this.calibration.frameCoordinates.length - 1) {
+          output += ",";
+        }
+        output += ` // Frame ${index}\n`;
+      });
+      
+      output += `  ],\n`;
+    }
+    
+    output += `},`;
+    
+    return output;
+  }
+
+  saveCalibration() {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const deviceType = isMobile ? "mobile" : "desktop";
+    
+    const formattedOutput = this.formatCoordinatesOutput(deviceType);
+    
+    navigator.clipboard
+      .writeText(formattedOutput)
+      .then(() => {
+        alert(`${deviceType.toUpperCase()} coordinates saved and copied to clipboard.`);
+      })
+      .catch((err) => {
+        console.error("Error copying to clipboard:", err);
+        alert("Failed to copy to clipboard. See console for details.");
+      });
+  
+    const animObj = this.animationManager?.animations[this.calibration.currentAnimation] || 
+                   this.trumpAnimations?.[this.calibration.currentAnimation];
+    
+    if (animObj) {
+      if (isMobile) {
+        if (!animObj.deviceCoordinates) {
+          animObj.deviceCoordinates = {};
+        }
+        animObj.deviceCoordinates.mobile = [...this.calibration.frameCoordinates];
+      } else {
+        animObj.handCoordinates = [...this.calibration.frameCoordinates];
+      }
+    }
+  
+    this.endCalibration();
+  }
+
+  cancelCalibration() {
+    this.endCalibration();
+  }
+
+  endCalibration() {
+    const panel = document.getElementById("calibration-panel");
+    if (panel) panel.remove();
+
+    const handHitbox = document.getElementById("hand-hitbox");
+    if (handHitbox) {
+      handHitbox.onclick = this.calibration.originalHandlerClick;
+      handHitbox.ontouchstart = this.calibration.originalHandlerTouch;
+    }
+
+    const trumpContainer = document.getElementById("trump-sprite-container");
+    if (trumpContainer && this.calibration.originalContainerClick) {
+      trumpContainer.onclick = this.calibration.originalContainerClick;
+    }
+
+    if (this.animationManager) {
+      this.animationManager.changeState("idle", () => {
+        if (this.calibration.originalAnimState && this.calibration.originalAnimState !== "idle") {
+          this.animationManager.changeState(this.calibration.originalAnimState);
+        }
+      });
+    } else if (typeof window.changeAnimationState === "function") {
+      window.changeAnimationState("idle", () => {
+        if (this.calibration.originalAnimState && this.calibration.originalAnimState !== "idle") {
+          window.changeAnimationState(this.calibration.originalAnimState);
+        }
+      });
+    }
+
+    if (this.calibration.wasPlaying) {
+      this.gameState.isPlaying = true;
+      this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
+      window.scheduleNextGrab();
+    }
+
+    this.calibration.isCalibrating = false;
+
+    if (!this.enabled) {
+      document.body.classList.remove("debug-mode");
     }
   }
 }

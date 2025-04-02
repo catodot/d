@@ -1297,3 +1297,32 @@ button:hover {
   }
 }
 
+
+#map-background {
+  transition: filter 0.3s ease;
+}
+
+#map-background:hover {
+  filter: brightness(1.1) contrast(1.1) saturate(1.2);
+  cursor: pointer;
+}
+
+
+
+@keyframes screen-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: translate(-2px, 0) rotate(-1deg); }
+  20%, 40%, 60%, 80% { transform: translate(2px, 0) rotate(1deg); }
+}
+
+.screen-shake {
+  animation: screen-shake 0.7s cubic-bezier(.36,.07,.19,.97) both;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+#map-background {
+  cursor: pointer;
+  pointer-events: auto;
+}

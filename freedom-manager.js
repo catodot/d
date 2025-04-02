@@ -1665,6 +1665,8 @@ class ProtestorHitboxManager {
       canada: { element: null, isVisible: false, scale: 1.0 },
       mexico: { element: null, isVisible: false, scale: 1.0 },
       greenland: { element: null, isVisible: false, scale: 1.0 },
+      usa: { element: null, isVisible: false, scale: 1.0 },  // Add USA
+
     };
 
     this.isDebugMode = false;
@@ -1679,26 +1681,182 @@ class ProtestorHitboxManager {
     this.spawnLocations = {
       canada: [
         {
-          x: 791,
-          y: 432,
-          width: 295,
-          height: 295,
+          x: 408, // van
+          y: 1600,
+          width: 300,
+          height: 300,
           calibrationScale: 0.24,
         },
         {
-          x: 608,
-          y: 429,
-          width: 295,
-          height: 295,
+          x: 608, //cal
+          y: 1600,
+          width: 300,
+          height: 300,
           calibrationScale: 0.24,
         },
         {
-          x: 226,
-          y: 396,
-          width: 295,
-          height: 295,
+          x: 608, //ed
+          y: 1300,
+          width: 300,
+          height: 300,
           calibrationScale: 0.24,
-        }
+        },
+        {
+          x: 508, //wh
+          y: 1100,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 408, //daw
+          y: 900,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 791, //sask
+          y: 1300,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 891, //win
+          y: 900,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 991, //tor
+          y: 1500,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1091, //ott
+          y: 1400,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1091, //north of ott
+          y: 1600,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1291, //north of mon
+          y: 1400,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+        {
+          x: 1291, //mon
+          y: 1850,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1800, // n queb
+          y: 1600,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1491, //queb
+          y: 1800,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1891, //sher
+          y: 1850,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+        {
+          x: 1991, //ns
+          y: 1850,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+        {
+          x: 2091, //ns
+          y: 1850,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+        {
+          x: 2191, //nl
+          y: 1850,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+    
+       
+      ],
+
+      usa: [
+        {
+          x: 800,  // Seattle area
+          y: 1900,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 900,  // Minnesota area
+          y: 1900,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1000,  // Chicago area
+          y: 2000,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1200,  // New York area
+          y:2000,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 900,  // California area
+          y: 2200,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1100,  // Texas area
+          y: 2300,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
       ],
       mexico: [
         {
@@ -1722,8 +1880,66 @@ class ProtestorHitboxManager {
           height: 300,
           calibrationScale: 0.24,
         },
+        {
+          x: 1102,
+          y: 2636,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1050,
+          y: 2650,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 1180,
+          y: 2650,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
       ],
       greenland: [
+
+
+        {
+          x: 1900,
+          y: 377,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 2000,
+          y: 377,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+        {
+          x: 2200,
+          y: 377,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+            {
+          x: 2400,
+          y: 377,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+
+
+
+
+
         {
           x: 2192,
           y: 577,
@@ -1745,6 +1961,134 @@ class ProtestorHitboxManager {
           height: 300,
           calibrationScale: 0.24,
         },
+
+        {
+          x: 2192,
+          y: 777,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 2180,
+          y: 720,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 2300,
+          y: 720,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 2500,
+          y: 720,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 2600,
+          y: 720,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+
+
+
+
+           {
+          x: 2192,
+          y: 877,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 2180,
+          y: 820,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 2300,
+          y: 820,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 2500,
+          y: 820,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 2600,
+          y: 820,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+
+        {
+          x: 2500,
+          y: 920,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+        {
+          x: 2400,
+          y: 920,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+        {
+          x: 2300,
+          y: 920,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+
+        {
+          x: 2250,
+          y: 920,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+        {
+          x: 2400,
+          y: 1020,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+        {
+          x: 2400,
+          y: 1220,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+
+        
       ],
     };
 
@@ -2271,6 +2615,8 @@ class FreedomManager {
     this.audioManager = audioManager || window.audioManager;
 
 
+    this.usaTimingCheckDone = false;  // Add this flag
+
     this.glowOutline = new GlowOutline();
 
 
@@ -2337,6 +2683,7 @@ class FreedomManager {
       canada: this._createCountryState("canada"),
       mexico: this._createCountryState("mexico"),
       greenland: this._createCountryState("greenland"),
+      usa: this._createCountryState("usa"),  
     };
   }
 
@@ -2464,20 +2811,13 @@ _getElement(id, context) {
     });
   }
 
-  /**
-   * Update state for an annexed country
-   * @private
-   * @param {Object} country - Country state object
-   * @param {Object} gameCountry - Game state country object
-   * @param {number} deltaTime - Time since last frame in milliseconds
-   * @param {number} deltaSeconds - Time since last frame in seconds
-   */
+  
   _updateAnnexedCountry(country, gameCountry, deltaTime, deltaSeconds) {
     const countryId = country.id;
     
     // Update annexation timer
     country.annexTime += deltaTime;
-
+  
     // Check if we should show protestors
     const protestorThreshold = this.config.fullAnnexationTime * this.config.protestorShowDelay;
     if (country.annexTime >= protestorThreshold && !country.protestorsShown) {
@@ -2485,7 +2825,43 @@ _getElement(id, context) {
       this.showProtestors(countryId);
       country.protestorsShown = true;
     }
+  
+   // Check for USA protestors based on game time (60% mark)
+  // Only do this check once and only if USA protestors aren't already shown
+  if (!this.usaTimingCheckDone && countryId === "canada" && !this.countries.usa?.protestorsShown) {
+    const totalGameTime = this.gameState.config.GAME_DURATION;
+    const currentGameTime = totalGameTime - this.gameState.timeRemaining;
+    const usaThreshold = totalGameTime * 0.1; // 60% of total game time
 
+    if (currentGameTime >= usaThreshold) {
+      this.logger.info("freedom", "[USA UPRISING] Time threshold reached, preparing USA protestors");
+      
+      // Mark timing check as done
+      this.usaTimingCheckDone = true;
+
+      // Ensure clean state before showing
+      if (this.countries.usa) {
+        // Clean up any existing USA protestors first
+        this._cleanupProtestorElements("usa");
+        
+        // Create fresh protestor state
+        this.countries.usa.protestorsShown = false;
+        this.countries.usa.clickCounter = 0;
+        
+        // Show the protestors
+        this.showProtestors("usa");
+        this.countries.usa.protestorsShown = true;
+
+        // Play special sound after brief delay to avoid sound conflicts
+        setTimeout(() => {
+          if (this.audioManager) {
+            // this.audioManager.playRandom("particles", "freedom", null, 0.8);
+          }
+        }, 100);
+      }
+    }
+  }
+  
     // Check if country has been annexed long enough to enable resistance
     if (country.annexTime >= this.config.fullAnnexationTime && !country.resistanceAvailable) {
       country.resistanceAvailable = true;
@@ -2493,11 +2869,11 @@ _getElement(id, context) {
         "freedom",
         `[RESISTANCE AVAILABLE] ${countryId} now able to resist after ${(country.annexTime / 1000).toFixed(1)}s of full annexation`
       );
-
+  
       // Show subtle indicator that resistance is possible
       this._showResistancePossibleIndicator(countryId);
     }
-
+  
     // Check for resistance for countries that have been annexed long enough
     if (country.resistanceAvailable && !country.protestorsShown) {
       this._checkRandomResistance(countryId, deltaSeconds);
@@ -3131,38 +3507,110 @@ for (let i = 0; i < count; i++) {
       this.logger.error("freedom", `Click handler called but country ${countryId} not found in data`);
       return;
     }
-  
+
     // Log the click event
     this.logger.info("freedom", `[CLICK EVENT] Protestor clicked in ${countryId}`);
-  
+
     // Clear any existing timeout
     if (country.disappearTimeout) {
       clearTimeout(country.disappearTimeout);
     }
-  
+
     // Increment click counter
     const oldClickCount = country.clickCounter || 0;
     country.clickCounter = oldClickCount + 1;
-  
+
     // Get elements
     const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "click handling");
     const protestorSprite = this._getElement(`${countryId}-protestors`, "click handling");
-  
+
     if (!protestorWrapper || !protestorSprite) {
       this.logger.error("freedom", `Protestor elements not found for ${countryId}`);
       return;
     }
-  
+
     // Store the wrapper reference in country data
     country.protestorWrapper = protestorWrapper;
-  
-    // Process click based on click count
-    if (country.clickCounter >= 3) {
-      // Trigger liberation - cleanup will happen after animation
+
+    // Special handling for USA on third click
+    if (countryId === "usa" && country.clickCounter === 3) {
+      const animationManager = window.animationManager;
+      if (animationManager) {
+        // Preload next size's sprites before switching
+        const nextSize = {
+          'normal': 'small',
+          'small': 'smaller',
+          'smaller': 'smallest'
+        }[animationManager.sizeState];
+        
+        if (nextSize) {
+          animationManager._preloadImportantSprites([nextSize]);
+        }
+        // Progress through size states
+     // In the switch statement:
+switch (animationManager.sizeState) {
+  case "normal":
+    animationManager.sizeState = "small";
+    animationManager.changeState(animationManager.currentState); // Immediate update
+    // Add screen shake and flash effect
+    const gameContainer = document.getElementById("game-container");
+    if (gameContainer) {
+      gameContainer.classList.add("screen-shake");
+      setTimeout(() => gameContainer.classList.remove("screen-shake"), 800);
+    }
+    break;
+  case "small":
+    animationManager.sizeState = "smaller";
+    animationManager.changeState(animationManager.currentState); // Immediate update
+    // Add screen shake and flash effect
+    const gameContainer2 = document.getElementById("game-container");
+    if (gameContainer2) {
+      gameContainer2.classList.add("screen-shake");
+      setTimeout(() => gameContainer2.classList.remove("screen-shake"), 800);
+    }
+    break;
+  case "smaller":
+    animationManager.sizeState = "smallest";
+    animationManager.changeState(animationManager.currentState); // Immediate update
+    // Add screen shake and flash effect
+    const gameContainer3 = document.getElementById("game-container");
+    if (gameContainer3) {
+      gameContainer3.classList.add("screen-shake");
+      setTimeout(() => gameContainer3.classList.remove("screen-shake"), 800);
+    }
+    break;
+  case "smallest":
+    // Make Trump disappear with a final shake
+    const gameContainer4 = document.getElementById("game-container");
+    if (gameContainer4) {
+      gameContainer4.classList.add("screen-shake");
+      setTimeout(() => {
+        gameContainer4.classList.remove("screen-shake");
+        if (animationManager.trumpSprite) {
+          animationManager.trumpSprite.style.display = "none";
+        }
+      }, 800);
+    }
+    break;
+}
+
+        // Play shrink effect sound
+        if (this.audioManager) {
+          this.audioManager.playRandom("particles", "freedom", null, 0.8);
+        }
+      }
+
+      // Reset counter and clean up protestors
+      country.clickCounter = 0;
+      this._cleanupProtestorElements(countryId);
+    }
+    // Normal behavior for other countries
+    else if (country.clickCounter >= 3) {
+      // Trigger liberation
       this.triggerCountryResistance(countryId);
       country.clickCounter = 0;
     } else {
-      // Normal click processing
+      // Normal click processing for clicks 1 and 2
       this._processProtestorClick(countryId, country.clickCounter, protestorWrapper, protestorSprite);
     }
   }
@@ -3743,63 +4191,71 @@ for (let i = 0; i < count; i++) {
     }
   }
 
-  /**
-   * Clean up all protestors
-   */
-  cleanupAllProtestors() {
-    // Stop all protestor sounds
-    // this.audioManager.stopProtestorSounds();
+// In FreedomManager's _updateAnnexedCountry method, replace the temporary USA trigger with:
 
-    // Clear all animation intervals for main protestors
-    Object.keys(this.activeAnimations.protestors).forEach((countryId) => {
-      if (this.activeAnimations.protestors[countryId]) {
-        clearInterval(this.activeAnimations.protestors[countryId]);
-      }
-    });
-    this.activeAnimations.protestors = {};
+_updateAnnexedCountry(country, gameCountry, deltaTime, deltaSeconds) {
+  const countryId = country.id;
+  
+  // Update annexation timer
+  country.annexTime += deltaTime;
 
-    // Clear all animation intervals for additional protestors
-    if (this.activeAnimations.extraProtestors) {
-      Object.keys(this.activeAnimations.extraProtestors).forEach((key) => {
-        clearInterval(this.activeAnimations.extraProtestors[key]);
-      });
-      this.activeAnimations.extraProtestors = {};
-    }
-
-    // Remove all additional protestor elements
-    document.querySelectorAll('[class$="-additional-protestor"]').forEach((el) => {
-      if (el && el.parentNode) {
-        el.parentNode.removeChild(el);
-      }
-    });
-
-    // Clean up all main protestor elements
-    document.querySelectorAll('[id$="-protestors-wrapper"]').forEach((el) => {
-      if (el && el.parentNode) {
-        el.parentNode.removeChild(el);
-      }
-    });
-
-    // Clean up hitboxes
-    if (this.protestorHitboxManager) {
-      this.protestorHitboxManager.cleanupAll();
-    }
-
-    // Reset country states
-    Object.keys(this.countries).forEach((countryId) => {
-      if (this.countries[countryId]) {
-        this.countries[countryId].protestorsShown = false;
-
-        // Clear any disappear timeouts
-        if (this.countries[countryId].disappearTimeout) {
-          clearTimeout(this.countries[countryId].disappearTimeout);
-          this.countries[countryId].disappearTimeout = null;
-        }
-      }
-    });
-
-    this.logger.info("freedom", "All protestors cleaned up");
+  // Check if we should show protestors
+  const protestorThreshold = this.config.fullAnnexationTime * this.config.protestorShowDelay;
+  if (country.annexTime >= protestorThreshold && !country.protestorsShown) {
+    this.logger.info("freedom", `[THRESHOLD] ${countryId} reached protestor show threshold at ${country.annexTime}ms`);
+    this.showProtestors(countryId);
+    country.protestorsShown = true;
   }
+
+  // Check for USA protestors based on game time (60% mark)
+  if (countryId === "canada" && !this.countries.usa.protestorsShown) {
+    const totalGameTime = this.gameState.config.GAME_DURATION;
+    const currentGameTime = totalGameTime - this.gameState.timeRemaining;
+    const usaThreshold = totalGameTime * 0.95; // 60% of total game time
+
+    if (currentGameTime >= usaThreshold) {
+      this.logger.info("freedom", "[USA UPRISING] Showing USA protestors at 60% game time");
+      this.showProtestors("usa");
+      this.countries.usa.protestorsShown = true;
+
+      // Play a special sound for USA protestors appearing
+      if (this.audioManager) {
+        this.audioManager.playRandom("particles", "freedom", null, 0.8);
+      }
+    }
+  }
+
+  // ... rest of the method remains the same ...
+}
+
+// Also update the cleanupAllProtestors method to ensure USA protestors are properly cleaned up:
+cleanupAllProtestors() {
+  // Stop ALL protestor sounds first
+  if (this.audioManager) {
+    this.audioManager.stopAllProtestorSounds();
+  }
+
+  // Clean up each country's protestors, including USA
+  Object.keys(this.countries).forEach(countryId => {
+    this._cleanupProtestorElements(countryId);
+    
+    // Reset country state
+    if (this.countries[countryId]) {
+      this.countries[countryId].protestorsShown = false;
+      this.countries[countryId].clickCounter = 0;
+      
+      if (this.countries[countryId].disappearTimeout) {
+        clearTimeout(this.countries[countryId].disappearTimeout);
+        this.countries[countryId].disappearTimeout = null;
+      }
+    }
+  });
+
+  // Clean up hitboxes
+  if (this.protestorHitboxManager) {
+    this.protestorHitboxManager.cleanupAll();
+  }
+}
 
   /**
    * Clean up all visual effects
@@ -3838,6 +4294,9 @@ for (let i = 0; i < count; i++) {
         el.parentNode.removeChild(el);
       }
     });
+    if (window.animationManager) {
+      window.animationManager.reset();
+    }
   }
 
   /**
@@ -3851,6 +4310,8 @@ for (let i = 0; i < count; i++) {
 
     // Reset ALL protestors completely
     this.cleanupAllProtestors();
+
+    this.usaTimingCheckDone = false;  // Reset the timing check flag
 
     // Clear any intervals or timeouts
     if (this.activeAnimations.extraProtestors) {
@@ -3876,6 +4337,10 @@ for (let i = 0; i < count; i++) {
         flagOverlay.style.opacity = "";
       }
     });
+
+    if (window.animationManager) {
+      window.animationManager.reset();
+    }
   }
 
 
@@ -4009,6 +4474,7 @@ for (let i = 0; i < count; i++) {
       country.resistanceAvailable = false;
       country.protestorsShown = false;
       country.clickCounter = 0;
+      
     });
   
     // Clear all timers and intervals

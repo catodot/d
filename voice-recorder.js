@@ -2,7 +2,7 @@ class VoiceRecorder {
     constructor(options = {}) {
       // Configuration options
       this.maxRecordingLength = options.maxRecordingLength || 2000; // 2 seconds
-      this.locations = ["Canada", "Greenland", "Iceland", "Turtle Island", "Other"];
+      this.locations = ["Canada", "Greenland", "Mexico", "Turtle Island", "Other"];
   
       // State management
       this.recordings = [];
