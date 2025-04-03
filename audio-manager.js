@@ -7,7 +7,7 @@ class AudioManager {
    * Create a new AudioManager instance
    */
   constructor() {
-    console.log("[AUDIO_FLOW] AudioManager created");
+    // console.log("[AUDIO_FLOW] AudioManager created");
 
     this.debugInfo = {
       initTimestamp: Date.now(),
@@ -252,21 +252,21 @@ class AudioManager {
     this._setupAudioContext();
 
     // Not fully initialized yet - will be done on first user interaction
-    console.log("[Audio] AudioManager created - waiting for user interaction to initialize");
+    // console.log("[Audio] AudioManager created - waiting for user interaction to initialize");
   }
 
   _setupAudioContext() {
     try {
-      console.log("[AUDIO_DEBUG] Setting up AudioContext");
+      // console.log("[AUDIO_DEBUG] Setting up AudioContext");
       window.AudioContext = window.AudioContext || window.webkitAudioContext;
       this.audioContext = new AudioContext();
 
-      console.log("[AUDIO_DEBUG] AudioContext created with state:", this.audioContext.state);
-      console.log("[AUDIO_DEBUG] AudioContext sampleRate:", this.audioContext.sampleRate);
-      console.log("[AUDIO_DEBUG] AudioContext baseLatency:", this.audioContext.baseLatency);
+      // console.log("[AUDIO_DEBUG] AudioContext created with state:", this.audioContext.state);
+      // console.log("[AUDIO_DEBUG] AudioContext sampleRate:", this.audioContext.sampleRate);
+      // console.log("[AUDIO_DEBUG] AudioContext baseLatency:", this.audioContext.baseLatency);
 
       if (this.audioContext.state === "suspended") {
-        console.log("[AUDIO_DEBUG] AudioContext suspended - will need user interaction");
+        // console.log("[AUDIO_DEBUG] AudioContext suspended - will need user interaction");
       }
     } catch (e) {
       console.warn("[AUDIO_DEBUG] Web Audio API not supported:", e.message);
@@ -275,36 +275,36 @@ class AudioManager {
   }
 
   resumeAudioContext() {
-    console.log("[AUDIO_DEBUG] resumeAudioContext called from:", new Error().stack);
+    // console.log("[AUDIO_DEBUG] resumeAudioContext called from:", new Error().stack);
 
     if (!this.audioContext) {
       console.warn("[AUDIO_DEBUG] No AudioContext exists to resume");
       return Promise.resolve();
     }
 
-    console.log("[AUDIO_DEBUG] AudioContext state before resume:", this.audioContext.state);
+    // console.log("[AUDIO_DEBUG] AudioContext state before resume:", this.audioContext.state);
 
     // Add this new check to avoid unnecessary work
     if (this.audioContextRunning && this.audioContext.state === "running") {
-      console.log("[AUDIO_DEBUG] AudioContext already confirmed running, skipping resume");
+      // console.log("[AUDIO_DEBUG] AudioContext already confirmed running, skipping resume");
       return Promise.resolve(true);
     }
 
     if (this.audioContext.state === "suspended") {
-      console.log("[AUDIO_DEBUG] Attempting to resume suspended AudioContext");
+      // console.log("[AUDIO_DEBUG] Attempting to resume suspended AudioContext");
 
       return this.audioContext
         .resume()
         .then(() => {
-          console.log("[AUDIO_DEBUG] AudioContext resumed successfully, state:", this.audioContext.state);
-          console.log("[AUDIO_DEBUG] Loaded sounds count:", this.loadedSounds.size);
+          // console.log("[AUDIO_DEBUG] AudioContext resumed successfully, state:", this.audioContext.state);
+          // console.log("[AUDIO_DEBUG] Loaded sounds count:", this.loadedSounds.size);
 
           // Add this line to mark context as running
           this.audioContextRunning = true;
 
           // If no sounds loaded, try loading essential sounds again
           if (this.loadedSounds.size === 0) {
-            console.log("[AUDIO_DEBUG] No sounds loaded yet, attempting to reload essential sounds");
+            // console.log("[AUDIO_DEBUG] No sounds loaded yet, attempting to reload essential sounds");
             this.preloadEssentialSounds();
           }
           return true;
@@ -315,7 +315,7 @@ class AudioManager {
         });
     }
 
-    console.log("[AUDIO_DEBUG] AudioContext already running (state:", this.audioContext.state + ")");
+    // console.log("[AUDIO_DEBUG] AudioContext already running (state:", this.audioContext.state + ")");
     // Add this line to mark context as running even if it was already running
     this.audioContextRunning = true;
     return Promise.resolve(true);
@@ -340,16 +340,16 @@ class AudioManager {
   // }
 
   _unlockWithSilentSound() {
-    console.log("[AUDIO_DEBUG] Attempting to unlock with silent sound");
+    // console.log("[AUDIO_DEBUG] Attempting to unlock with silent sound");
 
     return new Promise((resolve) => {
       try {
         // Try a super short silent file
-        console.log("[AUDIO_DEBUG] Creating silent sound");
+        // console.log("[AUDIO_DEBUG] Creating silent sound");
         let silentSound = new Audio(this.resolvePath("silent.mp3"));
 
         if (!silentSound) {
-          console.log("[AUDIO_DEBUG] Silent sound file not found, using data URI");
+          // console.log("[AUDIO_DEBUG] Silent sound file not found, using data URI");
           // If file doesn't exist, use a data URI
           silentSound = new Audio(
             "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAGAAADAABgYGBgYGBgYGBgkJCQkJCQkJCQkJCQwMDAwMDAwMDAwMDA4ODg4ODg4ODg4ODg//////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAYAAAAAAAAAAwDVxttG//sUxAADwAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
@@ -357,17 +357,17 @@ class AudioManager {
         }
 
         silentSound.volume = 0.01;
-        console.log("[AUDIO_DEBUG] Playing silent sound");
+        // console.log("[AUDIO_DEBUG] Playing silent sound");
         const playPromise = silentSound.play();
 
         if (playPromise instanceof Promise) {
           playPromise
             .then(() => {
-              console.log("[AUDIO_DEBUG] Silent sound played successfully");
+              // console.log("[AUDIO_DEBUG] Silent sound played successfully");
               setTimeout(() => {
                 silentSound.pause();
                 silentSound.src = "";
-                console.log("[AUDIO_DEBUG] Silent sound cleaned up");
+                // console.log("[AUDIO_DEBUG] Silent sound cleaned up");
                 resolve(true);
               }, 100);
             })
@@ -376,10 +376,10 @@ class AudioManager {
               resolve(false);
             });
         } else {
-          console.log("[AUDIO_DEBUG] Play didn't return a promise, using timeout");
+          // console.log("[AUDIO_DEBUG] Play didn't return a promise, using timeout");
           setTimeout(() => {
             silentSound.pause();
-            console.log("[AUDIO_DEBUG] Silent sound cleaned up (timeout)");
+            // console.log("[AUDIO_DEBUG] Silent sound cleaned up (timeout)");
             resolve(true);
           }, 100);
         }
@@ -410,7 +410,7 @@ class AudioManager {
 }
 
   primeAudioPool(options = {}) {
-    console.log("[AUDIO_DEBUG] Priming audio pool during user gesture");
+    // console.log("[AUDIO_DEBUG] Priming audio pool during user gesture");
 
     // Create the audio pool if it doesn't exist
     window._primedAudioPool = [];
@@ -424,7 +424,7 @@ class AudioManager {
       clickAudio
         .play()
         .then(() => {
-          console.log("[AUDIO_DEBUG] Click sound played successfully");
+          // console.log("[AUDIO_DEBUG] Click sound played successfully");
 
           // Return to pool after it's done
           clickAudio.onended = () => {
@@ -451,7 +451,7 @@ class AudioManager {
       audio.preload = "auto"; // Make sure browser loads it
       audio.load(); // Force loading
       window._primedAudioPool.push(audio);
-      console.log(`[AUDIO_DEBUG] Prepared ${sound} without playing`);
+      // console.log(`[AUDIO_DEBUG] Prepared ${sound} without playing`);
     });
 
     // Add a few generic audio elements
@@ -460,7 +460,7 @@ class AudioManager {
       window._primedAudioPool.push(audio);
     }
 
-    console.log(`[AUDIO_DEBUG] Primed pool size: ${window._primedAudioPool.length}`);
+    // console.log(`[AUDIO_DEBUG] Primed pool size: ${window._primedAudioPool.length}`);
     return true;
   }
 
@@ -470,11 +470,11 @@ class AudioManager {
 
     // Skip if already loaded
     if (this.loadedSounds.has(soundKey)) {
-      console.log(`[AUDIO_DEBUG] Sound already loaded: ${soundKey}`);
+      // console.log(`[AUDIO_DEBUG] Sound already loaded: ${soundKey}`);
       return;
     }
 
-    console.log(`[AUDIO_DEBUG] Loading sound: ${soundKey}`);
+    // console.log(`[AUDIO_DEBUG] Loading sound: ${soundKey}`);
 
     let soundPath;
     let destination;
@@ -501,7 +501,7 @@ class AudioManager {
 
     // Track load success
     audio.oncanplaythrough = () => {
-      console.log(`[AUDIO_DEBUG] Sound loaded successfully: ${soundKey}`);
+      // console.log(`[AUDIO_DEBUG] Sound loaded successfully: ${soundKey}`);
 
       if (this.logger) {
         this.logger.debug("audio", `Loaded sound: ${soundKey}`);
@@ -530,19 +530,19 @@ class AudioManager {
     // Set source and load
     audio.src = this.resolvePath(soundPath);
 
-    console.log(`[AUDIO_DEBUG] Audio.load() called for: ${soundKey}`);
+    // console.log(`[AUDIO_DEBUG] Audio.load() called for: ${soundKey}`);
     audio.load();
 
     return audio;
   }
 
   init() {
-    console.log("[AUDIO_FLOW] AudioManager.init() called");
+    // console.log("[AUDIO_FLOW] AudioManager.init() called");
 
     if (this.initialized) return;
 
     if (this.logger) {
-      this.logger.info("audio", "Initializing audio system");
+      // this.logger.info("audio", "Initializing audio system");
     }
 
     try {
@@ -565,7 +565,7 @@ class AudioManager {
       this.soundPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/";
 
       if (this.logger) {
-        this.logger.info("audio", `Mobile detected, using absolute sound path: ${this.soundPath}`);
+        // this.logger.info("audio", `Mobile detected, using absolute sound path: ${this.soundPath}`);
       }
     }
 
@@ -583,7 +583,7 @@ class AudioManager {
 
 
     if (this.logger) {
-      this.logger.info("audio", "Audio system initialized");
+      // this.logger.info("audio", "Audio system initialized");
     }
   }
 
@@ -591,7 +591,7 @@ class AudioManager {
    * Preload essential sounds that need to be available immediately
    */
   preloadEssentialSounds() {
-    console.log("[Audio] Loading essential sounds");
+    // console.log("[Audio] Loading essential sounds");
 
     // UI sounds
     this.loadSound("ui", "click");
@@ -614,7 +614,7 @@ class AudioManager {
 
   // Modify preloadGameSounds to use a more staged approach
   preloadGameSounds() {
-    console.log("[Audio] Starting staged sound preload");
+    // console.log("[Audio] Starting staged sound preload");
 
     // First load essentials (already in pool)
     const criticalSounds = ["ui.click", "ui.gameStart", "defense.slap.0", "trump.trumpGrabbing.0", "ui.grabWarning", "music.background"];
@@ -672,7 +672,7 @@ class AudioManager {
    * Load remaining game sounds after initial critical sounds
    */
   loadRemainingSounds() {
-    console.log("[Audio] Loading remaining sounds");
+    // console.log("[Audio] Loading remaining sounds");
 
     // Load Trump sounds in a staggered way
     for (let category in this.soundFiles.trump) {
@@ -718,7 +718,7 @@ class AudioManager {
 
       // Check if there are protestor sounds available
       if (this.soundFiles.defense.protestors[protestorKey] && this.soundFiles.defense.protestors[protestorKey].length > 0) {
-        console.log(`[AUDIO_DEBUG] Loading protestor sound for ${country}`);
+        // console.log(`[AUDIO_DEBUG] Loading protestor sound for ${country}`);
         // Load the first sound (usually there's just one per country)
         const path = this.soundFiles.defense.protestors[protestorKey][0];
 
@@ -734,7 +734,7 @@ class AudioManager {
 
           this.sounds.defense.protestors[protestorKey] = audio;
           this.loadedSounds.add(`defense.protestors.${protestorKey}`);
-          console.log(`[AUDIO_DEBUG] Protestor sound loaded for ${country}`);
+          // console.log(`[AUDIO_DEBUG] Protestor sound loaded for ${country}`);
         };
 
         audio.load();
@@ -747,7 +747,7 @@ class AudioManager {
 
       const sayNoSounds = this.soundFiles.defense.peopleSayNo[peopleSayNoKey];
       if (Array.isArray(sayNoSounds) && sayNoSounds.length > 0) {
-        console.log(`[AUDIO_DEBUG] Loading peopleSayNo sounds for ${country}, count: ${sayNoSounds.length}`);
+        // console.log(`[AUDIO_DEBUG] Loading peopleSayNo sounds for ${country}, count: ${sayNoSounds.length}`);
 
         // Make sure the destination array exists
         if (!this.sounds.defense.peopleSayNo) {
@@ -767,7 +767,7 @@ class AudioManager {
             audio.oncanplaythrough = () => {
               this.sounds.defense.peopleSayNo[peopleSayNoKey][index] = audio;
               this.loadedSounds.add(`defense.peopleSayNo.${peopleSayNoKey}.${index}`);
-              console.log(`[AUDIO_DEBUG] PeopleSayNo sound loaded for ${country} [${index}]`);
+              // console.log(`[AUDIO_DEBUG] PeopleSayNo sound loaded for ${country} [${index}]`);
             };
 
             audio.load();
@@ -818,7 +818,7 @@ class AudioManager {
     // Use absolute paths for mobile
     const baseUrl = window.location.origin + window.location.pathname;
     this.soundPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + "sounds/";
-    console.log("[Audio] Adjusted sound path for mobile:", this.soundPath);
+    // console.log("[Audio] Adjusted sound path for mobile:", this.soundPath);
   }
 
   /**
@@ -922,36 +922,57 @@ class AudioManager {
    * @returns {string} Full path to the sound
    */
   resolvePath(filename) {
+    // console.log(`[AUDIO_DEBUG] resolvePath called with:`, {
+    //   filename,
+    //   type: typeof filename,
+    //   isArray: Array.isArray(filename),
+    //   soundPath: this.soundPath
+    // });
+  
     // Handle invalid inputs safely
     if (!filename) {
-      console.warn("[Audio] Invalid filename provided to resolvePath");
+      console.warn("[AUDIO_DEBUG] Invalid filename provided to resolvePath:", {
+        stack: new Error().stack
+      });
       return "";
     }
-
+  
     // Handle arrays as a safety backup
     if (Array.isArray(filename)) {
-      console.warn("[Audio] Array passed to resolvePath instead of string");
+      console.warn("[AUDIO_DEBUG] Array passed to resolvePath instead of string:", {
+        filename,
+        stack: new Error().stack
+      });
       if (filename.length > 0) {
         filename = filename[0];
       } else {
         return "";
       }
     }
-
+  
     // Ensure filename is a string
     if (typeof filename !== "string") {
-      console.warn("[Audio] Non-string filename passed to resolvePath");
+      console.warn("[AUDIO_DEBUG] Non-string filename passed to resolvePath:", {
+        filename,
+        type: typeof filename,
+        stack: new Error().stack
+      });
       return "";
     }
-
+  
     // For absolute URLs, return as is
     if (filename.startsWith("http") || filename.startsWith("/")) {
       return filename;
     }
-
+  
     // Ensure sound path ends with a slash
     const path = this.soundPath.endsWith("/") ? this.soundPath : this.soundPath + "/";
-
+    
+    // console.log(`[AUDIO_DEBUG] Resolved path:`, {
+    //   input: filename,
+    //   output: path + filename
+    // });
+  
     return path + filename;
   }
 
@@ -968,7 +989,7 @@ class AudioManager {
     }
 
     if (this.logger) {
-      this.logger.debug("audio", `Loading sound: ${soundKey}`);
+      // this.logger.debug("audio", `Loading sound: ${soundKey}`);
     }
 
     let soundPath;
@@ -997,7 +1018,7 @@ class AudioManager {
     // Track load success
     audio.oncanplaythrough = () => {
       if (this.logger) {
-        this.logger.debug("audio", `Loaded sound: ${soundKey}`);
+        // this.logger.debug("audio", `Loaded sound: ${soundKey}`);
       }
 
       if (index !== null) {
@@ -1125,7 +1146,7 @@ class AudioManager {
       // Otherwise, check if the sound exists in our cache
       if (!this.sounds[category][name]) {
         if (this.logger) {
-          this.logger.debug("audio", `Sound ${category}.${name} not loaded yet, loading now...`);
+          // this.logger.debug("audio", `Sound ${category}.${name} not loaded yet, loading now...`);
         }
         this.loadSound(category, name);
 
@@ -1150,7 +1171,7 @@ class AudioManager {
       }
 
       if (this.logger) {
-        this.logger.debug("audio", `Playing sound: ${category}.${name}`);
+        // this.logger.debug("audio", `Playing sound: ${category}.${name}`);
       }
 
       // Reset and play
@@ -1326,7 +1347,7 @@ class AudioManager {
 playProtestorSound(country, volume = 0.5) {
   if (this.muted) return null;
 
-  console.log(`[DIAGNOSTIC] playProtestorSound called for ${country} with volume ${volume}`);
+  // console.log(`[DIAGNOSTIC] playProtestorSound called for ${country} with volume ${volume}`);
 
   return this.resumeAudioContext().then(() => {
     try {
@@ -1334,7 +1355,7 @@ playProtestorSound(country, volume = 0.5) {
       let soundCountry = country;
       if (country === "canada") {
         soundCountry = Math.random() < 0.5 ? "eastCanada" : "westCanada";
-        console.log(`[DIAGNOSTIC] Canada converted to ${soundCountry}`);
+        // console.log(`[DIAGNOSTIC] Canada converted to ${soundCountry}`);
       }
 
       // Ensure it's a valid country
@@ -1342,7 +1363,7 @@ playProtestorSound(country, volume = 0.5) {
         console.warn(`[Audio] Unknown country for protestor sound: ${soundCountry}`);
         soundCountry = "eastCanada"; // Default fallback
       }
-console.log("soundCountry");
+// console.log("soundCountry");
 
       // Create key with "Protestors" suffix
       const protestorKey = soundCountry + "Protestors";
@@ -1359,7 +1380,7 @@ console.log("soundCountry");
         return null;
       }
 
-      console.log(`[DIAGNOSTIC] Playing sound file: ${soundFile} for ${soundCountry}`);
+      // console.log(`[DIAGNOSTIC] Playing sound file: ${soundFile} for ${soundCountry}`);
 
       // Initialize activeProtestorSounds if needed
       if (!this.activeProtestorSounds) {
@@ -1398,26 +1419,26 @@ console.log("soundCountry");
   });
 }
   stopProtestorSound(country = null) {
-    console.log(`[DIAGNOSTIC] stopProtestorSound called with country=${country}`);
+    // console.log(`[DIAGNOSTIC] stopProtestorSound called with country=${country}`);
 
     if (!this.activeProtestorSounds) {
-      console.log(`[DIAGNOSTIC] activeProtestorSounds is null or undefined, creating empty object`);
+      // console.log(`[DIAGNOSTIC] activeProtestorSounds is null or undefined, creating empty object`);
       this.activeProtestorSounds = {};
       return;
     }
 
-    console.log(`[DIAGNOSTIC] Current activeProtestorSounds keys:`, Object.keys(this.activeProtestorSounds));
+    // console.log(`[DIAGNOSTIC] Current activeProtestorSounds keys:`, Object.keys(this.activeProtestorSounds));
 
     // Handle canada's two variants
     if (country === "canada") {
-      console.log(`[DIAGNOSTIC] Handling canada by stopping eastCanada and westCanada`);
+      // console.log(`[DIAGNOSTIC] Handling canada by stopping eastCanada and westCanada`);
       this._stopSingleProtestorSound("eastCanada");
       this._stopSingleProtestorSound("westCanada");
     } else if (country) {
-      console.log(`[DIAGNOSTIC] Stopping single sound for ${country}`);
+      // console.log(`[DIAGNOSTIC] Stopping single sound for ${country}`);
       this._stopSingleProtestorSound(country);
     } else {
-      console.log(`[DIAGNOSTIC] Stopping all protestor sounds`);
+      // console.log(`[DIAGNOSTIC] Stopping all protestor sounds`);
       // Stop all protestor sounds
       Object.keys(this.activeProtestorSounds).forEach((key) => {
         this._stopSingleProtestorSound(key);
@@ -1426,33 +1447,33 @@ console.log("soundCountry");
   }
 
   _stopSingleProtestorSound(soundCountry) {
-    console.log(`[DIAGNOSTIC] _stopSingleProtestorSound called for ${soundCountry}`);
+    // console.log(`[DIAGNOSTIC] _stopSingleProtestorSound called for ${soundCountry}`);
 
     const sound = this.activeProtestorSounds[soundCountry];
-    console.log(`[DIAGNOSTIC] Sound for ${soundCountry} exists:`, !!sound);
+    // console.log(`[DIAGNOSTIC] Sound for ${soundCountry} exists:`, !!sound);
 
     if (sound) {
-      console.log(`[DIAGNOSTIC] Attempting to pause sound for ${soundCountry}`);
+      // console.log(`[DIAGNOSTIC] Attempting to pause sound for ${soundCountry}`);
       try {
         sound.pause();
-        console.log(`[DIAGNOSTIC] Sound paused successfully`);
+        // console.log(`[DIAGNOSTIC] Sound paused successfully`);
         sound.currentTime = 0;
-        console.log(`[DIAGNOSTIC] Sound currentTime reset to 0`);
+        // console.log(`[DIAGNOSTIC] Sound currentTime reset to 0`);
 
         // Also remove from currently playing
         const index = this.currentlyPlaying.indexOf(sound);
-        console.log(`[DIAGNOSTIC] Sound index in currentlyPlaying:`, index);
+        // console.log(`[DIAGNOSTIC] Sound index in currentlyPlaying:`, index);
         if (index !== -1) {
           this.currentlyPlaying.splice(index, 1);
-          console.log(`[DIAGNOSTIC] Sound removed from currentlyPlaying`);
+          // console.log(`[DIAGNOSTIC] Sound removed from currentlyPlaying`);
         }
       } catch (e) {
-        console.log(`[DIAGNOSTIC] Error stopping sound:`, e.message);
+        // console.log(`[DIAGNOSTIC] Error stopping sound:`, e.message);
       }
 
       // Delete the reference regardless of errors
       delete this.activeProtestorSounds[soundCountry];
-      console.log(`[DIAGNOSTIC] Sound reference removed from activeProtestorSounds`);
+      // console.log(`[DIAGNOSTIC] Sound reference removed from activeProtestorSounds`);
     }
   }
 
@@ -1460,7 +1481,7 @@ console.log("soundCountry");
    * Stop all protestor sounds
    */
   stopAllProtestorSounds() {
-    console.log("[Audio] Stopping ALL protestor sounds");
+    // console.log("[Audio] Stopping ALL protestor sounds");
     this.stopProtestorSound();
   }
 
@@ -1524,7 +1545,7 @@ console.log("soundCountry");
 
   // Add this method to AudioManager
   reset() {
-    console.log("[Audio] Resetting audio system");
+    // console.log("[Audio] Resetting audio system");
 
     // Stop all sounds
     this.stopAll();
@@ -1626,13 +1647,13 @@ console.log("soundCountry");
    * @returns {Promise<HTMLAudioElement|null>} Promise resolving to the audio element or null
    */
   play(category, name, volume = null) {
-    console.log(`[AUDIO_FLOW] Attempting to play ${category}.${name}, initialized: ${this.initialized}, muted: ${this.muted}`);
+    // console.log(`[AUDIO_FLOW] Attempting to play ${category}.${name}, initialized: ${this.initialized}, muted: ${this.muted}`);
 
     if (!this.initialized || this.muted) return Promise.resolve(null);
 
-    console.log(`[AUDIO_DEBUG] Play called for: ${category}.${name}`);
-    console.log(`[AUDIO_DEBUG] AudioContext state: ${this.audioContext ? this.audioContext.state : "no context"}`);
-    console.log(`[AUDIO_DEBUG] Sound exists: ${!!(this.sounds[category] && this.sounds[category][name])}`);
+    // console.log(`[AUDIO_DEBUG] Play called for: ${category}.${name}`);
+    // console.log(`[AUDIO_DEBUG] AudioContext state: ${this.audioContext ? this.audioContext.state : "no context"}`);
+    // console.log(`[AUDIO_DEBUG] Sound exists: ${!!(this.sounds[category] && this.sounds[category][name])}`);
 
     // Always ensure AudioContext is resumed (crucial for mobile)
     return this.resumeAudioContext().then(() => {
@@ -1648,7 +1669,7 @@ console.log("soundCountry");
       // Otherwise, check if the sound exists in our cache
       if (!this.sounds[category][name]) {
         if (this.logger) {
-          this.logger.debug("audio", `Sound ${category}.${name} not loaded yet, loading now...`);
+          // this.logger.debug("audio", `Sound ${category}.${name} not loaded yet, loading now...`);
         }
         this.loadSound(category, name);
 
@@ -1673,7 +1694,7 @@ console.log("soundCountry");
       }
 
       if (this.logger) {
-        this.logger.debug("audio", `Playing sound: ${category}.${name}`);
+        // this.logger.debug("audio", `Playing sound: ${category}.${name}`);
       }
 
       // Reset and play
@@ -1752,7 +1773,7 @@ console.log("soundCountry");
       };
 
       // Play it
-      console.log(`[AUDIO_DEBUG] Playing ${soundPath} (pool size: ${window._primedAudioPool?.length || 0})`);
+      // console.log(`[AUDIO_DEBUG] Playing ${soundPath} (pool size: ${window._primedAudioPool?.length || 0})`);
       const playPromise = audio.play();
 
       if (playPromise) {
@@ -1989,7 +2010,7 @@ console.log("soundCountry");
   forcePlayCriticalSound(category, name, options = {}) {
     if (!this.initialized || this.muted) return Promise.resolve(null);
 
-    console.log(`[AUDIO_DEBUG] Force-playing critical sound: ${category}.${name}`);
+    // console.log(`[AUDIO_DEBUG] Force-playing critical sound: ${category}.${name}`);
 
     // Get sound path
     let soundPath;
@@ -2313,7 +2334,7 @@ console.log("soundCountry");
       });
     }
 
-    console.log("[Audio] Cleanup complete");
+    // console.log("[Audio] Cleanup complete");
   }
 }
 

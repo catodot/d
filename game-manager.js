@@ -111,7 +111,7 @@ class GameEngine {
       // Update global reference (for backward compatibility)
       window.audioManager = this.systems.audio;
 
-      console.log("[Engine] AudioManager initialized");
+      // console.log("[Engine] AudioManager initialized");
     }
 
     // Initialize device utils if needed
@@ -139,7 +139,7 @@ class GameEngine {
 
     // Add specific handling for Chrome mobile
     if (window.isChromeOnMobile) {
-      console.log("[Engine] Chrome mobile detected, adding special positioning handlers");
+      // console.log("[Engine] Chrome mobile detected, adding special positioning handlers");
 
       // Add a specific CSS fix for Chrome mobile
       const chromeFix = document.createElement("style");
@@ -161,7 +161,7 @@ class GameEngine {
       // Add delayed positioning function specifically for Chrome mobile
       this._chromePositioningFix = () => {
         if (this.systems.ui) {
-          console.log("[Engine] Applying Chrome mobile positioning fix");
+          // console.log("[Engine] Applying Chrome mobile positioning fix");
           setTimeout(() => this.systems.ui.positionElements(), 500);
           setTimeout(() => this.systems.ui.positionElements(), 1000);
           setTimeout(() => this.systems.ui.positionElements(), 2000);
@@ -196,7 +196,7 @@ class GameEngine {
   }
 
   init() {
-    console.log("[Engine] Initializing game engine");
+    // console.log("[Engine] Initializing game engine");
 
     // Initialize all systems first
     this._initializeGameSystems();
@@ -217,7 +217,7 @@ class GameEngine {
       if (document.hidden) {
         // If a grab is in progress, force-complete it immediately
         if (this.gameState?.currentTarget) {
-          console.log("[Engine] Window lost focus, forcing grab completion for", this.gameState.currentTarget);
+          // console.log("[Engine] Window lost focus, forcing grab completion for", this.gameState.currentTarget);
           this.grabSuccess(this.gameState.currentTarget);
         }
 
@@ -237,25 +237,25 @@ class GameEngine {
   }
 
   _prepareAudio() {
-    console.log("[AUDIO_FLOW] _prepareAudio called - preparing audio");
+    // console.log("[AUDIO_FLOW] _prepareAudio called - preparing audio");
 
-    console.log("[Engine] Preparing audio system");
+    // console.log("[Engine] Preparing audio system");
 
     // Make sure we have an audio system
     if (!this.systems.audio) {
       if (typeof AudioManager === "function") {
-        console.log("[Engine] Creating audio system");
+        // console.log("[Engine] Creating audio system");
         this.systems.audio = new AudioManager();
         window.audioManager = this.systems.audio;
       } else {
-        console.error("[Engine] AudioManager not available");
+        // console.error("[Engine] AudioManager not available");
         return;
       }
     }
 
     // Unlock audio for mobile
     this.systems.audio.unlock().then((unlocked) => {
-      console.log("[Engine] Audio unlock result:", unlocked);
+      // console.log("[Engine] Audio unlock result:", unlocked);
 
       // Start background music with a delay
       this.createTrackedTimeout(() => {
@@ -267,7 +267,7 @@ class GameEngine {
   }
 
   startGame() {   
-    console.log("[Engine] Starting new game");
+    // console.log("[Engine] Starting new game");
 
     // Unlock audio system - MUST be called in response to user interaction
     this._prepareAudio();
@@ -337,6 +337,8 @@ class GameEngine {
   // }
 
   async triggerGameEnd(endState) {
+    console.log(`[DEBUG] triggerGameEnd: Called with endState: ${endState}, current animation state: ${window.animationManager?.currentState || 'unknown'}, size: ${window.animationManager?.sizeState || 'unknown'}`);
+
     const sequence = this.endGameSequences[endState];
     
     // Start final trump animation
@@ -399,7 +401,7 @@ class GameEngine {
    * @param {Object} [options] - Optional configuration for game over
    */
   endGame(playerWon, options = {}) {
-    console.log(`[Engine] Ending game, player ${playerWon ? "won" : "lost"}`);
+    // console.log(`[Engine] Ending game, player ${playerWon ? "won" : "lost"}`);
 
     if (this.systems.freedom) {
       this.systems.freedom.cleanupAllProtestors();
@@ -463,7 +465,7 @@ class GameEngine {
    * Restart the game
    */
   restartGame() {
-    console.log("[Engine] Restarting game");
+    // console.log("[Engine] Restarting game");
 
     // FIRST: Hide UI elements that should be hidden during restart
     const gameOverScreen = document.getElementById("game-over-screen");
@@ -534,7 +536,7 @@ class GameEngine {
     this.systems.ui.showGameOverScreen(playerWon, this.systems.state);
     // Show voice recorder after a short delay
     setTimeout(() => {
-      console.log("Showing voice recorder after 2-second delay");
+      // console.log("Showing voice recorder after 2-second delay");
 
       if (typeof openVoiceRecordingInterface === "function") {
         openVoiceRecordingInterface();
@@ -601,7 +603,7 @@ class GameEngine {
     // Failsafe to complete grab if not blocked
     this.createTrackedTimeout(() => {
       if (this.systems.state.currentTarget === targetCountry) {
-        console.log("[Engine] Failsafe: Force-completing grab for", targetCountry);
+        // console.log("[Engine] Failsafe: Force-completing grab for", targetCountry);
         this.grabSuccess(targetCountry);
       }
     }, 8000);
@@ -666,13 +668,17 @@ class GameEngine {
   }
 
   grabSuccess(country) {
-    console.log(`[Engine] Trump successfully grabbed ${country}`);
+    // console.log(`[Engine] Trump successfully grabbed ${country}`);
+    console.log("0 start grab success function");
 
     // Reset consecutive hits
     this.systems.state.consecutiveHits = 0;
+    console.log("1 about to apply visual effects");
 
     // Apply visual effects
     this.systems.ui.applyGrabSuccessVisuals(country);
+
+    console.log("2 about to check if this is the game winning grab");
 
     // Check if this is the game-winning grab BEFORE playing ANY sounds
     const isGameOver = this._checkGameOverCondition();
@@ -697,12 +703,19 @@ class GameEngine {
 
       return;
     }
+    console.log("3 about to check if we have a systems animation");
+
 
     // Play victory animation and continue game
     if (this.systems.animation) {
+      console.log("4 about to change state in game manager");
       this.systems.animation.changeState("victory", () => {
+        console.log("5 about to change state in game manager- about to initate grab");
+        
         // Continue game loop
         this.initiateGrab();
+        console.log("6 about to change state in game manager- have initiated grab");
+
       });
     } else {
       // Fallback if no animation manager
@@ -846,7 +859,7 @@ class GameEngine {
     }
 
     if (typeof UFOManager === "function") {
-      console.log("Setting up UFO Manager");
+      // console.log("Setting up UFO Manager");
 
       if (!window.UFOManager) {
         window.UFOManager = new UFOManager(this.systems.audio);
@@ -865,15 +878,15 @@ class GameEngine {
     }
 
 
-    console.log("[Engine] Additional managers initialized:", {
-      handHitbox: !!this.systems.collision,
-      trumpEffects: !!this.systems.effects,
-      protestorHitbox: !!this.systems.protestorHitbox,
-      freedom: !!this.systems.freedom,
-      smack: !!this.systems.smack,
-      speed: !!this.systems.speed,
-      ufo: !!this.systems.ufo,
-    });
+    // console.log("[Engine] Additional managers initialized:", {
+    //   handHitbox: !!this.systems.collision,
+    //   trumpEffects: !!this.systems.effects,
+    //   protestorHitbox: !!this.systems.protestorHitbox,
+    //   freedom: !!this.systems.freedom,
+    //   smack: !!this.systems.smack,
+    //   speed: !!this.systems.speed,
+    //   ufo: !!this.systems.ufo,
+    // });
   }
 
   /**
@@ -925,7 +938,7 @@ class GameEngine {
    * @private
    */
   _startGameLoop() {
-    console.log("[Engine] Starting game loop");
+    // console.log("[Engine] Starting game loop");
 
     // Set playing state
     this.systems.state.isPlaying = true;
@@ -945,7 +958,7 @@ class GameEngine {
    * @private
    */
   _stopGameLoop() {
-    console.log("[Engine] Stopping game loop");
+    // console.log("[Engine] Stopping game loop");
 
     // Cancel animation frame if it exists
     if (this.systems.state.currentAnimationFrame) {
@@ -983,7 +996,7 @@ class GameEngine {
    * @private
    */
   _resetSystems() {
-    console.log("[Engine] Resetting all systems");
+    // console.log("[Engine] Resetting all systems");
 
     // Reset game state
     this.systems.state.reset();
@@ -1120,7 +1133,7 @@ class GameEngine {
    * @private
    */
   _pauseGame() {
-    console.log("[Engine] Pausing game in _pauseGame");
+    // console.log("[Engine] Pausing game in _pauseGame");
 
     // Stop countdown timer
     clearInterval(this.systems.state.countdownTimer);
@@ -1146,7 +1159,7 @@ class GameEngine {
    * @private
    */
   _resumeGame() {
-    console.log("[Engine] Resuming game");
+    // console.log("[Engine] Resuming game");
 
     // Remove pause overlay
     this.systems.ui.removePauseOverlay();
@@ -1817,7 +1830,7 @@ class UIManager {
       // Add fresh click handler
       newButton.addEventListener("click", (e) => {
         e.preventDefault();
-        console.log("Restart button clicked directly from game over screen");
+        // console.log("Restart button clicked directly from game over screen");
         if (window.gameEngine) {
           window.gameEngine.restartGame();
         }
@@ -1852,7 +1865,7 @@ class UIManager {
 
   showWorldShrinkAnimation(onCompleteCallback, duration = 8000, options = {}) {
     const keepTrumpAnimating = options?.keepTrumpAnimating || false;
-    console.log("Starting smooth world shrink animation");
+    // console.log("Starting smooth world shrink animation");
 
     // Get the game container and screen FIRST - before any function calls
     const gameContainer = this.elements.game.container;
@@ -2033,7 +2046,7 @@ class UIManager {
     // Get FRESH bounding rect after forced reflow
     const mapRect = mapElement.getBoundingClientRect();
 
-    console.log("[Chrome Debug] Map position:", mapRect.top, mapRect.left);
+    // console.log("[Chrome Debug] Map position:", mapRect.top, mapRect.left);
 
     // CRITICAL: For Chrome Mobile, we need to use absolute positioning with exact values
     if (window.isChromeOnMobile) {
@@ -2057,7 +2070,7 @@ class UIManager {
         trumpContainer.style.top = `${newMapRect.top}px`;
         trumpContainer.style.left = `${newMapRect.left}px`;
 
-        console.log("[Chrome Debug] Delayed positioning:", newMapRect.top, newMapRect.left);
+        // console.log("[Chrome Debug] Delayed positioning:", newMapRect.top, newMapRect.left);
       }, 300);
     } else {
       // Standard positioning for other browsers
@@ -2862,7 +2875,7 @@ class InputManager {
       // Simple direct handler - based on your working test
       newStartButton.addEventListener("click", (e) => {
         e.preventDefault();
-        console.log("[AUDIO_DEBUG] Start button clicked");
+        // console.log("[AUDIO_DEBUG] Start button clicked");
 
         // Initialize audio - directly in click handler
         if (window.audioManager) {
@@ -2950,7 +2963,7 @@ class InputManager {
 
 // Initialize the game when document is ready
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("Initializing game...");
+  // console.log("Initializing game...");
 
   // Create and initialize game engine
   const engine = new GameEngine({
@@ -3109,7 +3122,7 @@ class GameSpeedManager {
     // Tutorial is complete if player has made a successful block
     if (this.gameState.stats.successfulBlocks > this.state.initialBlockCount) {
       if (!this.state.tutorialCompleted) {
-        console.log("Tutorial completed! Player has successfully blocked.");
+        // console.log("Tutorial completed! Player has successfully blocked.");
         this.state.tutorialCompleted = true;
 
         // Clean up tutorial timers
@@ -3194,7 +3207,7 @@ class GameSpeedManager {
   _setupTutorialFailsafe() {
     this.timers.tutorialFailsafeTimeout = setTimeout(() => {
       if (!this.state.tutorialCompleted) {
-        console.log("Tutorial timeout reached. Auto-completing tutorial.");
+        // console.log("Tutorial timeout reached. Auto-completing tutorial.");
         this.state.tutorialCompleted = true;
 
         // Clean up timers
@@ -3330,7 +3343,7 @@ class GameSpeedManager {
       // Play appropriate sound
       this._playSpeedChangeSound(newSpeed);
 
-      console.log(`Game speed increased to ${newSpeed.multiplier.toFixed(2)}x (${newSpeed.name})`);
+      // console.log(`Game speed increased to ${newSpeed.multiplier.toFixed(2)}x (${newSpeed.name})`);
 
       return true;
     }
@@ -3352,7 +3365,7 @@ class GameSpeedManager {
           this.audioManager.play("ui", speedLevel.sound, 0.8);
         }
       } catch (error) {
-        console.log(`Couldn't play speed sound ${speedLevel.sound}, falling back to generic`);
+        // console.log(`Couldn't play speed sound ${speedLevel.sound}, falling back to generic`);
         this.audioManager.play("ui", "speedup", 0.8);
       }
     } else {

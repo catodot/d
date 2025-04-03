@@ -3635,6 +3635,9 @@ _handleUsaShrinkEffect() {
   // Clean up protestors AFTER all state transitions are complete
   setTimeout(() => {
     this._cleanupProtestorElements("usa");
+
+    const preservedSize = animationManager.sizeState;
+
     // Re-show protestors for USA with fresh click handlers
     if (nextSize !== 'smallest') {
       this.showProtestors("usa");
