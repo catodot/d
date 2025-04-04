@@ -678,6 +678,12 @@ class TrumpHandEffectsController {
    * @param {boolean} isHovering - Whether hovering or not
    */
   updateHoverState(isHovering) {
+    console.log(`[uuu HAND EFFECTS] ========== HOVER UPDATE START ==========`);
+    console.log(`[uuu HAND EFFECTS] Is hovering: ${isHovering}`);
+    console.log(`[uuu HAND EFFECTS] Current state: ${this.state.current}`);
+    console.log(`[uuu HAND EFFECTS] Is grabbing: ${this.state.isGrabbing}`);
+    console.log(`[uuu HAND EFFECTS] Is animating: ${this.state.isAnimating}`);
+    
     if (!this.elements.visual || !this.elements.hitbox) return;
 
     // Update hover state tracking
@@ -696,6 +702,8 @@ class TrumpHandEffectsController {
         isFirstBlock: this.isFirstBlock(),
       });
     }
+    console.log(`[uuu HAND EFFECTS] ========== HOVER UPDATE END ==========`);
+
   }
 
   /**
@@ -1032,7 +1040,22 @@ class HandHitboxManager {
 
     // Allowed animation states
     this.animationTypes = {
-      grab: ["grabEastCanada", "grabWestCanada", "grabMexico", "grabGreenland"],
+      grab: ["grabEastCanada", 
+    "grabEastCanadaSmall", 
+    "grabEastCanadaSmaller", 
+    "grabEastCanadaSmallest",
+    "grabWestCanada", 
+    "grabWestCanadaSmall", 
+    "grabWestCanadaSmaller", 
+    "grabWestCanadaSmallest",
+    "grabMexico", 
+    "grabMexicoSmall", 
+    "grabMexicoSmaller", 
+    "grabMexicoSmallest",
+    "grabGreenland", 
+    "grabGreenlandSmall", 
+    "grabGreenlandSmaller", 
+    "grabGreenlandSmallest"],
       smack: ["slapped"],
     };
 
@@ -1174,10 +1197,20 @@ class HandHitboxManager {
    * @param {number} frameIndex - Current frame index
    */
   updateStateAndFrame(state, frameIndex) {
+    console.log(`[uuu HITBOX] ========== HITBOX UPDATE START ==========`);
+    console.log(`[uuu HITBOX] Previous state: ${this.currentState}`);
+    console.log(`[uuu HITBOX] Previous frame: ${this.currentFrame}`);
+    console.log(`[uuu HITBOX] New state: ${state}`);
+    console.log(`[uuu HITBOX] New frame: ${frameIndex}`);
+    
     this.currentState = state;
     this.currentFrame = frameIndex;
     this.updatePosition();
-  }
+    console.log(`[uuu HITBOX] Updated position completed`);
+    console.log(`[uuu HITBOX] Current coordinates:`, this.getHitboxInfo());
+    console.log(`[uuu HITBOX] ========== HITBOX UPDATE END ==========`);
+}
+
 
   /**
    * Adjust hitbox size
@@ -2576,6 +2609,9 @@ class FreedomManager {
     PROTESTORS: 1025,
   };
 
+  
+
+
   /**
    * @param {Object} gameState - The game state object
    * @param {Object} elements - DOM elements
@@ -2606,6 +2642,7 @@ class FreedomManager {
       ...config,
     };
 
+
     // Set up logger reference
     this.logger = this._initLogger();
 
@@ -2630,7 +2667,25 @@ class FreedomManager {
     // Create containers for particles
     this._createParticleContainers();
 
+    this.usaProtestorConfig = {
+      initialThreshold: 0.9, // Show first USA protestors after 10% of game time
+      minRespawnTime: 20000, //  ms minimum between protestor appearances
+      maxRespawnTime: 40000, //  ms maximum between protestor appearances
+      nextSpawnTime: null
+    };
+    
+    // Track Trump's shrink state
+    this.trumpShrinkLevel = 0; // 0 = normal, 1 = small, 2 = smaller, 3 = smallest
+    this.trumpShrinkStates = ['normal', 'small', 'smaller', 'smallest'];
+
     this.logger.info("freedom", "Enhanced Freedom Manager initialized");
+
+    this.trumpSizeState = {
+      currentSize: 'normal',  // 'normal', 'small', 'smaller', 'smallest'
+      sizeIndex: 0,          // 0-3 matching the size arrays
+      sizes: ['normal', 'small', 'smaller', 'smallest'],
+      transitioning: false
+    };
   }
 
   /**
@@ -2787,56 +2842,24 @@ class FreedomManager {
   }
 
   _updateAnnexedCountry(country, gameCountry, deltaTime, deltaSeconds) {
+    // console.log("xxx in _updateAnnexedCountry");
+    
     const countryId = country.id;
-  
+    
     // Update annexation timer
     country.annexTime += deltaTime;
-  
-    // Check if we should show protestors
+    
+    // Check if we should show protestors for annexed countries
     const protestorThreshold = this.config.fullAnnexationTime * this.config.protestorShowDelay;
     if (country.annexTime >= protestorThreshold && !country.protestorsShown) {
       this.logger.info("freedom", `[THRESHOLD] ${countryId} reached protestor show threshold at ${country.annexTime}ms`);
       this.showProtestors(countryId);
       country.protestorsShown = true;
     }
+    
+    // USA protestor handling - completely separate from other protestors
+    this._checkForUSAProtestors(deltaTime);
   
-    // Check for USA protestors based on game time 
-    if (!this.usaTimingCheckDone && !this.countries.usa?.protestorsShown) {
-      const totalGameTime = this.gameState.config.GAME_DURATION;
-      const currentGameTime = totalGameTime - this.gameState.timeRemaining;
-      const usaThreshold = totalGameTime * 0.9; // 60% of total game time
-      const protestChance = 0.1; // 1% chance of spawning
-  
-      // Check timing and do a random chance check
-      if (currentGameTime >= usaThreshold && Math.random() < protestChance) {
-        this.logger.info("freedom", "[USA UPRISING] Time threshold AND random chance met");
-  
-        // Mark timing check as done to prevent repeated checks
-        this.usaTimingCheckDone = true;
-  
-        // Ensure clean state before showing
-        if (this.countries.usa) {
-          // Clean up any existing USA protestors first
-          this._cleanupProtestorElements("usa");
-  
-          // Create fresh protestor state
-          this.countries.usa.protestorsShown = false;
-          this.countries.usa.clickCounter = 0;
-  
-          // Show the protestors
-          this.showProtestors("usa");
-          this.countries.usa.protestorsShown = true;
-  
-          // Play special sound after brief delay to avoid sound conflicts
-          setTimeout(() => {
-            if (this.audioManager) {
-              this.audioManager.playRandom("particles", "freedom", null, 0.8);
-            }
-          }, 100);
-        }
-      }
-    }
-
     // Check if country has been annexed long enough to enable resistance
     if (country.annexTime >= this.config.fullAnnexationTime && !country.resistanceAvailable) {
       country.resistanceAvailable = true;
@@ -2844,17 +2867,19 @@ class FreedomManager {
         "freedom",
         `[RESISTANCE AVAILABLE] ${countryId} now able to resist after ${(country.annexTime / 1000).toFixed(1)}s of full annexation`
       );
-
+  
       // Show subtle indicator that resistance is possible
       this._showResistancePossibleIndicator(countryId);
     }
-
+  
     // Check for resistance for countries that have been annexed long enough
     if (country.resistanceAvailable && !country.protestorsShown) {
       this._checkRandomResistance(countryId, deltaSeconds);
     }
   }
 
+ 
+  
   /**
    * Reset state for a country that is no longer fully annexed
    * @private
@@ -3024,209 +3049,648 @@ class FreedomManager {
   }
 
   showProtestors(countryId) {
-    this.hideProtestors(countryId);
     this.protestorHitboxManager.selectNewRandomSpawnLocation(countryId);
-
+  
     this.logger.info("freedom", `Showing protestors for ${countryId}`);
-
+  
     // Get the hitbox
     const hitbox = this.protestorHitboxManager.showHitbox(countryId, this);
     if (!hitbox) {
       this.logger.error("freedom", `Failed to create protestor hitbox for ${countryId}`);
       return null;
     }
-
+  
+    // Only clean up existing protestors if we successfully got a new hitbox
+    if (this.countries[countryId].protestorWrapper) {
+      this._cleanupProtestorElements(countryId);
+    }
+  
     // Create protestor wrapper and sprite
     const wrapper = this._createProtestorElements(countryId, hitbox);
     if (!wrapper) return null;
-
+  
     // Initialize click counter
     this.countries[countryId].clickCounter = 0;
     this.countries[countryId].currentScale = 1.0;
     this.countries[countryId].protestorWrapper = wrapper;
-
+  
     // Set up animations
     this._setupProtestorAnimations(countryId, wrapper);
-
+  
     // Set timeout for protestors to disappear if not clicked
     this.countries[countryId].disappearTimeout = setTimeout(() => {
       this._shrinkAndHideProtestors(countryId);
-    }, 7000); // 7 seconds timeout
-
+    }, 7000);
+  
     return wrapper;
   }
-
   /**
    * Shrink and hide protestors with animation
    * @private
    * @param {string} countryId - Country identifier
    */
-  _shrinkAndHideProtestors(countryId) {
-    const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "shrinking");
-    if (!protestorWrapper) return;
 
-    this.logger.info("freedom", `Protestors timed out in ${countryId}, disappearing`);
+  
 
-    // Clear any existing transitions/animations first
-    protestorWrapper.style.animation = "none";
-    protestorWrapper.style.transition = "none";
-    void protestorWrapper.offsetWidth; // Force reflow
+hideProtestors(countryId) {
+  this.logger.info("freedom", `[HIDE] Hiding protestors for ${countryId}`);
 
-    // Get original position
-    const originalPosition = {
-      left: protestorWrapper.style.left,
-      top: protestorWrapper.style.top,
-      width: protestorWrapper.style.width,
-      height: protestorWrapper.style.height,
-    };
-
-    // Set transform-origin to bottom center for shrinking back into ground
-    protestorWrapper.style.transformOrigin = "bottom center";
-
-    // Set up transitions for smooth disappearance
-    protestorWrapper.style.transition = "transform 0.5s ease-out, opacity 0.5s ease-out";
-    protestorWrapper.style.opacity = "0";
-
-    // Scale vertically more than horizontally to simulate sinking into ground
-    protestorWrapper.style.transform = "scale(1, 0.2) translateY(10px)";
-
-    // Ensure correct positioning is maintained
-    protestorWrapper.style.position = "absolute";
-    protestorWrapper.style.left = originalPosition.left;
-    protestorWrapper.style.top = originalPosition.top;
-    protestorWrapper.style.width = originalPosition.width;
-    protestorWrapper.style.height = originalPosition.height;
-
-    // Hide after animation completes
-    setTimeout(() => {
-      this.hideProtestors(countryId);
-
-      // Reset click counter
-      if (this.countries[countryId]) {
-        this.countries[countryId].clickCounter = 0;
-      }
-    }, 500);
+  // Stop sounds for this specific country
+  if (this.audioManager) {
+      this.audioManager.stopProtestorSound(countryId);
   }
 
-  hideProtestors(countryId) {
-    this.logger.info("freedom", `[HIDE] Hiding protestors for ${countryId}`);
+  // Clean up all elements and animations for this country
+  this._cleanupProtestorElements(countryId);
 
-    // Stop sounds for this specific country
-    if (this.audioManager) {
-      this.audioManager.stopProtestorSound(countryId);
-    }
-
-    // Clean up all elements and animations for this country
-    this._cleanupProtestorElements(countryId);
-
-    // Hide hitbox
-    if (this.protestorHitboxManager) {
+  // Hide hitbox
+  if (this.protestorHitboxManager) {
       this.protestorHitboxManager.hideHitbox(countryId);
-    }
+  }
 
-    // Reset country state
-    if (this.countries[countryId]) {
+  // Reset country state
+  if (this.countries[countryId]) {
       this.countries[countryId].protestorWrapper = null;
       this.countries[countryId].protestorsShown = false;
+      this.countries[countryId].clickCounter = 0; // Explicitly reset click counter
 
       // Clear disappear timeout
       if (this.countries[countryId].disappearTimeout) {
-        clearTimeout(this.countries[countryId].disappearTimeout);
-        this.countries[countryId].disappearTimeout = null;
+          clearTimeout(this.countries[countryId].disappearTimeout);
+          this.countries[countryId].disappearTimeout = null;
       }
+  }
+
+  // When USA protestors are hidden, schedule next appearance
+  if (countryId === "usa") {
+      const nextDelay = this._getRandomBetween(
+          this.usaProtestorConfig.minRespawnTime, 
+          this.usaProtestorConfig.maxRespawnTime
+      );
+      this.usaProtestorConfig.nextSpawnTime = nextDelay;
+      console.log(`[USA PROTESTORS] Next spawn in ${nextDelay/1000} seconds after hiding`);
+  }
+}
+
+// _checkForUSAProtestors(deltaTime) {
+//   // Only check if protestors aren't currently shown
+//   if (this.countries.usa?.protestorsShown) {
+//       return;
+//   }
+  
+//   const totalGameTime = this.gameState.config.GAME_DURATION;
+//   const currentGameTime = totalGameTime - this.gameState.timeRemaining;
+  
+//   // First appearance check
+//   if (!this.usaTimingCheckDone && this.usaProtestorConfig.nextSpawnTime === null) {
+//       const usaThreshold = totalGameTime * this.usaProtestorConfig.initialThreshold;
+//       if (currentGameTime >= usaThreshold) {
+//           this._spawnUSAProtestors();
+//           this.usaTimingCheckDone = true;
+//       }
+//   } 
+//   // Subsequent appearance check
+//   else if (this.usaProtestorConfig.nextSpawnTime !== null) {
+//       this.usaProtestorConfig.nextSpawnTime -= deltaTime;
+      
+//       if (this.usaProtestorConfig.nextSpawnTime <= 0) {
+//           this._spawnUSAProtestors();
+//       }
+//   }
+// }
+
+// _spawnUSAProtestors() {
+//   console.log("[USA PROTESTORS] Spawning USA protestors");
+  
+//   // Clean up any existing USA protestors first
+//   this._cleanupProtestorElements("usa");
+  
+//   // Create fresh protestor state
+//   this.countries.usa.protestorsShown = false;
+//   this.countries.usa.clickCounter = 0;
+  
+//   // Show the protestors
+//   this.showProtestors("usa");
+//   this.countries.usa.protestorsShown = true;
+  
+//   // Schedule next appearance with random time
+//   const nextDelay = this._getRandomBetween(
+//     this.usaProtestorConfig.minRespawnTime, 
+//     this.usaProtestorConfig.maxRespawnTime
+//   );
+//   this.usaProtestorConfig.nextSpawnTime = nextDelay;
+  
+//   console.log(`[USA PROTESTORS] Next spawn in ${nextDelay/1000} seconds`);
+  
+//   // Play special sound
+//   setTimeout(() => {
+//     if (this.audioManager) {
+//       this.audioManager.playRandom("particles", "freedom", null, 0.8);
+//     }
+//   }, 100);
+// }
+
+_shrinkAndHideProtestors(countryId) {
+  const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "shrinking");
+  if (!protestorWrapper) return;
+
+  this.logger.info("freedom", `Protestors timed out in ${countryId}, disappearing`);
+
+  // Clear any existing transitions/animations first
+  protestorWrapper.style.animation = "none";
+  protestorWrapper.style.transition = "none";
+  void protestorWrapper.offsetWidth; // Force reflow
+
+  // Get original position
+  const originalPosition = {
+    left: protestorWrapper.style.left,
+    top: protestorWrapper.style.top,
+    width: protestorWrapper.style.width,
+    height: protestorWrapper.style.height,
+  };
+
+  // Set transform-origin to bottom center for shrinking back into ground
+  protestorWrapper.style.transformOrigin = "bottom center";
+
+  // Set up transitions for smooth disappearance
+  protestorWrapper.style.transition = "transform 0.5s ease-out, opacity 0.5s ease-out";
+  protestorWrapper.style.opacity = "0";
+
+  // Scale vertically more than horizontally to simulate sinking into ground
+  protestorWrapper.style.transform = "scale(1, 0.2) translateY(10px)";
+
+  // Ensure correct positioning is maintained
+  protestorWrapper.style.position = "absolute";
+  protestorWrapper.style.left = originalPosition.left;
+  protestorWrapper.style.top = originalPosition.top;
+  protestorWrapper.style.width = originalPosition.width;
+  protestorWrapper.style.height = originalPosition.height;
+
+  // Hide after animation completes
+  setTimeout(() => {
+    this.hideProtestors(countryId);
+
+    // Reset click counter
+    if (this.countries[countryId]) {
+      this.countries[countryId].clickCounter = 0;
+    }
+  }, 500);
+}
+
+// _spawnUSAProtestors() {
+//   console.log("[USA PROTESTORS] Spawning USA protestors");
+  
+//   // Clean up any existing USA protestors first
+//   this._cleanupProtestorElements("usa");
+  
+//   // Create fresh protestor state
+//   this.countries.usa.protestorsShown = false;
+//   this.countries.usa.clickCounter = 0;
+  
+//   // Show the protestors
+//   this.showProtestors("usa");
+//   this.countries.usa.protestorsShown = true;
+  
+//   // IMPORTANT: Set a timeout to schedule next appearance AFTER protestors fade
+//   // This timeout matches the protestor disappear timeout in showProtestors
+//   setTimeout(() => {
+//     const nextDelay = this._getRandomBetween(
+//       this.usaProtestorConfig.minRespawnTime, 
+//       this.usaProtestorConfig.maxRespawnTime
+//     );
+//     this.usaProtestorConfig.nextSpawnTime = nextDelay;
+    
+//     console.log(`[USA PROTESTORS] Next spawn in ${nextDelay/1000} seconds`);
+//   }, 7000); // Must match the disappear timeout in showProtestors
+  
+//   // Play special sound
+//   setTimeout(() => {
+//     if (this.audioManager) {
+//       this.audioManager.playRandom("particles", "freedom", null, 0.8);
+//     }
+//   }, 100);
+// }
+
+_cleanupProtestorElements(countryId) {
+  // Existing cleanup code...
+
+  // NEW: Add a method to schedule next spawn
+  if (countryId === "usa") {
+    this._scheduleNextUSAProtestors();
+  }
+}
+
+_scheduleNextUSAProtestors() {
+  // Ensures consistent timing for next USA protestors spawn
+  const nextDelay = this._getRandomBetween(
+    this.usaProtestorConfig.minRespawnTime, 
+    this.usaProtestorConfig.maxRespawnTime
+  );
+  
+  this.usaProtestorConfig.nextSpawnTime = nextDelay;
+  
+  console.log(`[USA PROTESTORS] Next spawn scheduled in ${nextDelay/1000} seconds`);
+}
+
+// Modify _spawnUSAProtestors to remove explicit timing logic
+_spawnUSAProtestors() {
+  console.log("[USA PROTESTORS] Spawning USA protestors");
+  
+  // Clean up any existing USA protestors first
+  this._cleanupProtestorElements("usa");
+  
+  // Create fresh protestor state
+  this.countries.usa.protestorsShown = false;
+  this.countries.usa.clickCounter = 0;
+  
+  // Show the protestors
+  this.showProtestors("usa");
+  this.countries.usa.protestorsShown = true;
+  
+  // Play special sound
+  setTimeout(() => {
+    if (this.audioManager) {
+      this.audioManager.playRandom("particles", "freedom", null, 0.8);
+    }
+  }, 100);
+}
+
+_checkForUSAProtestors(deltaTime) {
+  // Only proceed if protestors are NOT currently shown
+  if (this.countries.usa?.protestorsShown) {
+    return;
+  }
+  
+  const totalGameTime = this.gameState.config.GAME_DURATION;
+  const currentGameTime = totalGameTime - this.gameState.timeRemaining;
+  
+  // First appearance check
+  if (!this.usaTimingCheckDone && this.usaProtestorConfig.nextSpawnTime === null) {
+    const usaThreshold = totalGameTime * this.usaProtestorConfig.initialThreshold;
+    if (currentGameTime >= usaThreshold) {
+      this._spawnUSAProtestors();
+      this.usaTimingCheckDone = true;
+      return;
+    }
+  } 
+  
+  // Subsequent appearance check
+  if (this.usaProtestorConfig.nextSpawnTime !== null) {
+    this.usaProtestorConfig.nextSpawnTime -= deltaTime;
+    
+    if (this.usaProtestorConfig.nextSpawnTime <= 0) {
+      this._spawnUSAProtestors();
+    }
+  }
+}
+
+changeSizeState(newSize) {
+  console.log(`[SIZE TRANSITION] Starting transition to ${newSize}`);
+  
+  // Get base state name without any size suffix
+  const baseState = this.currentState.replace(/(Small|Smaller|Smallest)$/, '');
+  
+  // Construct new state name keeping the same animation type, just with new size
+  const newStateName = newSize === 'normal' ? baseState : 
+                      `${baseState}${newSize.charAt(0).toUpperCase() + newSize.slice(1)}`;
+  
+  console.log(`[SIZE TRANSITION] State transition: ${this.currentState} -> ${newStateName}`);
+
+  // CRITICAL: Verify the exact animation state exists for this size
+  if (!this.animations[newStateName]) {
+    console.error(`[SIZE TRANSITION] Missing animation state: ${newStateName}`);
+    return;
+  }
+
+  // ONLY update the sprite sheet image
+  if (this.trumpSprite) {
+    // Preserve the current animation state completely
+    this.trumpSprite.style.backgroundImage = `url('${this.animations[newStateName].spriteSheet}')`;
+  }
+
+  // Optional: Log to verify no state changes
+  console.log(`[SIZE TRANSITION] Current state still: ${this.currentState}`);
+  console.log(`[SIZE TRANSITION] Current frame still: ${this.currentFrame}`);
+}
+
+
+
+// Add method to get current Trump size
+getTrumpSize() {
+  console.log("vvv [DEBUG] Freedom Manager Size State:", {
+    currentSize: this.trumpSizeState.currentSize,
+    index: this.trumpSizeState.sizeIndex,
+    transitioning: this.trumpSizeState.transitioning,
+    fullState: this.trumpSizeState
+  });
+
+  return {
+    size: this.trumpSizeState.currentSize,
+    index: this.trumpSizeState.sizeIndex,
+    isTransitioning: this.trumpSizeState.transitioning
+  };
+}
+
+// Add method to reset Trump size
+resetTrumpSize() {
+  this.trumpSizeState = {
+    currentSize: 'normal',
+    sizeIndex: 0,
+    sizes: ['normal', 'small', 'smaller', 'smallest'],
+    transitioning: false
+  };
+
+  // Update sprite if animation manager exists
+  if (this.animationManager?.trumpSprite && this.animationManager.currentState) {
+    const baseState = this.animationManager.currentState.replace(/(Small|Smaller|Smallest)$/, '');
+    if (this.animationManager.animations?.[baseState]?.spriteSheet) {
+      this.animationManager.trumpSprite.style.backgroundImage = 
+        `url('${this.animationManager.animations[baseState].spriteSheet}')`;
+    }
+  }
+}
+
+
+
+_handleUSAShrinkSequence() {
+  console.log("vvv [USA SHRINK DEBUG] ========== SHRINK ATTEMPT START ==========");
+  
+  console.log("vvv [USA SHRINK DEBUG] Full Shrink Sequence Details:", {
+    currentSizeState: this.trumpSizeState,
+    currentAnimationManagerState: this.animationManager?.currentState,
+    trumpSprite: this.animationManager?.trumpSprite?.style?.backgroundImage
+  });
+  
+  this.trumpShrinkLevel++;
+  console.log(`vvv [USA SHRINK] Incremented shrink level to: ${this.trumpShrinkLevel}`);
+    
+
+  // // Update trumpSizeState to match the new shrink level
+  const sizes = ['normal', 'small', 'smaller', 'smallest'];
+  this.trumpSizeState = {
+    currentSize: sizes[this.trumpShrinkLevel] || 'smallest',
+    sizeIndex: this.trumpShrinkLevel,
+    sizes: ['normal', 'small', 'smaller', 'smallest'],
+    transitioning: false
+  };
+
+
+   // Always set to 'normal'
+  //  this.trumpSizeState = {
+  //   currentSize: 'normal',
+  //   sizeIndex: 0,
+  //   sizes: ['normal', 'small', 'smaller', 'smallest'],
+  //   transitioning: false
+  // };
+
+  if (this.animationManager?.trumpSprite) {
+    const sizes = ['normal', 'small', 'smaller', 'smallest'];
+    const targetSize = sizes[this.trumpShrinkLevel];
+    const currentState = this.animationManager.currentState;
+    const targetState = currentState.replace(/(Small|Smaller|Smallest)$/, '') + 
+                       (targetSize === 'normal' ? '' : targetSize.charAt(0).toUpperCase() + targetSize.slice(1));
+    
+    if (this.animationManager.animations?.[targetState]?.spriteSheet) {
+      // ONLY change the sprite sheet directly
+      this.animationManager.trumpSprite.style.backgroundImage = 
+        `url('${this.animationManager.animations[targetState].spriteSheet}')`;
+      
+      // Maybe store the size info here in the FreedomManager instead?
+      this.currentTrumpSize = targetSize;
     }
   }
 
-  /**
-   * Process protestor click based on click count
-   * @private
-   * @param {string} countryId - Country identifier
-   * @param {number} clickCount - Current click count
-   * @param {HTMLElement} wrapper - Protestor wrapper element
-   * @param {HTMLElement} sprite - Protestor sprite element
-   */
-  _processProtestorClick(countryId, clickCount, wrapper, sprite) {
-    // Calculate volume based on click count - more gradual increase
-    const volume = Math.min(0.05 + clickCount * 0.15, 0.5); // Start at 5%, max at 50%
+  this.hideProtestors("usa");
+  
+  if (this.audioManager) {
+    this.audioManager.playRandom("resistance", "shrink", null, 0.7);
+  }
 
-    // Only play sounds if we're NOT triggering resistance
-    if (clickCount < 3) {
-      // Play protestor sound with increasing volume
-      this.audioManager.playProtestorSound(countryId, volume);
+  this.usaTimingCheckDone = false;
+  const nextDelay = this._getRandomBetween(
+    this.usaProtestorConfig.minRespawnTime, 
+    this.usaProtestorConfig.maxRespawnTime
+  );
+  this.usaProtestorConfig.nextSpawnTime = nextDelay;
+  
+  console.log("[USA SHRINK DEBUG] ========== SHRINK ATTEMPT END ==========");
+}
 
-      // Also play the grow protestors sound on click for additional feedback
-      if (this.audioManager) {
-        this.audioManager.playGrowProtestorsSound(0.2); // Reduced from 0.3
+
+changeSizeState(newSize) {
+  console.log("[SIZE TRANSITION DEBUG] ========== SIZE CHANGE ATTEMPT ==========");
+  console.log("[SIZE TRANSITION DEBUG] Current state:", {
+    currentState: this.currentState,
+    requestedSize: newSize,
+    currentFrame: this.currentFrame,
+    currentSprite: this.trumpSprite?.style?.backgroundImage
+  });
+  
+  const baseState = this.currentState.replace(/(Small|Smaller|Smallest)$/, '');
+  const targetStateName = newSize === 'normal' ? baseState : 
+                         `${baseState}${newSize.charAt(0).toUpperCase() + newSize.slice(1)}`;
+  
+  if (this.trumpSprite && this.animations?.[targetStateName]) {
+    // ONLY change the sprite sheet image itself, nothing else
+    this.trumpSprite.style.backgroundImage = `url('${this.animations[targetStateName].spriteSheet}')`;
+  }
+  
+  console.log("[SIZE TRANSITION DEBUG] ========== SIZE CHANGE ATTEMPT END ==========");
+}
+
+handleUSAThirdClick() {
+  console.log("xxx [USA] Processing third click");
+  this._handleUSAShrinkSequence();
+  this.countries.usa.clickCounter = 0;
+}
+
+
+
+_applyShrink(newSize) {
+  console.log(`[USA SHRINK] Applying size change to ${newSize}`);
+
+  // Get base state name (remove any existing size suffix)
+  const baseState = this.animationManager.currentState.replace(/(Small|Smaller|Smallest)$/, '');
+  const newState = newSize === 'normal' ? baseState : 
+                  baseState + newSize.charAt(0).toUpperCase() + newSize.slice(1);
+
+  console.log(`[USA SHRINK] State transition: ${baseState} -> ${newState}`);
+
+  // Verify the new state exists in animations
+  if (!this.animationManager.animations[newState]) {
+    console.error(`[USA SHRINK] Error: ${newState} not found in animations`);
+    return;
+  }
+
+  // Stop current animation
+  this.animationManager.stop();
+
+  // Update sprite sheet and state
+  this.animationManager.trumpSprite.style.backgroundImage = 
+    `url('${this.animationManager.animations[newState].spriteSheet}')`;
+  this.animationManager.currentState = newState;
+
+  // Important: Reset to frame 0 for clean transition
+  this.animationManager.currentFrame = 0;
+  this.animationManager.updateFrame(0);
+
+  // Resume animation
+  this.animationManager.play();
+
+  // Play shrink sound
+  if (this.audioManager) {
+    this.audioManager.playRandom("resistance", "shrink", null, 0.7);
+  }
+}
+
+_handleFinalShrink() {
+  console.log("[FINAL SHRINK] Initiating final shrink sequence");
+
+  const gameContainer = this._getGameContainer();
+  if (!gameContainer) return;
+
+  // Play final shrink sound
+  if (this.audioManager) {
+    this.audioManager.playRandom("resistance", "finalShrink", null, 0.9);
+  }
+
+  // Final screen shake and disappear
+  gameContainer.classList.add("screen-shake");
+  setTimeout(() => {
+    gameContainer.classList.remove("screen-shake");
+    if (this.animationManager && this.animationManager.trumpSprite) {
+      this.animationManager.trumpSprite.style.display = "none";
+    }
+    // Trigger game end with special end state
+    if (this.gameEngine) {
+      this.gameEngine.triggerGameEnd(this.gameEngine.END_STATES.TRUMP_DESTROYED);
+    }
+  }, 800);
+}
+
+// Utility method for random number between values
+_getRandomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+
+handleProtestorClick(countryId) {
+  // Prevent click handling during animations
+  if (this.isProcessingProtestorClick) {
+    return;
+}
+this.isProcessingProtestorClick = true;
+
+  const country = this.countries[countryId];
+  if (!country) {
+      this.logger.error("freedom", `Country ${countryId} not found in data`);
+      return;
+  }
+
+  // Add animation lock
+  this.isProcessingClick = true;
+
+  try {
+      // Increment click counter
+      country.clickCounter = (country.clickCounter || 0) + 1;
+
+      // Clear any existing timeout
+      if (country.disappearTimeout) {
+          clearTimeout(country.disappearTimeout);
       }
-    }
 
-    // Create additional protestors based on click count
-    if (clickCount === 1 || clickCount === 2) {
-      this._createAdditionalProtestors(countryId, clickCount);
-    }
+      // Get required elements
+      const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "click handling");
+      const protestorSprite = this._getElement(`${countryId}-protestors`, "click handling");
 
-    // CRITICAL CHANGE: Stop all CSS animations and transitions before applying transform
-    wrapper.style.animation = "none";
-    wrapper.style.transition = "none";
-    void wrapper.offsetWidth; // Force browser reflow to apply style changes
+      if (!protestorWrapper || !protestorSprite) {
+          throw new Error(`Required elements not found for ${countryId}`);
+      }
 
-    // Get original position values
-    const originalPosition = {
+      // Store wrapper reference
+      country.protestorWrapper = protestorWrapper;
+
+      // Handle third click specially
+      if (country.clickCounter >= 3) {
+          if (countryId === "usa") {
+              this.handleUSAThirdClick();
+          } else {
+              this.triggerCountryResistance(countryId);
+          }
+          country.clickCounter = 0;
+      } else {
+          this._processProtestorClick(countryId, country.clickCounter, protestorWrapper, protestorSprite);
+      }
+  } catch (error) {
+      this.logger.error("freedom", `Error processing protestor click: ${error.message}`);
+    } finally {
+      // Clear the flag after a short delay to prevent rapid re-clicks
+      setTimeout(() => {
+          this.isProcessingProtestorClick = false;
+      }, 100);
+  }
+}
+  
+_processProtestorClick(countryId, clickCount, wrapper, sprite) {
+  console.log(`xxx Processing protestor click for ${countryId}, click ${clickCount}`);
+
+  // Calculate volume that increases with each click
+  const volume = Math.min(0.05 + clickCount * 0.15, 0.5);
+
+  // Reset animation/transition for clean state
+  wrapper.style.animation = "none";
+  wrapper.style.transition = "none";
+  void wrapper.offsetWidth; // Force reflow
+
+  // Store original position
+  const originalPosition = {
       left: wrapper.style.left,
       top: wrapper.style.top,
       width: wrapper.style.width,
-      height: wrapper.style.height,
-    };
+      height: wrapper.style.height
+  };
 
-    // Set transform-origin to bottom center so it grows upward
-    wrapper.style.transformOrigin = "bottom center";
+  // Set transform origin
+  wrapper.style.transformOrigin = "bottom center";
 
-    if (clickCount >= 3) {
-      // Trigger liberation after 3 clicks
-      this.triggerCountryResistance(countryId);
-      this.countries[countryId].clickCounter = 0;
-    } else if (clickCount === 2) {
-      // Change sprite to heart version on second click
-      sprite.style.backgroundImage = "url('images/protestHeart.png')";
-      this.logger.info("freedom", `[SPRITE CHANGE] Changed protestor sprite to protestHeart.png for ${countryId}`);
-
-      // Apply dramatic scaling (1.75x) with bounce effect
-      wrapper.style.transition = "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
-      wrapper.style.transform = "scale(1.75)";
-
-      // Set timeout for protestors to disappear if not clicked
-      this.countries[countryId].disappearTimeout = setTimeout(() => {
-        this._shrinkAndHideProtestors(countryId);
-      }, 7000);
-    } else {
-      // First click behavior
-      // Apply moderate scaling (1.4x)
-      // First click behavior
-      // Apply moderate scaling (1.4x)
-      wrapper.style.transition = "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
-      wrapper.style.transform = "scale(1.4)";
-
-      // Set timeout for protestors to disappear if not clicked
-      this.countries[countryId].disappearTimeout = setTimeout(() => {
-        this._shrinkAndHideProtestors(countryId);
-      }, 7000);
-    }
-
-    // Ensure the wrapper remains correctly positioned
-    wrapper.style.position = "absolute";
-    wrapper.style.left = originalPosition.left;
-    wrapper.style.top = originalPosition.top;
-    wrapper.style.width = originalPosition.width;
-    wrapper.style.height = originalPosition.height;
-    wrapper.style.zIndex = "10210"; // Keep above hitbox
+  // Play sounds for clicks 1 and 2
+  if (clickCount < 3) {
+      this.audioManager.playProtestorSound(countryId, volume);
+      this.audioManager.playGrowProtestorsSound(0.2);
   }
 
-  /**
-   * Create additional protestors for visual effect
-   * @private
-   * @param {string} countryId - Country identifier
-   * @param {number} clickCount - Number of clicks so far
-   */
+  // Create additional protestors for clicks 1 and 2
+  if (clickCount === 1 || clickCount === 2) {
+      this._createAdditionalProtestors(countryId, clickCount);
+  }
+
+  // Apply visual effects based on click count
+  wrapper.style.transition = "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
+  
+  if (clickCount === 2) {
+      sprite.style.backgroundImage = "url('images/protestHeart.png')";
+      wrapper.style.transform = "scale(1.75)";
+  } else {
+      wrapper.style.transform = "scale(1.4)";
+  }
+
+  // Set disappear timeout
+  this.countries[countryId].disappearTimeout = setTimeout(() => {
+      this._shrinkAndHideProtestors(countryId);
+  }, 7000);
+
+  // Maintain position
+  wrapper.style.position = "absolute";
+  wrapper.style.left = originalPosition.left;
+  wrapper.style.top = originalPosition.top;
+  wrapper.style.width = originalPosition.width;
+  wrapper.style.height = originalPosition.height;
+  wrapper.style.zIndex = "10210";
+
+  console.log(`xxx Processed click ${clickCount} for ${countryId}`);
+}
+
+
   _createAdditionalProtestors(countryId, clickCount) {
     const wrapper = this._getElement(`${countryId}-protestors-wrapper`, "additional protestors");
     if (!wrapper) return;
@@ -3315,12 +3779,8 @@ class FreedomManager {
     this.activeAnimations.extraProtestors[`${countryId}-additional-${index}`] = animationInterval;
   }
 
-  /**
-   * Capture position data for visual effects
-   * @private
-   * @param {string} countryId - Country identifier
-   * @returns {Object|null} - Position data or null
-   */
+
+  
   _capturePositionData(countryId) {
     const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "position capture");
     const hitbox = this.protestorHitboxManager?.protestorHitboxes[countryId]?.element;
@@ -3372,12 +3832,7 @@ class FreedomManager {
     return null;
   }
 
-  /**
-   * Create resistance celebration effects
-   * @private
-   * @param {string} countryId - Country identifier
-   * @param {Object} positionData - Position data for effects
-   */
+  
   _createResistanceCelebration(countryId, positionData) {
     const gameContainer = this._getGameContainer();
     if (!gameContainer) return;
@@ -3421,7 +3876,7 @@ class FreedomManager {
       setTimeout(() => {
         // Play resistance sound with good volume
         this.audioManager.playRandom("resistance", countryId, null, 0.7);
-      }, 150);
+      }, 15);
     }
 
     // Remove pulsing effect if it exists
@@ -3463,233 +3918,58 @@ class FreedomManager {
 
 
 
-
-
-
-
-
-
-  _getAnimationStateForSize(baseState, size) {
-    if (size === 'normal') return baseState;
-    return `${baseState}${size.charAt(0).toUpperCase() + size.slice(1)}`;
-  }
   
-  _transitionTrumpSize(nextSize, currentAnimationState) {
-    const animationManager = window.animationManager;
-    if (!animationManager) return;
+
   
-    // Get the appropriate animation state for the new size
-    const baseState = currentAnimationState.replace(/(Small|Smaller|Smallest)$/, '');
-    const newState = this._getAnimationStateForSize(baseState, nextSize);
+  
+
+  
+
+  _shrinkTrump() {
+    console.log("[TRUMP SHRINK] Initiating shrink sequence");
     
-    // Update size state first
-    animationManager.sizeState = nextSize;
+    // Get the current size based on level (no increment)
+    const newSize = this.trumpShrinkStates[this.trumpShrinkLevel];
+    console.log("yyy " + newSize);
     
-    // Change to new animation state
-    animationManager.changeState(newState);
-  }
+    console.log(`[TRUMP SHRINK] Current level: ${this.trumpShrinkLevel}, Target size: ${newSize}`);
 
+    // Cache current animation state before change
+    const currentState = this.animationManager.currentState;
+    console.log(`[TRUMP SHRINK] Current animation state: ${currentState}`);
 
-  // In FreedomManager class
-
-handleProtestorClick(countryId) {
-  const country = this.countries[countryId];
-  if (!country) {
-    this.logger.error("freedom", `Click handler called but country ${countryId} not found in data`);
-    return;
-  }
-
-  this.logger.info("freedom", `[CLICK EVENT] Protestor clicked in ${countryId}`);
-
-
-  // Clear any existing timeout and increment counter
-  if (country.disappearTimeout) {
-    clearTimeout(country.disappearTimeout);
-  }
-  country.clickCounter = (country.clickCounter || 0) + 1;
-
-  // Get elements
-  const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "click handling");
-  const protestorSprite = this._getElement(`${countryId}-protestors`, "click handling");
-
-  if (!protestorWrapper || !protestorSprite) {
-    this.logger.error("freedom", `Protestor elements not found for ${countryId}`);
-    return;
-  }
-
-  // Store the wrapper reference in country data
-  country.protestorWrapper = protestorWrapper;
-
-
-  // Special handling for USA on third click
-  if (countryId === "usa" && country.clickCounter === 3) {
-    this._handleUsaShrinkEffect();
-    return;
-  }
-
-  // Normal protestor click handling for non-USA or before third click
-  if (country.clickCounter >= 3) {
-    // Trigger liberation
-    this.triggerCountryResistance(countryId);
-    country.clickCounter = 0;
-  } else {
-    // Calculate volume based on click count - more gradual increase
-    const volume = Math.min(0.05 + (country.clickCounter * 0.15), 0.5); // Start at 5%, max at 50%
-
-    // Only play sounds if we're NOT triggering resistance
-    if (country.clickCounter < 3) {
-      // Play protestor sound with increasing volume
-      this.audioManager.playProtestorSound(countryId, volume);
-
-      // Also play the grow protestors sound on click for additional feedback
-      if (this.audioManager) {
-        this.audioManager.playGrowProtestorsSound(0.2);
-      }
+    // Ensure we clean up any active protestors before size change
+    if (this.protestorHitboxManager) {
+        // Let the protestor hitbox manager handle its own cleanup
+        this.protestorHitboxManager.hideHitbox('usa');
     }
 
-    // Create additional protestors based on click count
-    if (country.clickCounter === 1 || country.clickCounter === 2) {
-      this._createAdditionalProtestors(countryId, country.clickCounter);
+    // Change size state
+    this.animationManager.changeSizeState(newSize);
+    
+    // Verify size change
+    setTimeout(() => {
+      const newState = this.animationManager.currentState;
+      console.log(`[TRUMP SHRINK] Verifying size change: ${currentState} -> ${newState}`);
+      
+      // Resume USA protestor spawning after size change
+      this.usaTimingCheckDone = false;
+    }, 100);
+
+    // Play shrink sound
+    if (this.audioManager) {
+      this.audioManager.playRandom("resistance", "shrink", null, 0.7);
     }
-
-    // CRITICAL: Stop all CSS animations and transitions before applying transform
-    protestorWrapper.style.animation = "none";
-    protestorWrapper.style.transition = "none";
-    void protestorWrapper.offsetWidth; // Force browser reflow
-
-    // Get original position values
-    const originalPosition = {
-      left: protestorWrapper.style.left,
-      top: protestorWrapper.style.top,
-      width: protestorWrapper.style.width,
-      height: protestorWrapper.style.height,
-    };
-
-    // Set transform-origin to bottom center so it grows upward
-    protestorWrapper.style.transformOrigin = "bottom center";
-
-    if (country.clickCounter === 2) {
-      // Change sprite to heart version on second click
-      protestorSprite.style.backgroundImage = "url('images/protestHeart.png')";
-      this.logger.info("freedom", `[SPRITE CHANGE] Changed protestor sprite to protestHeart.png for ${countryId}`);
-
-      // Apply dramatic scaling with bounce effect
-      protestorWrapper.style.transition = "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
-      protestorWrapper.style.transform = "scale(1.75)";
-    } else {
-      // First click scaling
-      protestorWrapper.style.transition = "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)";
-      protestorWrapper.style.transform = "scale(1.4)";
-    }
-
-    // Ensure wrapper remains correctly positioned
-    protestorWrapper.style.position = "absolute";
-    protestorWrapper.style.left = originalPosition.left;
-    protestorWrapper.style.top = originalPosition.top;
-    protestorWrapper.style.width = originalPosition.width;
-    protestorWrapper.style.height = originalPosition.height;
-    protestorWrapper.style.zIndex = "10210";
-
-    // Set timeout for protestors to disappear if not clicked
-    country.disappearTimeout = setTimeout(() => {
-      this._shrinkAndHideProtestors(countryId);
-    }, 7000);
-  }
-
-
 }
 
-
-_handleUsaShrinkEffect() {
-  const animationManager = window.animationManager;
-  if (!animationManager) return;
 
   
-  // Define size progression
-  const sizeTransitions = {
-    'normal': 'small',
-    'small': 'smaller',
-    'smaller': 'smallest'
-  };
 
-  const currentSize = animationManager.sizeState;
-  const nextSize = sizeTransitions[currentSize];
-  if (!nextSize) return;
 
-  this.logger.info("freedom", `Shrinking Trump from ${currentSize} to ${nextSize}`);
 
-  // Get current animation state
-  const currentState = animationManager.currentState;
-  
-  // Update size and animation
-  this._transitionTrumpSize(nextSize, currentState);
 
-  // Add visual effects
-  this._addShrinkEffects();
 
-  // Check for final shrink
-  if (nextSize === 'smallest') {
-    this._handleFinalShrink();
-  }
 
-  // Clean up protestors AFTER all state transitions are complete
-  setTimeout(() => {
-    this._cleanupProtestorElements("usa");
-
-    const preservedSize = animationManager.sizeState;
-
-    // Re-show protestors for USA with fresh click handlers
-    if (nextSize !== 'smallest') {
-      this.showProtestors("usa");
-    }
-  }, 10000);
-}
-
-_transitionTrumpSize(nextSize, currentState) {
-  const animationManager = window.animationManager;
-  if (!animationManager) return;
-
-  // Update the size state
-  animationManager.sizeState = nextSize;
-
-  // Keep the same animation type (idle/grab/etc) but with new size suffix
-  const baseState = currentState.replace(/(Small|Smaller|Smallest)$/, '');
-  const newState = nextSize === 'normal' ? baseState : 
-    `${baseState}${nextSize.charAt(0).toUpperCase() + nextSize.slice(1)}`;
-
-  // Change to new animation state
-  animationManager.changeState(newState);
-}
-
-_addShrinkEffects() {
-  // Add screen shake
-  const gameContainer = document.getElementById("game-container");
-  if (gameContainer) {
-    gameContainer.classList.add("screen-shake");
-    setTimeout(() => gameContainer.classList.remove("screen-shake"), 800);
-  }
-
-  // Play shrink sound
-  if (this.audioManager) {
-    this.audioManager.playRandom("particles", "freedom", null, 0.8);
-  }
-}
-
-_handleFinalShrink() {
-  const animationManager = window.animationManager;
-  if (!animationManager || !animationManager.trumpSprite) return;
-
-  const gameContainer = document.getElementById("game-container");
-  if (!gameContainer) return;
-
-  // Final screen shake and disappear
-  gameContainer.classList.add("screen-shake");
-  setTimeout(() => {
-    gameContainer.classList.remove("screen-shake");
-    animationManager.trumpSprite.style.display = "none";
-    this.gameEngine.triggerGameEnd(this.gameEngine.END_STATES.TRUMP_DESTROYED);
-  }, 800);
-}
 
 
 
@@ -4264,42 +4544,7 @@ _handleFinalShrink() {
   }
 
 
-  // _updateAnnexedCountry(country, gameCountry, deltaTime, deltaSeconds) {
-  //   const countryId = country.id;
-
-  //   // Update annexation timer
-  //   country.annexTime += deltaTime;
-
-  //   // Check if we should show protestors
-  //   const protestorThreshold = this.config.fullAnnexationTime * this.config.protestorShowDelay;
-  //   if (country.annexTime >= protestorThreshold && !country.protestorsShown) {
-  //     this.logger.info("freedom", `[THRESHOLD] ${countryId} reached protestor show threshold at ${country.annexTime}ms`);
-  //     this.showProtestors(countryId);
-  //     country.protestorsShown = true;
-  //   }
-
-  //   // Check for USA protestors based on game time (60% mark)
-  //   if (countryId === "canada" && !this.countries.usa.protestorsShown) {
-  //     const totalGameTime = this.gameState.config.GAME_DURATION;
-  //     const currentGameTime = totalGameTime - this.gameState.timeRemaining;
-  //     const usaThreshold = totalGameTime * 0.15; // 60% of total game time
-
-  //     if (currentGameTime >= usaThreshold) {
-  //       this.logger.info("freedom", "[USA UPRISING] Showing USA protestors at 60% game time");
-  //       this.showProtestors("usa");
-  //       this.countries.usa.protestorsShown = true;
-
-  //       // Play a special sound for USA protestors appearing
-  //       if (this.audioManager) {
-  //         this.audioManager.playRandom("particles", "freedom", null, 0.8);
-  //       }
-  //     }
-  //   }
-
-  //   // ... rest of the method remains the same ...
-  // }
-
-  // Also update the cleanupAllProtestors method to ensure USA protestors are properly cleaned up:
+  
   cleanupAllProtestors() {
     // Stop ALL protestor sounds first
     if (this.audioManager) {
@@ -4376,42 +4621,60 @@ _handleFinalShrink() {
   reset() {
     this.logger.info("freedom", "Resetting Freedom Manager");
 
+    // Reset USA protestor timing
+    this.usaTimingCheckDone = false;
+    this.usaProtestorConfig.nextSpawnTime = null;
+
     // Stop ALL animations first
     this.cleanupAllEffects();
 
     // Reset ALL protestors completely
     this.cleanupAllProtestors();
 
-    this.usaTimingCheckDone = false; // Reset the timing check flag
-
     // Clear any intervals or timeouts
     if (this.activeAnimations.extraProtestors) {
-      Object.keys(this.activeAnimations.extraProtestors).forEach((key) => {
-        clearInterval(this.activeAnimations.extraProtestors[key]);
-      });
-      this.activeAnimations.extraProtestors = {};
+        Object.keys(this.activeAnimations.extraProtestors).forEach((key) => {
+            clearInterval(this.activeAnimations.extraProtestors[key]);
+        });
+        this.activeAnimations.extraProtestors = {};
     }
 
-    // Reset visual effects for country flags
+    // Reset ALL country states
     Object.keys(this.countries).forEach((countryId) => {
-      // Reset country state
-      this.countries[countryId].annexTime = 0;
-      this.countries[countryId].resistanceAvailable = false;
-      this.countries[countryId].protestorsShown = false;
-      this.countries[countryId].clickCounter = 0;
+        // Full country state reset
+        this.countries[countryId] = {
+            id: countryId,
+            annexTime: 0,
+            resistanceAvailable: false,
+            protestorsShown: false,
+            clickCounter: 0,
+            disappearTimeout: null,
+            animations: {},
+            protestorWrapper: null,
+            currentScale: 1.0
+        };
 
-      // Reset visual state of country overlay
-      const flagOverlay = this._getElement(`${countryId}-flag-overlay`, "reset");
-      if (flagOverlay) {
-        flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100", "resistance-possible", "targeting-pulse");
-        // Reset any direct style properties
-        flagOverlay.style.opacity = "";
-      }
+        // Reset visual state of country overlay
+        const flagOverlay = this._getElement(`${countryId}-flag-overlay`, "reset");
+        if (flagOverlay) {
+            flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100", 
+                                      "resistance-possible", "targeting-pulse");
+            flagOverlay.style.opacity = "";
+        }
     });
 
+    // Reset animation manager
     if (window.animationManager) {
-      window.animationManager.reset();
+        window.animationManager.reset();
     }
+
+    // Reset trump size
+    this.trumpShrinkLevel = 0;
+
+
+    this.resetTrumpSize();
+
+
   }
 
   _cleanupProtestorElements(countryId) {
@@ -4460,6 +4723,21 @@ _handleFinalShrink() {
       this.countries[countryId].protestorsShown = false;
       this.countries[countryId].protestorWrapper = null;
     }
+   if (countryId === "usa") {
+    this._scheduleNextUSAProtestors();
+  }
+  }
+
+  _scheduleNextUSAProtestors() {
+    // Ensures consistent timing for next USA protestors spawn
+    const nextDelay = this._getRandomBetween(
+      this.usaProtestorConfig.minRespawnTime, 
+      this.usaProtestorConfig.maxRespawnTime
+    );
+    
+    this.usaProtestorConfig.nextSpawnTime = nextDelay;
+    
+    console.log(`[USA PROTESTORS] Next spawn scheduled in ${nextDelay/1000} seconds`);
   }
 
   cleanupAllProtestors() {
@@ -4632,7 +4910,8 @@ _handleFinalShrink() {
     // First make sure the country is fully annexed
     this.annexCountry(countryId);
 
-    // Set the annexation timer to the threshold
+    // Set the annexation timer to the class FreedomManager {
+threshold
     country.annexTime = this.config.fullAnnexationTime;
     country.resistanceAvailable = true;
 

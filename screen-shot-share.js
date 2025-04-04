@@ -1,6 +1,6 @@
 
 function initializeSocialSharing() {
-    console.log("Setting up social sharing and voice recording functionality");
+    // console.log("Setting up social sharing and voice recording functionality");
   
     // Get references to social share buttons
     const downloadBtn = document.getElementById("download-screenshot");
@@ -40,7 +40,7 @@ function initializeSocialSharing() {
         console.log("Share button clicked, action:", action); // Debug log
   
         if (action === "record-voice") {
-          console.log("Opening voice recording interface"); // Debug log
+          // console.log("Opening voice recording interface"); // Debug log
           openVoiceRecordingInterface();
         } else if (action === "external-link") {
           const link = shareBtn.getAttribute("data-link");
@@ -157,7 +157,7 @@ function initializeSocialSharing() {
     const recorderModal = document.getElementById("voice-recorder-modal");
   
     if (recorderModal) {
-      console.log("Showing voice recorder modal"); // Debug log
+      // console.log("Showing voice recorder modal"); // Debug log
   
       // Explicitly remove hidden class and set display
       recorderModal.classList.remove("hidden");
@@ -175,7 +175,7 @@ function initializeSocialSharing() {
       }
     } else {
       console.error("Recorder modal not found!");
-      console.log("Recorder Modal:", recorderModal);
+      // console.log("Recorder Modal:", recorderModal);
     }
   }
   
@@ -195,8 +195,8 @@ function initializeSocialSharing() {
       });
     } else {
       console.error("Close button or modal not found");
-      console.log("Close Button:", closeBtn);
-      console.log("Recorder Modal:", recorderModal);
+      // console.log("Close Button:", closeBtn);
+      // console.log("Recorder Modal:", recorderModal);
     }
   }
   
@@ -204,7 +204,7 @@ function initializeSocialSharing() {
    * Initialize everything when the game over screen is shown
    */
   function initializeShareButtonsOnGameOver() {
-    console.log("Initializing share buttons"); // Debug log
+    // console.log("Initializing share buttons"); // Debug log
   
     // Short timeout to ensure all game-over elements are fully rendered
     setTimeout(() => {

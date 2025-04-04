@@ -556,7 +556,7 @@ class GameEngine {
           }
         }
       }
-    }, 1000);
+    }, 2500); // timeout for voice recorder endscreen
 
     // Schedule auto-restart
     if (this.config.AUTO_RESTART_DELAY > 0) {
@@ -1128,57 +1128,60 @@ class GameEngine {
   //     });
   // }
 
-  /**
-   * Pause the game
-   * @private
-   */
-  _pauseGame() {
-    // console.log("[Engine] Pausing game in _pauseGame");
 
+  _pauseGame() {
+    console.log("[Engine] Pausing game");
+  
     // Stop countdown timer
     clearInterval(this.systems.state.countdownTimer);
     this.systems.state.countdownTimer = null;
-
+  
     // Pause animations
     if (this.systems.animation) {
       this.systems.animation.pause();
     }
-
+  
+    // Pause freedom manager animations
+    if (this.systems.freedom) {
+      this.systems.freedom.handleGamePause();
+    }
+  
     // Show pause overlay
     this.systems.ui.createPauseOverlay();
-
+  
     if (this.systems.audio) {
       this.systems.audio.pauseAll();
     }
-
+  
     this.systems.ui.announceForScreenReaders("Game paused");
   }
-
-  /**
-   * Resume the game
-   * @private
-   */
+  
   _resumeGame() {
-    // console.log("[Engine] Resuming game");
-
+    console.log("[Engine] Resuming game");
+  
     // Remove pause overlay
     this.systems.ui.removePauseOverlay();
-
+  
     // Resume timers
     this.systems.state.countdownTimer = this.createTrackedInterval(this._updateCountdown.bind(this), 1000);
-
+  
     // Resume animations
     if (this.systems.animation) {
       this.systems.animation.resume();
     }
-
+  
+    // Resume freedom manager animations
+    if (this.systems.freedom) {
+      this.systems.freedom.handleGameResume();
+    }
+  
     // Restart grab sequence
     this.initiateGrab();
-
+  
     if (this.systems.audio) {
       this.systems.audio.resumeAll();
     }
-
+  
     this.systems.ui.announceForScreenReaders("Game resumed");
   }
 
@@ -1207,15 +1210,45 @@ class GameEngine {
    * @returns {Object} Animation info
    */
   _selectAnimationForCountry(targetCountry) {
+    // Get current size from FreedomManager
+    const currentSize = window.freedomManager?.getTrumpSize()?.size || 'normal';
+    
+    console.log("[GRAB DEBUG] Selecting animation", {
+      targetCountry,
+      currentSize,
+      possibleAnimations: this.systems.state.countryAnimations[targetCountry]
+    });
+  
     const possibleAnimations = this.systems.state.countryAnimations[targetCountry];
-    const animationName = possibleAnimations[Math.floor(Math.random() * possibleAnimations.length)];
-
+    let animationName = possibleAnimations[Math.floor(Math.random() * possibleAnimations.length)];
+  
+    // If not in normal size, try to find a size-specific variant
+    if (currentSize !== 'normal') {
+      const sizedAnimationVariant = `${animationName}${currentSize.charAt(0).toUpperCase() + currentSize.slice(1)}`;
+      
+      console.log("[GRAB DEBUG] Checking sized animation variant:", {
+        baseAnimation: animationName,
+        sizedVariant: sizedAnimationVariant
+      });
+  
+      // Check if the sized variant exists in animations
+      if (window.animationManager.animations[sizedAnimationVariant]) {
+        animationName = sizedAnimationVariant;
+        console.log("[GRAB DEBUG] Using sized animation variant:", animationName);
+      } else {
+        console.warn("[GRAB DEBUG] No sized variant found, using base animation");
+      }
+    }
+  
     return {
       animationName,
-      isEastCanada: animationName === "grabEastCanada",
-      isWestCanada: animationName === "grabWestCanada",
+      isEastCanada: 
+        animationName.includes("grabEastCanada"),
+      isWestCanada: 
+        animationName.includes("grabWestCanada"),
     };
   }
+  
 
   /**
    * Prepare the grab sequence

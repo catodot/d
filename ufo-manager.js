@@ -121,7 +121,7 @@ class UFOManager {
     
     // Don't schedule if game isn't playing
     if (this.gameEngine && (!this.gameEngine.systems.state.isPlaying || this.gameEngine.systems.state.isPaused)) {
-      console.log("Game paused or not playing, delaying UFO scheduling");
+      // console.log("Game paused or not playing, delaying UFO scheduling");
       // Try again in 5 seconds
       if (this.timers.animation) {
         clearTimeout(this.timers.animation);
@@ -139,7 +139,7 @@ class UFOManager {
     }, interval);
 
     if (this.state.debugMode) {
-      console.log(`Next UFO scheduled in ${(interval / 1000).toFixed(1)} seconds`);
+      // console.log(`Next UFO scheduled in ${(interval / 1000).toFixed(1)} seconds`);
     }
   }
 
@@ -217,12 +217,12 @@ class UFOManager {
     if (this.timers.elonAnimation) {
       clearInterval(this.timers.elonAnimation);
       this.timers.elonAnimation = null;
-      console.log("Cleared Elon animation interval");
+      // console.log("Cleared Elon animation interval");
     }
   }
 
   cleanupElonElements(options = {}) {
-    console.log("Cleaning up Elon elements");
+    // console.log("Cleaning up Elon elements");
 
     // Stop animations first
     this.stopElonAnimation();
@@ -251,7 +251,7 @@ class UFOManager {
         this.elements.elon.style.opacity = "0";
       }, 400);
 
-      console.log("Elon bouncing away with cartoon physics");
+      // console.log("Elon bouncing away with cartoon physics");
     }
 
     // Remove elements after delay
@@ -262,7 +262,7 @@ class UFOManager {
         // Remove wrapper if it exists
         if (this.elements.elonContainer && this.elements.elonContainer.parentNode) {
           this.elements.elonContainer.parentNode.removeChild(this.elements.elonContainer);
-          console.log("Removed Elon wrapper from DOM");
+          // console.log("Removed Elon wrapper from DOM");
         }
 
         // Clear element references
@@ -277,7 +277,7 @@ class UFOManager {
             elements.forEach((el) => {
               if (el && el.parentNode) {
                 el.parentNode.removeChild(el);
-                console.log(`Removed orphaned element #${id}`);
+                // console.log(`Removed orphaned element #${id}`);
               }
             });
           }
@@ -290,7 +290,7 @@ class UFOManager {
             if (el.id !== "elon-wrapper" && el.id !== "elon-sprite" && el.id !== "simple-elon") {
               if (el.parentNode) {
                 el.parentNode.removeChild(el);
-                console.log(`Removed additional element with ID ${el.id}`);
+                // console.log(`Removed additional element with ID ${el.id}`);
               }
             }
           });
@@ -311,7 +311,7 @@ class UFOManager {
           try {
             if (el && el.parentNode) {
               el.parentNode.removeChild(el);
-              console.log(`Removed orphaned element #${id}`);
+              // console.log(`Removed orphaned element #${id}`);
             }
           } catch (e) {
             console.error(`Error removing orphaned element #${id}:`, e);
@@ -327,7 +327,7 @@ class UFOManager {
           try {
             if (el.parentNode) {
               el.parentNode.removeChild(el);
-              console.log(`Removed additional element with ID ${el.id}`);
+              // console.log(`Removed additional element with ID ${el.id}`);
             }
           } catch (e) {
             console.error(`Error removing additional element with ID ${el.id}:`, e);
@@ -459,15 +459,15 @@ class UFOManager {
         this.elements.elon.style.opacity = "0";
       }, 10);
 
-      console.log("Elon tumbling away");
+      // console.log("Elon tumbling away");
     }
   }
 
   showElonMusk(autoCleanup = false) {
-    console.log("showElonMusk called - attempting to show Elon Musk");
+    // console.log("showElonMusk called - attempting to show Elon Musk");
 
     if (this.isGameHidden()) {
-      console.log("Game screen is hidden, not showing Elon");
+      // console.log("Game screen is hidden, not showing Elon");
       return;
     }
 
@@ -515,7 +515,7 @@ class UFOManager {
       }, this.config.elon.displayDuration + 5000);
     }
 
-    console.log("Started Elon animation with pop-up effect and continuous looping");
+    // console.log("Started Elon animation with pop-up effect and continuous looping");
   }
 
   createElonElement() {
@@ -602,7 +602,7 @@ class UFOManager {
       top: topPos,
     };
 
-    console.log("Elon element created with separate frame elements");
+    // console.log("Elon element created with separate frame elements");
     return true;
   }
 
@@ -634,7 +634,7 @@ class UFOManager {
   }
 
   cleanupElonElements(options = {}) {
-    console.log("Cleaning up Elon elements");
+    // console.log("Cleaning up Elon elements");
 
     // Stop animations first
     this.stopElonAnimation();
@@ -663,7 +663,7 @@ class UFOManager {
         this.elements.elon.style.opacity = "0";
       }, 400);
 
-      console.log("Elon bouncing away with cartoon physics");
+      // console.log("Elon bouncing away with cartoon physics");
     }
 
     // Remove elements after delay
@@ -674,7 +674,7 @@ class UFOManager {
         // Remove wrapper if it exists
         if (this.elements.elonContainer && this.elements.elonContainer.parentNode) {
           this.elements.elonContainer.parentNode.removeChild(this.elements.elonContainer);
-          console.log("Removed Elon wrapper from DOM");
+          // console.log("Removed Elon wrapper from DOM");
         }
 
         // Clear element references
@@ -692,7 +692,7 @@ class UFOManager {
             elements.forEach((el) => {
               if (el && el.parentNode) {
                 el.parentNode.removeChild(el);
-                console.log(`Removed orphaned element #${id}`);
+                // console.log(`Removed orphaned element #${id}`);
               }
             });
           }
@@ -705,7 +705,7 @@ class UFOManager {
             if (el.id !== "elon-wrapper" && el.id !== "elon-sprite" && el.id !== "simple-elon") {
               if (el.parentNode) {
                 el.parentNode.removeChild(el);
-                console.log(`Removed additional element with ID ${el.id}`);
+                // console.log(`Removed additional element with ID ${el.id}`);
               }
             }
           });
@@ -780,12 +780,12 @@ if (this.audioManager) {
 
     gameContainer.appendChild(this.elonHitbox);
 
-    console.log("Elon hitbox created:", {
-      width: this.elonHitbox.style.width,
-      height: this.elonHitbox.style.height,
-      left: this.elonHitbox.style.left,
-      top: this.elonHitbox.style.top,
-    });
+    // console.log("Elon hitbox created:", {
+    //   width: this.elonHitbox.style.width,
+    //   height: this.elonHitbox.style.height,
+    //   left: this.elonHitbox.style.left,
+    //   top: this.elonHitbox.style.top,
+    // });
   }
 
   // Method to remove Elon hitbox
@@ -948,7 +948,7 @@ if (this.audioManager) {
     this.state.autoSpawnEnabled = false;
     this.state.isAnimating = false;
 
-    console.log("UFO Manager destroyed");
+    // console.log("UFO Manager destroyed");
   }
 }
 

@@ -3,7 +3,7 @@
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background: linear-gradient(145deg, #e74c3c, #c0392b);
+  background: linear-gradient(145deg, #ea1487, #c0392b);
   color: white;
   border: none;
   border-radius: 8px;
@@ -45,7 +45,7 @@
 
 /* Recording active border for modal */
 #voice-recorder-modal.recording-active {
-  border: 2px solid #e74c3c;
+  border: 2px solid #ea1487;
   animation: recording-border-pulse 2s infinite;
 }
 
@@ -74,7 +74,7 @@
   font-family: "Rock Salt", sans-serif;
   line-height: 1.2;
   font-size: 3rem;
-  color: #e74c3c;
+  color: #ea1487;
   margin: 0 0 10px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -153,7 +153,7 @@
 }
 
 .record-button.recording {
-  background: linear-gradient(145deg, #e74c3c, #c0392b); /* RED when recording */
+  background: linear-gradient(145deg, #ea1487, #c0392b); /* RED when recording */
   border: 2px solid #fff;
 }
 
@@ -174,7 +174,7 @@
   position: absolute;
   top: -15px;
   right: -15px;
-  background-color: #e74c3c;
+  background-color: #ea1487;
   color: white;
   padding: 4px 10px;
   border-radius: 12px;
@@ -222,7 +222,7 @@
   position: fixed;
   top: 0;
   right: 0;
-  background-color: #e74c3c;
+  background-color: #ea1487;
   color: white;
   padding: 8px 16px;
   font-weight: bold;
@@ -269,7 +269,7 @@
   content: "";
   width: 10px;
   height: 10px;
-  background-color: #e74c3c;
+  background-color: #ea1487;
   border-radius: 50%;
   display: inline-block;
   margin-right: 8px;
@@ -446,7 +446,7 @@
 }
 
 .delete-button:hover {
-  color: #e74c3c;
+  color: #ea1487;
 }
 
 .delete-button img {
@@ -606,13 +606,13 @@
 
 @keyframes recording-border-pulse {
   0% {
-    border-color: #e74c3c;
+    border-color: #ea1487;
   }
   50% {
     border-color: #f8d7da;
   }
   100% {
-    border-color: #e74c3c;
+    border-color: #ea1487;
   }
 }
 

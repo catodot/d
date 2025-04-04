@@ -28,7 +28,7 @@ const DeviceUtils = {
     // Add resize listener to update dimensions
     window.addEventListener('resize', this.handleResize.bind(this));
     
-    console.log(`DeviceUtils initialized: Mobile=${this.isMobileDevice}, Touch=${this.isTouchDevice}, Viewport=${this.viewportWidth}x${this.viewportHeight}`);
+    // console.log(`DeviceUtils initialized: Mobile=${this.isMobileDevice}, Touch=${this.isTouchDevice}, Viewport=${this.viewportWidth}x${this.viewportHeight}`);
     
     this.isInitialized = true;
     return this;
@@ -46,7 +46,7 @@ const DeviceUtils = {
     // Update mobile status if viewport-based detection changes
     if (isMobileViewport !== this.isMobileDevice) {
       this.isMobileDevice = isMobileViewport;
-      console.log(`Device mobile status changed: ${wasMobile} → ${this.isMobileDevice}`);
+      // console.log(`Device mobile status changed: ${wasMobile} → ${this.isMobileDevice}`);
     }
   },
   

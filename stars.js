@@ -9,7 +9,7 @@
       });
 
       function createStar(container) {
-            console.log("stars");
+            // console.log("stars");
             
         // Check if we're on a mobile device and reduce particles
         const isMobile = window.DeviceUtils ? window.DeviceUtils.isMobile() : false;
