@@ -77,3 +77,38 @@ document.addEventListener('DOMContentLoaded', function() {
   window.DeviceUtils = window.DeviceUtils || DeviceUtils.init();
 });
 }
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Prevent zooming on double-tap
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', function(event) {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+      event.preventDefault();
+    }
+    lastTouchEnd = now;
+  }, { passive: false });
+  
+  // Prevent pinch-zoom
+  document.addEventListener('touchmove', function(event) {
+    if (event.touches.length > 1) {
+      event.preventDefault();
+    }
+  }, { passive: false });
+  
+  // Prevent touchstart from causing zoom behavior
+  document.addEventListener('touchstart', function(event) {
+    if (event.touches.length > 1) {
+      event.preventDefault();
+    }
+  }, { passive: false });
+});
+
+
+document.ontouchmove = function(event) {
+  event.preventDefault();
+};

@@ -135,42 +135,42 @@ class GameEngine {
       onStartKey: this.startGame,
     });
 
-    window.isChromeOnMobile = /Android|webOS|iPhone|iPad|iPod/.test(navigator.userAgent) && /Chrome/.test(navigator.userAgent);
+//     window.isChromeOnMobile = /Android|webOS|iPhone|iPad|iPod/.test(navigator.userAgent) && /Chrome/.test(navigator.userAgent);
 
-    // Add specific handling for Chrome mobile
-    if (window.isChromeOnMobile) {
-      // console.log("[Engine] Chrome mobile detected, adding special positioning handlers");
+//     // Add specific handling for Chrome mobile
+//     if (window.isChromeOnMobile) {
+//       // console.log("[Engine] Chrome mobile detected, adding special positioning handlers");
 
-      // Add a specific CSS fix for Chrome mobile
-      const chromeFix = document.createElement("style");
-      chromeFix.textContent = `
-@media screen and (-webkit-min-device-pixel-ratio: 0) {
-#trump-sprite-container, .country-flag-overlay {
-  position: fixed;
-  top: var(--map-top-vh);
-  left: var(--map-left-vw);
-  width: var(--map-width-vw);
-  height: var(--map-height-vh);
-  transform: translateZ(0);
-  will-change: transform;
-}
-}
-`;
-      document.head.appendChild(chromeFix);
+//       // Add a specific CSS fix for Chrome mobile
+//       const chromeFix = document.createElement("style");
+//       chromeFix.textContent = `
+// @media screen and (-webkit-min-device-pixel-ratio: 0) {
+// #trump-sprite-container, .country-flag-overlay {
+//   position: fixed;
+//   top: var(--map-top-vh);
+//   left: var(--map-left-vw);
+//   width: var(--map-width-vw);
+//   height: var(--map-height-vh);
+//   transform: translateZ(0);
+//   will-change: transform;
+// }
+// }
+// `;
+//       document.head.appendChild(chromeFix);
 
-      // Add delayed positioning function specifically for Chrome mobile
-      this._chromePositioningFix = () => {
-        if (this.systems.ui) {
-          // console.log("[Engine] Applying Chrome mobile positioning fix");
-          setTimeout(() => this.systems.ui.positionElements(), 500);
-          setTimeout(() => this.systems.ui.positionElements(), 1000);
-          setTimeout(() => this.systems.ui.positionElements(), 2000);
-        }
-      };
+//       // Add delayed positioning function specifically for Chrome mobile
+//       this._chromePositioningFix = () => {
+//         if (this.systems.ui) {
+//           // console.log("[Engine] Applying Chrome mobile positioning fix");
+//           setTimeout(() => this.systems.ui.positionElements(), 500);
+//           setTimeout(() => this.systems.ui.positionElements(), 1000);
+//           setTimeout(() => this.systems.ui.positionElements(), 2000);
+//         }
+//       };
 
-      // Apply on page load
-      window.addEventListener("load", this._chromePositioningFix);
-    }
+//       // Apply on page load
+//       window.addEventListener("load", this._chromePositioningFix);
+//     }
 
     // Initialize remaining input handlers
     this.systems.input.addHandlers({
@@ -696,13 +696,25 @@ class GameEngine {
     if (isGameOver) {
       // Stop UFO manager if present
       if (window.UFOManager) {
-        window.UFOManager.state.autoSpawnEnabled = false;
-        window.UFOManager.destroy();
+          window.UFOManager.state.autoSpawnEnabled = false;
+          window.UFOManager.destroy();
       }
+      
+      // Stop freedom manager to prevent protestors from appearing
+      if (this.systems.freedom) {
+          this.systems.freedom.cleanupAllProtestors();
+          // Disable further freedom activity
+          this.systems.freedom.reset();
+      }
+      
+      // Disable game updates
+      this.systems.state.isPlaying = false;
+      
+      // Then trigger game end
       this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY);
-
+      
       return;
-    }
+  }
     console.log("3 about to check if we have a systems animation");
 
 
@@ -1874,24 +1886,49 @@ class UIManager {
   /**
    * Position game elements based on map size
    */
+  // positionElements() {
+  //   // Ensure map is loaded before positioning
+  //   if (!this.elements.game.map || !this.state) return;
+
+  //   const mapRect = this.elements.game.map.getBoundingClientRect();
+
+  //   // Check if map has loaded
+  //   if (mapRect.width === 0 || mapRect.height === 0) {
+  //     setTimeout(() => this.positionElements(), 100);
+  //     return;
+  //   }
+
+  //   // Calculate map scale and offset
+  //   this.state.mapScale = mapRect.width / this.elements.game.map.naturalWidth;
+  //   this.state.mapOffsetX = mapRect.left;
+  //   this.state.mapOffsetY = mapRect.top;
+
+  //   // Position child elements
+  //   this.positionCountryFlagOverlays();
+  //   this.positionTrumpCharacter();
+  // }
+
+
   positionElements() {
     // Ensure map is loaded before positioning
-    if (!this.elements.game.map || !this.state) return;
-
-    const mapRect = this.elements.game.map.getBoundingClientRect();
-
-    // Check if map has loaded
-    if (mapRect.width === 0 || mapRect.height === 0) {
-      setTimeout(() => this.positionElements(), 100);
-      return;
-    }
-
-    // Calculate map scale and offset
-    this.state.mapScale = mapRect.width / this.elements.game.map.naturalWidth;
+    const mapElement = document.getElementById("map-background");
+    if (!mapElement || !this.state) return;
+  
+    // Get fresh map dimensions
+    const mapRect = mapElement.getBoundingClientRect();
+    
+    // Update state with map properties
+    this.state.mapScale = mapRect.width / mapElement.naturalWidth;
     this.state.mapOffsetX = mapRect.left;
     this.state.mapOffsetY = mapRect.top;
-
-    // Position child elements
+    
+    // Set CSS custom properties on :root for consistent positioning
+    document.documentElement.style.setProperty('--map-width', `${mapRect.width}px`);
+    document.documentElement.style.setProperty('--map-height', `${mapRect.height}px`);
+    document.documentElement.style.setProperty('--map-top', `${mapRect.top}px`);
+    document.documentElement.style.setProperty('--map-left', `${mapRect.left}px`);
+    
+    // Position child elements using CSS variables instead of direct JS calculations
     this.positionCountryFlagOverlays();
     this.positionTrumpCharacter();
   }
@@ -2028,101 +2065,157 @@ class UIManager {
   /**
    * Position country flag overlays
    */
+  // positionCountryFlagOverlays() {
+  //   const mapBackground = this.elements.game.map;
+  //   if (!mapBackground) return;
+
+  //   // Get map dimensions
+  //   const mapRect = mapBackground.getBoundingClientRect();
+
+  //   // Countries to position
+  //   const countryFlags = Object.keys(this.elements.countries);
+
+  //   countryFlags.forEach((country) => {
+  //     const flagOverlay = this.elements.countries[country];
+  //     if (!flagOverlay) return;
+
+  //     // Add positioning class
+  //     flagOverlay.classList.add("positioned-flag-overlay");
+
+  //     // Add accessibility attributes
+  //     flagOverlay.setAttribute("role", "img");
+  //     flagOverlay.setAttribute("aria-label", `${country.charAt(0).toUpperCase() + country.slice(1)} flag overlay`);
+
+  //     // Set CSS custom properties for positioning
+  //     flagOverlay.style.setProperty("--map-width", `${mapRect.width}px`);
+  //     flagOverlay.style.setProperty("--map-height", `${mapRect.height}px`);
+  //     flagOverlay.style.setProperty("--map-top", `${mapRect.top}px`);
+  //     flagOverlay.style.setProperty("--map-left", `${mapRect.left}px`);
+  //   });
+  // }
+
   positionCountryFlagOverlays() {
-    const mapBackground = this.elements.game.map;
-    if (!mapBackground) return;
-
-    // Get map dimensions
-    const mapRect = mapBackground.getBoundingClientRect();
-
-    // Countries to position
     const countryFlags = Object.keys(this.elements.countries);
-
+    
     countryFlags.forEach((country) => {
       const flagOverlay = this.elements.countries[country];
       if (!flagOverlay) return;
-
+      
       // Add positioning class
       flagOverlay.classList.add("positioned-flag-overlay");
-
+      
       // Add accessibility attributes
       flagOverlay.setAttribute("role", "img");
       flagOverlay.setAttribute("aria-label", `${country.charAt(0).toUpperCase() + country.slice(1)} flag overlay`);
-
-      // Set CSS custom properties for positioning
-      flagOverlay.style.setProperty("--map-width", `${mapRect.width}px`);
-      flagOverlay.style.setProperty("--map-height", `${mapRect.height}px`);
-      flagOverlay.style.setProperty("--map-top", `${mapRect.top}px`);
-      flagOverlay.style.setProperty("--map-left", `${mapRect.left}px`);
+      
+      // Use CSS variables instead of direct positioning
+      flagOverlay.style.position = "absolute";
+      flagOverlay.style.top = "var(--map-top)";
+      flagOverlay.style.left = "var(--map-left)";
+      flagOverlay.style.width = "var(--map-width)";
+      flagOverlay.style.height = "var(--map-height)";
     });
   }
 
   /**
    * Position Trump character
    */
+  // positionTrumpCharacter() {
+  //   if (!this.elements.trump) return;
+
+  //   const trumpContainer = this.elements.trump.container;
+  //   const trumpSprite = this.elements.trump.sprite;
+
+  //   if (!trumpContainer || !trumpSprite) return;
+
+  //   // Get map dimensions and position - IMPORTANT: Force reflow for Chrome mobile
+  //   const mapElement = this.elements.game.map;
+
+  //   // Force layout recalculation in Chrome mobile
+  //   // if (window.isChromeOnMobile) {
+  //   //   void mapElement.offsetHeight;
+  //   // }
+
+  //   // Get FRESH bounding rect after forced reflow
+  //   const mapRect = mapElement.getBoundingClientRect();
+
+  //   // console.log("[Chrome Debug] Map position:", mapRect.top, mapRect.left);
+
+  //   // CRITICAL: For Chrome Mobile, we need to use absolute positioning with exact values
+  //   // if (window.isChromeOnMobile) {
+  //   //   trumpContainer.style.position = "absolute";
+  //   //   trumpContainer.style.top = `${mapRect.top}px`;
+  //   //   trumpContainer.style.left = `${mapRect.left}px`;
+  //   //   trumpContainer.style.width = `${mapRect.width}px`;
+  //   //   trumpContainer.style.height = `${mapRect.height}px`;
+  //   //   trumpContainer.style.transform = "translateZ(0)"; // Force GPU acceleration
+  //   //   trumpContainer.style.willChange = "transform";
+
+  //   //   // Apply same to other elements
+  //   //   document.querySelectorAll(".country-flag-overlay").forEach((el) => {
+  //   //     el.style.position = "absolute";
+  //   //     el.style.transform = "translateZ(0)";
+  //   //   });
+
+  //   //   // Schedule additional positioning with delay
+  //   //   setTimeout(() => {
+  //   //     const newMapRect = mapElement.getBoundingClientRect();
+  //   //     trumpContainer.style.top = `${newMapRect.top}px`;
+  //   //     trumpContainer.style.left = `${newMapRect.left}px`;
+
+  //   //     // console.log("[Chrome Debug] Delayed positioning:", newMapRect.top, newMapRect.left);
+  //   //   }, 300);
+  //   // } else {
+  //   //   // Standard positioning for other browsers
+  //   //   Object.assign(trumpContainer.style, {
+  //   //     width: `${mapRect.width}px`,
+  //   //     height: `${mapRect.height}px`,
+  //   //     left: `${mapRect.left}px`,
+  //   //     top: `${mapRect.top}px`,
+  //   //     transformOrigin: "center top",
+  //   //   });
+  //   // }
+
+  //   Object.assign(trumpContainer.style, {
+  //     width: `${mapRect.width}px`,
+  //     height: `${mapRect.height}px`,
+  //     left: `${mapRect.left}px`,
+  //     top: `${mapRect.top}px`,
+  //     transformOrigin: "center top",
+  //   });
+
+  //   // Configure sprite appearance - consistent for all browsers
+  //   trumpSprite.style.width = "100%";
+  //   trumpSprite.style.height = "100%";
+  //   trumpSprite.style.backgroundSize = "auto 100%";
+  //   trumpSprite.style.position = "absolute";
+  //   trumpSprite.style.top = "0";
+  // }
+
+
   positionTrumpCharacter() {
     if (!this.elements.trump) return;
-
+    
     const trumpContainer = this.elements.trump.container;
     const trumpSprite = this.elements.trump.sprite;
-
+    
     if (!trumpContainer || !trumpSprite) return;
-
-    // Get map dimensions and position - IMPORTANT: Force reflow for Chrome mobile
-    const mapElement = this.elements.game.map;
-
-    // Force layout recalculation in Chrome mobile
-    if (window.isChromeOnMobile) {
-      void mapElement.offsetHeight;
-    }
-
-    // Get FRESH bounding rect after forced reflow
-    const mapRect = mapElement.getBoundingClientRect();
-
-    // console.log("[Chrome Debug] Map position:", mapRect.top, mapRect.left);
-
-    // CRITICAL: For Chrome Mobile, we need to use absolute positioning with exact values
-    if (window.isChromeOnMobile) {
-      trumpContainer.style.position = "absolute";
-      trumpContainer.style.top = `${mapRect.top}px`;
-      trumpContainer.style.left = `${mapRect.left}px`;
-      trumpContainer.style.width = `${mapRect.width}px`;
-      trumpContainer.style.height = `${mapRect.height}px`;
-      trumpContainer.style.transform = "translateZ(0)"; // Force GPU acceleration
-      trumpContainer.style.willChange = "transform";
-
-      // Apply same to other elements
-      document.querySelectorAll(".country-flag-overlay").forEach((el) => {
-        el.style.position = "absolute";
-        el.style.transform = "translateZ(0)";
-      });
-
-      // Schedule additional positioning with delay
-      setTimeout(() => {
-        const newMapRect = mapElement.getBoundingClientRect();
-        trumpContainer.style.top = `${newMapRect.top}px`;
-        trumpContainer.style.left = `${newMapRect.left}px`;
-
-        // console.log("[Chrome Debug] Delayed positioning:", newMapRect.top, newMapRect.left);
-      }, 300);
-    } else {
-      // Standard positioning for other browsers
-      Object.assign(trumpContainer.style, {
-        width: `${mapRect.width}px`,
-        height: `${mapRect.height}px`,
-        left: `${mapRect.left}px`,
-        top: `${mapRect.top}px`,
-        transformOrigin: "center top",
-      });
-    }
-
-    // Configure sprite appearance - consistent for all browsers
+    
+    // Use CSS variables for consistent positioning
+    trumpContainer.style.position = "absolute";
+    trumpContainer.style.top = "var(--map-top)";
+    trumpContainer.style.left = "var(--map-left)";
+    trumpContainer.style.width = "var(--map-width)";
+    trumpContainer.style.height = "var(--map-height)";
+    
+    // Configure sprite appearance
     trumpSprite.style.width = "100%";
     trumpSprite.style.height = "100%";
     trumpSprite.style.backgroundSize = "auto 100%";
     trumpSprite.style.position = "absolute";
     trumpSprite.style.top = "0";
   }
+
 
   /**
    * Update the game HUD
@@ -2477,26 +2570,26 @@ class UIManager {
 
   _setupResponsiveHandlers() {
     // Window resize handler
-    window.addEventListener("resize", () => {
-      if (this.state && this.state.isPlaying) {
-        setTimeout(() => this.positionElements(), 100);
-      }
+    // window.addEventListener("resize", () => {
+    //   if (this.state && this.state.isPlaying) {
+    //     setTimeout(() => this.positionElements(), 100);
+    //   }
 
-      this.positionCountryFlagOverlays();
+    //   this.positionCountryFlagOverlays();
 
-      if (window.protestorHitboxManager) {
-        window.protestorHitboxManager.repositionAllHitboxes();
-      }
-    });
+    //   if (window.protestorHitboxManager) {
+    //     window.protestorHitboxManager.repositionAllHitboxes();
+    //   }
+    // });
 
-    // Orientation change handler for mobile
-    window.addEventListener("orientationchange", () => {
-      if (this.state && this.state.isPlaying) {
-        setTimeout(() => this.positionElements(), 300);
-      }
+    // // Orientation change handler for mobile
+    // window.addEventListener("orientationchange", () => {
+    //   if (this.state && this.state.isPlaying) {
+    //     setTimeout(() => this.positionElements(), 300);
+    //   }
 
-      this.positionCountryFlagOverlays();
-    });
+    //   this.positionCountryFlagOverlays();
+    // });
 
     // Add visibility change handler for audio
     document.addEventListener("visibilitychange", () => {
@@ -3468,3 +3561,4 @@ class GameSpeedManager {
   }
 }
 window.GameSpeedManager = GameSpeedManager;
+

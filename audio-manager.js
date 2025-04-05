@@ -37,6 +37,7 @@ class AudioManager {
         fullAnnexCry: [],
         trumpVictorySounds: [],
         trumpSob: [],
+ 
       },
       defense: {
         slap: [],
@@ -52,14 +53,13 @@ class AudioManager {
           mexicoProtestors: null,
           greenlandProtestors: null,
           usaProtestors: null,
-
-
         },
       },
       resistance: {
         canada: [],
         mexico: [],
         greenland: [],
+  
       },
       particles: {
         freedom: [],
@@ -105,6 +105,8 @@ class AudioManager {
         trumpSob: ["trumpSob1.mp3", "trumpSob2.mp3"],
         trumpYa: ["bing1.mp3", "bing2.mp3", "bing3.mp3"],
         evilLaugh: "trump-laugh.mp3",
+        shrink: "no.mp3",
+        finaalShrink: "ouchie.mp3",
       },
 
       resistance: {
