@@ -59,7 +59,7 @@ function initializeSocialSharing() {
       const blocksText = document.getElementById("blocks-stat")?.textContent || "0 attacks";
       const timeText = document.getElementById("time-stat")?.textContent || "0 months";
   
-      return `I scored ${score} points in Shout! Smack! Fight back!! Blocked ${blocksText} and survived for ${timeText}. Join the resistance!`;
+      return `I scored ${score} points in WHACK-A--HOLE: Shout! Smack! Fight back!! Blocked ${blocksText} and survived for ${timeText}. Join the resistance!`;
     }
   
     // Function to capture screenshot and download
@@ -111,11 +111,11 @@ function initializeSocialSharing() {
   
       switch (platform) {
         case "native":
-          shareText = `I scored ${score} points in Presidential Grab! Blocked ${blocksText} and survived for ${timeText}. Join the resistance!`;
+          shareText = `I scored ${score} points in WHACK-A--HOLE! Blocked ${blocksText} and survived for ${timeText}. Join the resistance!`;
           if (navigator.share) {
             navigator
               .share({
-                title: "Presidential Grab Game",
+                title: "WHACK-A--HOLE Game",
                 text: shareText,
                 url: shareUrl,
               })
@@ -125,25 +125,25 @@ function initializeSocialSharing() {
   
         case "twitter":
           // Twitter with line breaks
-          shareText = `I scored ${score} points in Presidential Grab!\nBlocked ${blocksText} and survived for ${timeText}.\nJoin the resistance!\n\n(PS: After you play, let's meet up on Mastodon or Bluesky or really anywhere but here)`;
+          shareText = `I scored ${score} points in WHACK-A--HOLE!\nBlocked ${blocksText} and survived for ${timeText}.\nJoin the resistance!\n\n(PS: After you play, let's meet up on Mastodon or Bluesky or really anywhere but here)`;
           window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, "_blank");
           break;
   
         case "facebook":
           // For Facebook, we'll use the simple share dialog
-          shareText = `I scored ${score} points in Presidential Grab! Blocked ${blocksText} and survived for ${timeText}. Join the resistance!`;
+          shareText = `I scored ${score} points in WHACK-A--HOLE! Blocked ${blocksText} and survived for ${timeText}. Join the resistance!`;
           window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, "_blank");
           break;
   
         case "bluesky":
           // Bluesky with line breaks
-          shareText = `I scored ${score} points in Presidential Grab!\n\nBlocked ${blocksText} and survived for ${timeText}.\n\nJoin the resistance!`;
+          shareText = `I scored ${score} points in WHACK-A--HOLE!\n\nBlocked ${blocksText} and survived for ${timeText}.\n\nJoin the resistance!`;
           window.open(`https://bsky.app/intent/compose?text=${encodeURIComponent(shareText + "\n\n" + shareUrl)}`, "_blank");
           break;
   
         case "mastodon":
           // Mastodon with line breaks
-          shareText = `I scored ${score} points in Presidential Grab!\n\nBlocked ${blocksText} and survived for ${timeText}.\n\nJoin the resistance!`;
+          shareText = `I scored ${score} points in WHACK-A--HOLE!\n\nBlocked ${blocksText} and survived for ${timeText}.\n\nJoin the resistance!`;
           // Add image URL to help Mastodon pick up the preview
           const mastodonShareUrl = `${shareUrl}${shareUrl.includes("?") ? "&" : "?"}og_image=https://catodot.github.io/d/images/grab.png`;
           window.open(`https://mastodon.social/share?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(mastodonShareUrl)}`, "_blank");
