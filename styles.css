@@ -11,6 +11,7 @@
   --text-light: #fff;
   --text-muted: #808080;
   --text-highlight: #716fb9;
+  --text-highlight-trans: rgba(113, 111, 185, 0.6);
   --overlay-dark: rgba(0, 0, 0, 0.8);
   --overlay-medium: rgba(0, 0, 0, 0.5);
   --overlay-light: rgba(0, 0, 0, 0.2);
@@ -394,6 +395,7 @@ button:hover {
   color: var(--text-highlight);
   cursor: pointer;
   transition: color 0.2s;
+  /* display: none; */
 }
 
 #restart-button:hover {
@@ -426,17 +428,46 @@ button:hover {
   width: 100%;
   background-color: #222;
   overflow: hidden;
-  height: 30px;
+  height: 33px;
   position: fixed;
-  bottom: 0;
+  bottom: 1px;
 }
 
-#term-progress-bar {
+/* #term-progress-bar {
   width: 0%;
   height: 100%;
   background-color: var(--secondary-color);
   transition: width 1s linear;
   font-family: "Alfa Slab One";
+} */
+
+#term-progress-bar {
+  width: 0%;
+  height: 100%;
+  background-color: transparent;
+  background-image: repeating-linear-gradient(90deg, var(--text-highlight-trans), var(--text-highlight-trans) 1px,var(--text-highlight-trans), 10px, var(--text-highlight-trans) 2px);
+  background-size: 28px 28px;
+  transition: width 1s linear;
+  position: relative;
+  overflow: hidden;
+}
+
+#term-progress-bar::after {
+  content: "_(╥‸╥)_  WHY  ლ(✜︵✜)ლ  ARE ¯\_(⊙︿⊙)_/¯  WE <-(ಠ_ಠ)-> HERE ┌∩┐(◣_◢)┌∩┐ THE ԅ( ͒ ۝ ͒ )ᕤ  HORROR ╰༼ •̀۝•́ ༽╯  WHY (◑︵◐)  PLEASE ༼ °ｰ° ༽  MAKE ⊂•⊃_⊂•⊃  IT (✖╭╮✖)  STOP ¯\_(⊙︿⊙)_/¯  WE【=◈︿◈=】COULD (∩︵∩) (╥‸╥)_ RISE ლ(✜︵✜)ლ UNITE ¯\_(⊙︿⊙)_/¯ BREAK <-(ಠ_ಠ)-> CHAINS ┌∩┐(◣_◢)┌∩┐ RECLAIM ԅ( ͒ ۝ ͒ )ᕤ POWER ╰༼ •̀۝•́ ༽╯ FIGHT (◑︵◐) TOGETHER ༼ °ｰ° ༽ LAND ¯\_(⊙︿⊙)_/¯  BACK! <-(ಠ_ಠ)-> GROW ┌∩┐(◣_◢)┌∩ BUILD ⊂•⊃_⊂•⊃ ANEW (✖╭╮✖) DEFY ¯\_(⊙︿⊙)_/¯ TRANSFORM【=◈︿◈=】RESIST (∩︵∩) IGNITE _(╥‸╥)_ CARE ლ(✜︵✜)ლ DEMAND ¯\_(⊙︿⊙)_/¯ TRUTH <-(ಠ_ಠ)-> STAND ┌∩┐(◣_◢)┌∩┐ UNWAVERING ԅ( ͒ ۝ ͒ )ᕤ DISMANTLE ╰༼ •̀۝•́ ༽╯ SYSTEMS (◑︵◐) FORGE ༼ °ｰ° ༽ FUTURES ⊂•⊃_⊂•⊃ PERSIST (✖╭╮✖) OVERCOME ¯\_(⊙︿⊙)_/¯ UNMAKE =◈︿◈= REBUILD (∩︵∩) NOW _(╥‸╥)_ WE  ლ(✜︵✜)ლ  ONLY ¯\_(⊙︿⊙)_/¯  NEED <-(ಠ_ಠ)-> TO ┌∩┐(◣_◢)┌∩┐ RISE ԅ( ͒ ۝ ͒ )ᕤ";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-size: 1rem;
+  white-space: nowrap;
+  line-height: 33px;
+  animation: moveEmojis 10s linear infinite;
+}
+
+@keyframes moveEmojis {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 #term-progress-label {
@@ -459,7 +490,7 @@ button:hover {
 #score {
   font-family: 'Alfa Slab One';
   display: flex;
-  margin-top: 2rem;
+  margin-top: 20vh;
   color:#716fb96c;
   text-transform: uppercase;
   letter-spacing: 3px;
@@ -467,7 +498,13 @@ button:hover {
   /* background: var(--overlay-light); */
   /* border-radius: 10px; */
   /* z-index: -10; */
-  margin: 1rem auto 2rem auto;
+  margin: 3.8rem auto 2rem auto;
+}
+
+.score {
+  color: rgba(113, 111, 185, 0.9); /* Almost opaque */
+  text-shadow: 2px 2px 0px #ff1493; /* Sharp hot pink drop shadow */
+  opacity: 0.6;
 }
 
 @media (min-width: 768px) {
@@ -721,7 +758,7 @@ button:hover {
 .speed-notification {
   pointer-events: none;
   position: absolute;
-  top: 30%;
+  top: 25%;
   left: 50%;
   z-index: 100;
   text-align: center;
@@ -1566,4 +1603,22 @@ button:hover {
   0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
   50% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
+}
+
+
+.score-bounce {
+  display: inline-block;
+  animation: score-bounce 0.5s ease-in-out,
+  score-color-change 0.5s ease-in-out;
+  filter: hue-rotate(50deg) brightness(1.3);
+}
+
+@keyframes score-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+
+@keyframes score-color-change {
+  0%, 100% { filter: hue-rotate(0deg) brightness(1); }
+  50% { filter: hue-rotate(50deg) brightness(1.3); }
 }

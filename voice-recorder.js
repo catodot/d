@@ -828,8 +828,8 @@ class VoiceRecorder {
         this.elements.sendButton.textContent = "SEND RECORDING";
     
         if (hasError) {
-          alert("Some uploads failed. Please try again.");
-          return;
+          // alert("Some uploads failed. Please try again.");
+          // return;
         }
     
         // Success - show thank you message

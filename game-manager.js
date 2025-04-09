@@ -19,7 +19,7 @@ function setupEventHandlers(element, handlers) {
 /**
  * Game Engine - Core module that coordinates all game systems
  */
-class GameEngine {
+class GameEngine { 
   constructor(config = {}) {
     // Configuration with defaults
     this.config = {
@@ -335,62 +335,6 @@ class GameEngine {
     return overlay;
   }
 
-  /**
-   * Stop game systems at end of game
-   * @private
-   */
-  // _stopGameSystems() {
-  //   // Stop UFO manager if present
-  //   if (window.UFOManager) {
-  //     window.UFOManager.state.autoSpawnEnabled = false;
-  //     window.UFOManager.destroy();
-  //   }
-
-  //   // Stop freedom manager to prevent protestors from appearing
-  //   if (this.systems.freedom) {
-  //     // Ensure all protestors are removed
-  //     this.systems.freedom.cleanupAllProtestors();
-
-  //     // Stop any ongoing protestor sounds
-  //     if (this.systems.audio) {
-  //       this.systems.audio.stopAllProtestorSounds();
-  //     }
-
-  //     // Destroy the freedom manager to prevent further spawning
-  //     this.systems.freedom.destroy();
-  //   }
-
-  //   // Stop game loop
-  //   this._stopGameLoop();
-
-  //   // Clean up resources
-  //   this._cleanupResources();
-  // }
-
-  _stopGameSystems() {
-    // Stop UFO manager if present
-    if (window.UFOManager) {
-      window.UFOManager.state.autoSpawnEnabled = false;
-      window.UFOManager.destroy();
-    }
-
-    // Stop freedom manager to prevent protestors from appearing
-    if (this.systems.freedom) {
-      // Ensure all protestors are removed
-      this.systems.freedom.cleanupAllProtestors();
-
-      // DON'T stop all sounds here - we'll handle that in _playEndGameSounds
-      // Instead, just disable further protestor activities
-      this.systems.freedom.pause(); // Use pause instead of destroy
-    }
-
-    // Stop game loop
-    this._stopGameLoop();
-
-    // Clean up resources
-    this._cleanupResources();
-  }
-
   triggerGameEnd(endState, endReason = "unspecified") {
     // Guard against multiple calls
     if (this.systems.state.gameEnding) {
@@ -403,6 +347,10 @@ class GameEngine {
     this.systems.state.endReason = endReason;
     this.systems.state.isPlaying = false;
 
+    if (window.speedManager) {
+      window.speedManager.stopSpeedProgression();
+    }
+
     // Validate and get end sequence
     if (!this.endGameSequences[endState]) {
       console.error(`[EndGame] Invalid end state: ${endState}`);
@@ -411,7 +359,27 @@ class GameEngine {
     const sequence = this.endGameSequences[endState];
     try {
       // Stop gameplay systems
-      this._stopGameSystems();
+      // this._stopGameSystems();
+      if (window.UFOManager) {
+        window.UFOManager.state.autoSpawnEnabled = false;
+        window.UFOManager.destroy();
+      }
+
+      // Stop freedom manager to prevent protestors from appearing
+      if (this.systems.freedom) {
+        // Ensure all protestors are removed
+        this.systems.freedom.cleanupAllProtestors();
+
+        // DON'T stop all sounds here - we'll handle that in _playEndGameSounds
+        // Instead, just disable further protestor activities
+        this.systems.freedom.pause(); // Use pause instead of destroy
+      }
+
+      // Stop game loop
+      this._stopGameLoop();
+
+      // Clean up resources
+      this._cleanupResources();
 
       // 1. Play Trump's animation - with error handling
       if (this.systems.animation) {
@@ -434,6 +402,7 @@ class GameEngine {
 
       // 3. Play ending sounds - using dedicated method
       this._playEndGameSounds(sequence);
+      this.systems.audio.fullReset();
 
       // 4. After animation delay, start world shrink but keep overlay visible
       setTimeout(() => {
@@ -467,55 +436,96 @@ class GameEngine {
     }
   }
 
+  // _playEndGameSounds(sequence) {
+  //   if (!this.systems.audio) {
+  //     return;
+  //   }
+
+  //   // Ensure audio context is resumed first for reliable endgame sounds
+  //   this.systems.audio
+  //     .resumeAudioContext()
+  //     .then(() => {
+  //       try {
+  //         // First, stop ALL sounds except background music
+  //         this.systems.audio.stopAllExceptBackgroundMusic();
+
+  //         // Now fade out background music (which was preserved)
+  //         if (this.systems.audio.backgroundMusic) {
+  //           this.systems.audio.fadeTo(this.systems.audio.backgroundMusic, 0, 1000, () => {
+  //             this.systems.audio.stopBackgroundMusic();
+  //           });
+  //         }
+
+  //         // Only proceed with audio sequence if it exists and is valid
+  //         if (sequence.audioSequence && Array.isArray(sequence.audioSequence)) {
+  //           // Pre-load the end game sounds before attempting to play them
+  //           const preloadPromises = sequence.audioSequence.map(sound => {
+  //             const category = sound === "beenVeryNiceToYou" ? "trump" : "ui";
+  //             // Return the promise from _loadSoundWithPromise
+  //             return this.systems.audio._loadSoundWithPromise(category, sound);
+  //           });
+
+  //           // Once all sounds are loaded, play them in sequence
+  //           Promise.all(preloadPromises)
+  //             .then(() => {
+  //               // Short delay to ensure other sounds have stopped
+  //               setTimeout(() => {
+  //                 // Play each sound in sequence with proper delays
+  //                 sequence.audioSequence.forEach((sound, index) => {
+  //                   setTimeout(() => {
+  //                     this.systems.audio
+  //                       .resumeAudioContext()
+  //                       .then(() => {
+  //                         const category = sound === "beenVeryNiceToYou" ? "trump" : "ui";
+  //                         this.systems.audio.play(category, sound, 0.8);
+  //                       })
+  //                       .catch((e) => console.warn(`[EndGame] Audio context error:`, e));
+  //                   }, index * 800);
+  //                 });
+  //               }, 200);
+  //             })
+  //             .catch(error => {
+  //               console.warn("[EndGame] Error preloading end game sounds:", error);
+  //             });
+  //         }
+  //       } catch (error) {
+  //         console.error("[EndGame] Critical error in end game sound sequence:", error);
+  //       }
+  //     })
+  //     .catch((e) => {
+  //       console.error("[EndGame] Failed to resume audio context:", e);
+  //     });
+
+  // }
+
   _playEndGameSounds(sequence) {
     if (!this.systems.audio) {
       return;
     }
 
-    // Ensure audio context is resumed first for reliable endgame sounds
-    this.systems.audio
-      .resumeAudioContext()
-      .then(() => {
-        try {
-          // First, stop ALL sounds except background music
-          this.systems.audio.stopAllExceptBackgroundMusic();
-          // soundManager.stopAll({ exceptBackgroundMusic: true });
+    this.systems.audio.stopAllExceptBackgroundMusic();
 
-          // Now fade out background music (which was preserved)
-          if (this.systems.audio.backgroundMusic) {
-            this.systems.audio.fadeTo(this.systems.audio.backgroundMusic, 0, 1000, () => {
-              this.systems.audio.stopBackgroundMusic();
-            });
-          }
-
-          // 3. After a small delay to let other sounds stop, play end game sequence
-          setTimeout(() => {
-            // Validate audio sequence
-            if (!sequence.audioSequence || !Array.isArray(sequence.audioSequence)) {
-              console.warn("[EndGame] Invalid audioSequence:", sequence.audioSequence);
-              return;
-            }
-
-            // Play each sound in sequence
-            sequence.audioSequence.forEach((sound, index) => {
-              setTimeout(() => {
-                this.systems.audio
-                  .resumeAudioContext()
-                  .then(() => {
-                    const category = sound === "beenVeryNiceToYou" ? "trump" : "ui";
-                    this.systems.audio.play(category, sound, 0.8);
-                  })
-                  .catch((e) => console.warn(`[EndGame] Audio context error:`, e));
-              }, index * 800);
-            });
-          }, 200); // Short delay to ensure other sounds have stopped
-        } catch (error) {
-          console.error("[EndGame] Critical error in end game sound sequence:", error);
-        }
-      })
-      .catch((e) => {
-        console.error("[EndGame] Failed to resume audio context:", e);
+    if (this.systems.audio.backgroundMusic) {
+      this.systems.audio.fadeTo(this.systems.audio.backgroundMusic, 0, 1000, () => {
+        this.systems.audio.stopBackgroundMusic();
       });
+    }
+
+    try {
+      // Simple, direct sound playing
+      // finddme
+      if (sequence.audioSequence && sequence.audioSequence.length) {
+        sequence.audioSequence.forEach((sound, index) => {
+          setTimeout(() => {
+            const category = sound === "beenVeryNiceToYou" ? "trump" : "ui";
+            this.systems.audio.play(category, sound, 0.8);
+          }, index * 800); // Stagger sounds slightly
+        });
+      }
+      // this.systems.audio.play("ui", "speedup", 0.6);
+    } catch (error) {
+      console.error("[EndGame] Error playing end game sounds:", error);
+    }
   }
 
   /**
@@ -523,17 +533,17 @@ class GameEngine {
    * @param {boolean} playerWon - Whether player won
    * @param {Object} [options] - Optional configuration for game over
    */
-  endGame(playerWon, options = {}) {
-    if (options.showWorldShrinkAnimation) {
-      // Transition with world shrink animation
-      this.systems.ui.showWorldShrinkAnimation(() => {
-        this._showFullGameOverScreen(playerWon);
-      }, options.animationDuration || 4000);
-    } else {
-      // Directly show full game over screen
-      this._showFullGameOverScreen(playerWon);
-    }
-  }
+  // endGame(playerWon, options = {}) {
+  //   if (options.showWorldShrinkAnimation) {
+  //     // Transition with world shrink animation
+  //     this.systems.ui.showWorldShrinkAnimation(() => {
+  //       this._showFullGameOverScreen(playerWon);
+  //     }, options.animationDuration || 4000);
+  //   } else {
+  //     // Directly show full game over screen
+  //     this._showFullGameOverScreen(playerWon);
+  //   }
+  // }
 
   /**
    * Restart the game
@@ -545,7 +555,7 @@ class GameEngine {
     const gameOverScreen = document.getElementById("game-over-screen");
     if (gameOverScreen) {
       gameOverScreen.classList.add("hidden");
-      gameOverScreen.style.display = "none";
+      gameOverScreen.style.display = "none"; // Keep this to ensure it's hidden
     }
 
     const gameContainer = document.getElementById("game-container");
@@ -575,23 +585,7 @@ class GameEngine {
 
     // Reset audio with proper context management
     if (this.systems.audio) {
-      try {
-        this.systems.audio.stopAll();
-
-        // Resume context before preparing for restart
-        this.systems.audio
-          .resumeAudioContext()
-          .then(() => {
-            this.systems.audio.prepareForRestart();
-          })
-          .catch((e) => {
-            console.warn("[Engine] Error resuming audio context for restart:", e);
-            // Still try to prepare even if resume fails
-            this.systems.audio.prepareForRestart();
-          });
-      } catch (e) {
-        console.warn("[Engine] Error stopping audio for restart:", e);
-      }
+      this.systems.audio.fullReset();
     }
 
     // Reset game state
@@ -616,6 +610,9 @@ class GameEngine {
         this.systems.ui.announceForScreenReaders("Game restarted! Get ready to block!");
       }
     }, 200);
+
+    this.systems.state.gameEnding = false;
+    this.systems.state.endReason = null;
   }
 
   _showFullGameOverScreen(playerWon) {
@@ -627,14 +624,23 @@ class GameEngine {
       if (typeof openVoiceRecordingInterface === "function") {
         openVoiceRecordingInterface();
       } else {
+        // Fallback: Try to show the modal directly
         const recorderModal = document.getElementById("voice-recorder-modal");
         if (recorderModal) {
           recorderModal.classList.remove("hidden");
           recorderModal.style.display = "flex";
-          // ... other setup code
+          recorderModal.style.opacity = "1";
+          recorderModal.style.visibility = "visible";
+
+          // Initialize voice recorder if needed
+          if (!window.voiceRecorder) {
+            window.voiceRecorder = new VoiceRecorder();
+            window.voiceRecorder.init();
+          }
         }
       }
-    }, 2500);
+    }, 500);
+
 
     // Schedule auto-restart
     if (this.config.AUTO_RESTART_DELAY > 0) {
@@ -781,7 +787,7 @@ class GameEngine {
       this.systems.ui.announceForScreenReaders(`Great job! You blocked Trump's grab on ${targetCountry}!`);
     }
     if (window.handHitboxManager) {
-      window.handHitboxManager.hideHitbox();
+      window.handHitboxManager.hideHandHitbox();
     }
   }
 
@@ -924,7 +930,7 @@ class GameEngine {
     // Game flow control
     this.togglePause = this.togglePause.bind(this);
     this.startGame = this.startGame.bind(this);
-    this.endGame = this.endGame.bind(this);
+    // this.endGame = this.endGame.bind(this);
     this.restartGame = this.restartGame.bind(this);
 
     // Resource management
@@ -1109,10 +1115,12 @@ class GameEngine {
     this.systems.state.reset();
 
     // Reset audio
-    if (this.systems.audio) {
-      this.systems.audio.stopAll();
-      this.systems.audio.reset();
-    }
+    // if (this.systems.audio) {
+    //   this.systems.audio.stopAll();
+    //   this.systems.audio.reset();
+    // }
+
+    // In restartGame()findddme
 
     // Reset animation
     if (this.systems.animation) {
@@ -1384,7 +1392,6 @@ class GameEngine {
       // Fallback - direct DOM manipulation
       // const visual = document.getElementById("trump-hand-visual");
       // const hitbox = document.getElementById("trump-hand-hitbox");
-
       // if (hitbox) {
       //   hitbox.style.visibility = "visible";
       //   hitbox.style.pointerEvents = "auto";
@@ -1393,7 +1400,6 @@ class GameEngine {
       //   hitbox.style.zIndex = "300";
       //   hitbox.classList.add("hittable");
       // }
-
       // if (visual) {
       //   visual.style.visibility = "visible";
       //   visual.style.display = "block";
@@ -1522,6 +1528,20 @@ class GameEngine {
     if (state.stats.successfulBlocks === 0 && window.handHitboxManager) {
       window.handHitboxManager.handleSuccessfulHit();
     }
+    
+    let scoreElement = document.getElementById("score");
+    scoreElement.classList.add('score-bounce');
+    setTimeout(() => {
+      scoreElement.classList.remove('score-bounce');
+    }, 500);
+
+    // if (this.elements.hud.score) {
+
+    //   this.elements.hud.score.classList.add('score-bounce');
+    //   setTimeout(() => {
+    //     scoreElement.classList.remove('score-bounce');
+    //   }, 500);
+    // }
 
     // Increase score
     state.score += 10;
@@ -1543,7 +1563,6 @@ class GameEngine {
    * @param {string} smackRegion - The region being smacked
    */
   _playBlockAnimationSequence(smackRegion) {
-    
     // Set a flag to prevent multiple animation sequences
     if (this.systems.state.isPlayingAnimationSequence) return;
     this.systems.state.isPlayingAnimationSequence = true;
@@ -1668,7 +1687,8 @@ class GameEngine {
         (!window.voiceRecorder || window.voiceRecorder.userInteracted !== true);
 
       if (canAutoRestart) {
-        this.restartGame();
+        // document.getElementById("restart-button").style.visibility = "block"
+        // this.restartGame();
       }
     }, this.config.AUTO_RESTART_DELAY);
   }
@@ -1937,7 +1957,7 @@ class UIManager {
         .then(() => {
           try {
             // Play game over sound if available
-            this.audio.play("ui", "gameOver", 0.8);
+            // this.audio.play("ui", "gameOver", 0.8);
           } catch (error) {
             console.warn("[UI] Error playing game over sound:", error);
             // Try direct play as fallback
@@ -1956,7 +1976,7 @@ class UIManager {
         .resumeAudioContext()
         .then(() => {
           try {
-            window.audioManager.play("ui", "gameOver", 0.8);
+            // window.audioManager.play("ui", "gameOver", 0.8);
           } catch (error) {
             console.warn("[UI] Error playing game over sound with global audio:", error);
           }
@@ -1967,8 +1987,10 @@ class UIManager {
     }
     // Hide game screen, show game over screen
     this.elements.screens.game.classList.add("hidden");
-    this.elements.screens.gameOver.classList.remove("hidden");
-
+    if (this.elements.screens.gameOver) {
+      this.elements.screens.gameOver.classList.remove("hidden");
+      this.elements.screens.gameOver.style.display = ""; // Clear inline display style
+    }
     // Calculate time statistics
     const totalGameTime = state.config.GAME_DURATION;
     const timeSurvived = totalGameTime - state.timeRemaining;
@@ -2009,31 +2031,6 @@ class UIManager {
     }
   }
 
-  /**
-   * Position game elements based on map size
-   */
-  // positionElements() {
-  //   // Ensure map is loaded before positioning
-  //   if (!this.elements.game.map || !this.state) return;
-
-  //   const mapRect = this.elements.game.map.getBoundingClientRect();
-
-  //   // Check if map has loaded
-  //   if (mapRect.width === 0 || mapRect.height === 0) {
-  //     setTimeout(() => this.positionElements(), 100);
-  //     return;
-  //   }
-
-  //   // Calculate map scale and offset
-  //   this.state.mapScale = mapRect.width / this.elements.game.map.naturalWidth;
-  //   this.state.mapOffsetX = mapRect.left;
-  //   this.state.mapOffsetY = mapRect.top;
-
-  //   // Position child elements
-  //   this.positionCountryFlagOverlays();
-  //   this.positionTrumpCharacter();
-  // }
-
   positionElements() {
     // Ensure map is loaded before positioning
     const mapElement = document.getElementById("map-background");
@@ -2067,11 +2064,11 @@ class UIManager {
 
     // Prepare game container for animation
     gameContainer.style.transformOrigin = "center center";
-    gameContainer.style.transition = `transform ${duration}ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity ${duration}ms ease-out`;
+    gameContainer.style.transition = `transform ${duration}ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity ${duration}ms ease-out, rotate ${duration}ms linear`;
 
     // Start animation (short timeout ensures transition applies)
     setTimeout(() => {
-      gameContainer.style.transform = "scale(0.1)";
+      gameContainer.style.transform = "scale(0.1) rotate(360deg)"; // Two full rotations (360 * 2)
       gameContainer.style.opacity = "0";
 
       // Execute callback after animation
@@ -2081,7 +2078,6 @@ class UIManager {
       }, duration);
     }, 50);
   }
-
   positionCountryFlagOverlays() {
     const countryFlags = Object.keys(this.elements.countries);
 
@@ -3081,9 +3077,9 @@ class GameSpeedManager {
     // Tutorial instruction messages
     this.instructionMessages = [
       { text: "STOP HIM!", audio: "stopHim" },
-      { text: "HANDS OFF!", audio: "stopHim" },
       { text: "SMACK THAT HAND!", audio: "smackThatHand" },
       { text: "CLICK ON TRUMPS HAND AS HE GRABS A COUNTRY!", audio: "instruction" },
+      { text: "HANDS OFF!", audio: "stopHim" },
     ];
 
     // State variables
@@ -3222,12 +3218,11 @@ class GameSpeedManager {
   }
 
   _startRegularSpeedProgression() {
-    // Dynamic interval that decreases more aggressively in later stages
     let currentInterval = this.config.DEFAULT_SPEED_INTERVAL;
 
     this.timers.speedIncreaseInterval = setInterval(() => {
-      if (!this.gameState.isPlaying || this.gameState.isPaused) return;
-
+      // Add check for gameEnding state
+      if (!this.gameState.isPlaying || this.gameState.isPaused || this.gameState.gameEnding) return;
       if (this.state.currentSpeedIndex < this.speedLevels.length - 1) {
         this.increaseSpeed();
 
@@ -3290,6 +3285,7 @@ class GameSpeedManager {
    */
   showNextInstruction() {
     if (this.gameState.isPaused) return;
+    if (this.gameState.gameEnding) return;
 
     // Skip if tutorial is already completed
     if (this.checkTutorialCompletion()) {
@@ -3337,15 +3333,33 @@ class GameSpeedManager {
     }, this.config.INSTRUCTION_INTERVAL);
   }
 
-  /**
-   * Stop the speed progression system and clear all timers
-   */
   stopSpeedProgression() {
-    // Clear all timers
-    this._clearAllTimers();
+    // Clear speed increase interval
+    if (this.timers.speedIncreaseInterval) {
+      clearInterval(this.timers.speedIncreaseInterval);
+      this.timers.speedIncreaseInterval = null;
+    }
 
-    // Clean up any notifications
+    // Clear instruction timeout
+    if (this.timers.instructionTimeout) {
+      clearTimeout(this.timers.instructionTimeout);
+      this.timers.instructionTimeout = null;
+    }
+
+    // Clear tutorial failsafe timeout
+    if (this.timers.tutorialFailsafeTimeout) {
+      clearTimeout(this.timers.tutorialFailsafeTimeout);
+      this.timers.tutorialFailsafeTimeout = null;
+    }
+
+    // Remove all notifications
     this._removeAllNotifications();
+
+    // Additional safety: unlink from gameState's interval reference if it exists
+    if (this.gameState && this.gameState.speedIncreaseInterval) {
+      clearInterval(this.gameState.speedIncreaseInterval);
+      this.gameState.speedIncreaseInterval = null;
+    }
   }
 
   /**
@@ -3486,6 +3500,7 @@ class GameSpeedManager {
 
     // Reset speed and ensure both systems are updated
     this.setSpeed(this.speedLevels[0].multiplier);
+    this._removeAllNotifications();
   }
 
   /**
@@ -3760,35 +3775,35 @@ class TrumpHandEffectsController {
         },
         // First block hover state
         firstBlockHover: {
-          transform: "scale(1.1)", // Grow slightly on hover for first block
+          transform: "scale(1.3)", // Grow slightly on hover for first block
           opacity: "0.9",
           backgroundColor: "rgba(0, 233, 4, 0.5)", // Darker purple on hover
         },
         // Grabbing state (not first block)
         grabbing: {
           display: "block",
-          opacity: "0.3",
+          opacity: "0.9",
           border: "2px solid black",
           borderRadius: "50%",
           transform: "scale(1)",
           backgroundColor: "transparent",
           position: "absolute",
           visibility: "visible",
-          backgroundColor: "red",
+          backgroundColor: "rgba(255, 0, 0, 0.3",
           zIndex: "1",
           transition: "transform 0.2s ease-out, opacity 0.2s ease-out, border 0.2s ease-out",
           outline: "4px dashed yellow",
         },
         // Regular hover state
         hover: {
-          transform: "scale(1.1)",
+          transform: "scale(1.3)",
           opacity: "0.6",
           backgroundColor: "rgba(0, 233, 4, 0.5)", // Darker purple on hover
           // backgroundColor: "red",
         },
         // Grabbing hover state
         grabbingHover: {
-          transform: "scale(1.1)",
+          transform: "scale(1.3)",
           opacity: "0.6",
           border: "4px solid black",
           borderRadius: "50%",
@@ -3800,6 +3815,7 @@ class TrumpHandEffectsController {
         display: "block",
         opacity: "1",
         border: "none",
+        outline: "none",
         zIndex: "1",
         visibility: "visible",
         position: "absolute",
@@ -3969,7 +3985,7 @@ class TrumpHandEffectsController {
     }
 
     // Update class and state
-    this.elements.visual.classList.add(this.STATES.HITTABLE);
+    // this.elements.visual.classList.add(this.STATES.HITTABLE);
     this.elements.hitbox.classList.add(this.STATES.HITTABLE);
 
     // Explicitly ensure hitbox is interactive
@@ -4061,7 +4077,7 @@ class TrumpHandEffectsController {
     this._scheduleGrabEffectCleanup();
 
     if (window.handHitboxManager) {
-      window.handHitboxManager.hideHitbox();
+      window.handHitboxManager.hideHandHitbox();
     }
   }
 
@@ -4358,7 +4374,7 @@ class TrumpHandEffectsController {
   }
   handleSuccessfulHit() {
     console.log("successful hit");
-    
+
     // Remove the click here prompt after a successful hit
     this.removeClickHerePrompt();
 
@@ -4501,7 +4517,7 @@ class HandHitboxManager {
   /**
    * Hide the hitbox
    */
-  hideHitbox() {
+  hideHandHitbox() {
     // if (this.trumpHandHitBox) {
     //   this.trumpHandHitBox.style.display = "none";
     //   this.trumpHandHitBox.style.pointerEvents = "none";
@@ -4635,6 +4651,8 @@ class HandHitboxManager {
    * @param {number} frameIndex - Current frame index
    */
   updateStateAndFrame(state, frameIndex) {
+    console.log("updating state and frame");
+
     this.currentState = state;
     this.currentFrame = frameIndex;
     this.updatePosition();
@@ -4734,19 +4752,19 @@ class HandHitboxManager {
 
     // No hitbox for idle or after being smacked
     if (this.currentState === "idle" || smackedAnimations.includes(this.currentState)) {
-      this.hideHitbox();
+      this.hideHandHitbox();
       return;
     }
 
     // Only continue for grab animations
     if (!grabAnimations.includes(this.currentState)) {
-      this.hideHitbox();
+      this.hideHandHitbox();
       return;
     }
 
     const animation = this.animations[this.currentState];
     if (!animation || !animation.handCoordinates) {
-      this.hideHitbox();
+      this.hideHandHitbox();
       return;
     }
 
@@ -4762,7 +4780,7 @@ class HandHitboxManager {
     let coords = this.getCoordinatesForFrame(animation, frameToUse, isMobile);
 
     if (!coords) {
-      this.hideHitbox();
+      this.hideHandHitbox();
       return;
     }
 
@@ -4911,7 +4929,7 @@ class HandHitboxManager {
     }
 
     // Hide hitbox
-    this.hideHitbox();
+    this.hideHandHitbox();
 
     // Clear references
     this.trumpHandHitBox = null;
@@ -5248,8 +5266,7 @@ class ProtestorHitboxManager {
           calibrationScale: 0.24,
         },
 
-
-            {
+        {
           x: 500, // Seattle area
           y: 1900,
           width: 300,
@@ -5257,9 +5274,8 @@ class ProtestorHitboxManager {
           calibrationScale: 0.24,
         },
 
-
         {
-          x: 600, 
+          x: 600,
           y: 1900,
           width: 300,
           height: 300,
@@ -5267,26 +5283,23 @@ class ProtestorHitboxManager {
         },
 
         {
-          x: 700, 
+          x: 700,
           y: 1900,
           width: 300,
           height: 300,
           calibrationScale: 0.24,
         },
 
-
         {
-          x: 700, 
+          x: 700,
           y: 2100,
           width: 300,
           height: 300,
           calibrationScale: 0.24,
         },
 
-
-
         {
-          x: 700, 
+          x: 700,
           y: 2200,
           width: 300,
           height: 300,
@@ -5294,16 +5307,15 @@ class ProtestorHitboxManager {
         },
 
         {
-          x: 430, 
+          x: 430,
           y: 2000,
           width: 300,
           height: 300,
           calibrationScale: 0.24,
         },
 
-
         {
-          x: 460, 
+          x: 460,
           y: 2100,
           width: 300,
           height: 300,
@@ -5311,7 +5323,7 @@ class ProtestorHitboxManager {
         },
 
         {
-          x: 560, 
+          x: 560,
           y: 2200,
           width: 300,
           height: 300,
@@ -5325,7 +5337,7 @@ class ProtestorHitboxManager {
           height: 300,
           calibrationScale: 0.24,
         },
-   
+
         {
           x: 1400, // pits  area
           y: 2100,
@@ -5341,7 +5353,7 @@ class ProtestorHitboxManager {
           calibrationScale: 0.24,
         },
         {
-          x: 1400, 
+          x: 1400,
           y: 2300,
           width: 300,
           height: 300,
@@ -5349,14 +5361,14 @@ class ProtestorHitboxManager {
         },
 
         {
-          x: 1600, 
+          x: 1600,
           y: 2300,
           width: 300,
           height: 300,
           calibrationScale: 0.24,
         },
         {
-          x: 1440, 
+          x: 1440,
           y: 2200,
           width: 300,
           height: 300,
@@ -5364,14 +5376,12 @@ class ProtestorHitboxManager {
         },
 
         {
-          x: 1640, 
+          x: 1640,
           y: 2200,
           width: 300,
           height: 300,
           calibrationScale: 0.24,
         },
-
-     
       ],
       mexico: [
         {
@@ -5795,7 +5805,7 @@ class ProtestorHitboxManager {
    * Hide a specific country's hitbox
    * @param {string} countryId - Country identifier
    */
-  hideHitbox(countryId) {
+  hideProtestorHitbox(countryId) {
     const hitboxInfo = this.protestorHitboxes[countryId];
     if (hitboxInfo && hitboxInfo.element) {
       hitboxInfo.element.style.display = "none";
@@ -6104,7 +6114,7 @@ class FreedomManager {
     REGENERATION_DELAY: 40000, // After protestors disappear (fade or liberate), wait 60 seconds before next group appears
 
     // USA protestors
-    USA_INITIAL_APPEARANCE_THRESHOLD: 0.5, // USA protestors first appear when 10% of total game time has elapsed
+    USA_INITIAL_APPEARANCE_THRESHOLD: 0.65, // USA protestors first appear when 10% of total game time has elapsed
     USA_REAPPEAR_MIN_TIME: 20000, // After USA protestors disappear, wait at least 20 seconds before next group
     USA_REAPPEAR_MAX_TIME: 30000, // After USA protestors disappear, wait at most 1 second before next group
   };
@@ -6553,7 +6563,7 @@ class FreedomManager {
 
   //   // Hide hitbox
   //   if (this.protestorHitboxManager) {
-  //     this.protestorHitboxManager.hideHitbox(countryId);
+  //     this.protestorHitboxManager.hideProtestorHitbox(countryId);
   //   }
 
   //   // Reset country state
@@ -6893,7 +6903,7 @@ class FreedomManager {
 
     // Hide hitbox
     if (this.protestorHitboxManager) {
-      this.protestorHitboxManager.hideHitbox(countryId);
+      this.protestorHitboxManager.hideProtestorHitbox(countryId);
     }
 
     // Reset country state
@@ -6954,6 +6964,71 @@ class FreedomManager {
 
     // Create shrink effect centered on Trump
     this.createShrinkEffect(effectContainer, isFinalShrink);
+
+    // Add the shrink text message
+    const shrinkMessages = ["SHRINK-A-DINK?", "TRUMBELLINA?!", "KEEP FIGHTING, WE'RE ALMOST FREE!"];
+    const currentMessage = shrinkMessages[this.trumpShrinkLevel - 1] || shrinkMessages[2];
+
+    const trumpPosition = this._getTrumpPosition();
+
+    const text = document.createElement("div");
+    text.className = "shrink-text";
+    text.textContent = currentMessage;
+    text.style.position = "absolute";
+    text.style.zIndex = FreedomManager.Z_INDEXES.TEXT;
+    text.style.fontSize = "2rem";
+    text.style.fontWeight = "500";
+    text.style.webkitTextStroke = "2px #ea1487";
+    text.style.textStroke = "2px #ea1487";
+    text.style.color = "white";
+
+    // Make the text color progressively more intense
+    // const hue = Math.max(0, 30 - (this.trumpShrinkLevel * 10)); // Gets more red with each shrink
+    // text.style.color = `hsl(${hue}, 100%, 50%)`;
+
+    // Calculate position (centered above Trump)
+    const textWidth = 300;
+    text.style.width = `${textWidth}px`;
+    text.style.left = `${trumpPosition.x - textWidth / 2}px`;
+    text.style.top = `${trumpPosition.y - 150}px`; // Position above Trump
+    text.style.textAlign = "center";
+
+    effectContainer.appendChild(text);
+
+    // Animate the text
+    const startRotation = -5 + Math.random() * 10;
+    const animationId = `shrink-text-${Date.now()}`;
+
+    const style = document.createElement("style");
+    style.textContent = `
+        @keyframes ${animationId} {
+            0% {
+                transform: scale(0.1) rotate(${startRotation - 10}deg);
+                opacity: 0;
+            }
+            20% {
+                transform: scale(1.4) rotate(${startRotation + 5}deg);
+                opacity: 1;
+            }
+            80% {
+                transform: scale(1.2) rotate(${startRotation - 3}deg);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2.0) rotate(${startRotation}deg);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    text.style.animation = `${animationId} 1.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards`;
+
+    // Remove text and style after animation
+    setTimeout(() => {
+      if (text.parentNode) text.parentNode.removeChild(text);
+      if (style.parentNode) style.parentNode.removeChild(style);
+    }, 1500);
 
     // Add screen shake
     const gameContainer = document.getElementById("game-container");
@@ -7223,71 +7298,91 @@ class FreedomManager {
         const startRad = (startAngle * Math.PI) / 180;
         const endRad = (endAngle * Math.PI) / 180;
         const arcLength = endRad - startRad;
-
-        const numPoints = Math.max(5, Math.floor(arcLength * 10));
+        const numPoints = Math.max(8, Math.floor(arcLength * 8)); // Reduced from 12 and 15
         const angleStep = arcLength / numPoints;
-
+      
         let pathData = "";
-
         for (let i = 0; i <= numPoints; i++) {
           const angle = startRad + angleStep * i;
-          const wobble = Math.random() * variation * 2 - variation;
+          const wobble = Math.random() * variation * 4 - variation * 2;
           const r = radius + wobble;
-
           const x = r * Math.cos(angle);
           const y = r * Math.sin(angle);
-
+      
           if (i === 0) {
             pathData += `M ${x} ${y} `;
           } else {
             const prevAngle = startRad + angleStep * (i - 1);
-            const cpAngle = prevAngle + angleStep / 2;
-            const cpWobble = Math.random() * variation * 2 - variation;
+            const cpAngle = prevAngle + angleStep * 0.3;
+            const cpWobble = Math.random() * variation * 4 - variation * 2;
             const cpRadius = radius + cpWobble;
-
             const cpx = cpRadius * Math.cos(cpAngle);
             const cpy = cpRadius * Math.sin(cpAngle);
-
             pathData += `Q ${cpx} ${cpy} ${x} ${y} `;
           }
         }
-
-        return pathData;
+      
+        const outlinePath = document.createElementNS(svgNS, "path");
+        outlinePath.setAttribute("d", pathData);
+        outlinePath.setAttribute("class", "arc-outline");
+        outlinePath.style.stroke = "#000";
+        outlinePath.style.strokeWidth = "16px";
+        outlinePath.style.fill = "none";
+        outlinePath.style.strokeLinecap = "round";
+        outlinePath.style.strokeLinejoin = "round";
+      
+        const fillPath = document.createElementNS(svgNS, "path");
+        fillPath.setAttribute("d", pathData);
+        fillPath.setAttribute("class", "arc-fill");
+        fillPath.style.stroke = "white";
+        fillPath.style.strokeWidth = "4px";
+        fillPath.style.fill = "none";
+        fillPath.style.strokeLinecap = "round";
+        fillPath.style.strokeLinejoin = "round";
+      
+        return [outlinePath, fillPath];
       };
-
+      
       const outerArcs = [
         { start: 0, end: 85, radius: 200, variation: 15 },
         { start: 95, end: 175, radius: 210, variation: 12 },
         { start: 185, end: 265, radius: 205, variation: 18 },
         { start: 275, end: 355, radius: 215, variation: 14 },
       ];
-
+      
       const innerArcs = [
-        { start: 20, end: 100, radius: 120, variation: 10 },
-        { start: 110, end: 190, radius: 125, variation: 8 },
-        { start: 200, end: 280, radius: 130, variation: 12 },
-        { start: 290, end: 370, radius: 128, variation: 9 },
+        { start: 20, end: 100, radius: 150, variation: 10 },   // Increased from 120
+        { start: 110, end: 190, radius: 155, variation: 8 },   // Increased from 125
+        { start: 200, end: 280, radius: 160, variation: 12 },  // Increased from 130
+        { start: 290, end: 370, radius: 158, variation: 9 },   // Increased from 128
       ];
-
+      
+      // Rest of the code stays the same
       outerArcs.forEach((arcData) => {
-        const path = document.createElementNS(svgNS, "path");
-        path.setAttribute("d", createWobblyArc(arcData.start, arcData.end, arcData.radius, arcData.variation));
-        path.setAttribute("class", "arc-outer");
-        path.style.opacity = "1.0";
-        svgOuter.appendChild(path);
+        const [outline, fill] = createWobblyArc(
+          arcData.start, 
+          arcData.end, 
+          arcData.radius, 
+          arcData.variation
+        );
+        svgOuter.appendChild(outline);
+        svgOuter.appendChild(fill);
       });
-
+      
       innerArcs.forEach((arcData) => {
-        const path = document.createElementNS(svgNS, "path");
-        path.setAttribute("d", createWobblyArc(arcData.start, arcData.end, arcData.radius, arcData.variation));
-        path.setAttribute("class", "arc-inner");
-        path.style.opacity = "1.0";
-        svgInner.appendChild(path);
+        const [outline, fill] = createWobblyArc(
+          arcData.start, 
+          arcData.end, 
+          arcData.radius, 
+          arcData.variation
+        );
+        svgInner.appendChild(outline);
+        svgInner.appendChild(fill);
       });
-
+      
       arcContainer1.appendChild(svgOuter);
       arcContainer2.appendChild(svgInner);
-
+      
       effect.appendChild(arcContainer1);
       effect.appendChild(arcContainer2);
     };
@@ -7317,10 +7412,7 @@ class FreedomManager {
     );
   }
 
-  // handleUSAThirdClick() {
-  //   this._handleUSAShrinkSequence();
-  //   this.countries.usa.clickCounter = 0;
-  // }
+
 
   handleUSAThirdClick() {
     // Stop USA protestor sounds first
@@ -7354,7 +7446,33 @@ class FreedomManager {
     try {
       // Increment click counter
       country.clickCounter = (country.clickCounter || 0) + 1;
+  
+      // Add 5 points for each protestor click
+      if (this.gameState) {
 
+
+        let scoreElement = document.getElementById("score");
+        scoreElement.classList.add('score-bounce');
+        setTimeout(() => {
+          scoreElement.classList.remove('score-bounce');
+        }, 500);
+    
+        // if (this.elements.hud.score) {
+    
+        //   this.elements.hud.score.classList.add('score-bounce');
+        //   setTimeout(() => {
+        //     scoreElement.classList.remove('score-bounce');
+        //   }, 500);
+        // }
+
+
+        this.gameState.score += 5;
+        // Update HUD
+        this.gameEngine.systems.ui.updateHUD(this.gameState);
+        // Announce for screen readers
+        this.gameEngine.systems.ui.announceForScreenReaders(`Protestor supported! +5 points. Total score: ${this.gameState.score}`);
+      }
+  
       // Clear any existing timeout
       if (country.disappearTimeout) {
         clearTimeout(country.disappearTimeout);
@@ -7706,6 +7824,32 @@ class FreedomManager {
         this.audioManager.stopProtestorSound(countryId);
       }
     }
+
+     // Add 50 points for successful revolution
+  if (this.gameState) {
+
+
+    let scoreElement = document.getElementById("score");
+    scoreElement.classList.add('score-bounce');
+    setTimeout(() => {
+      scoreElement.classList.remove('score-bounce');
+    }, 500);
+
+    // if (this.elements.hud.score) {
+
+    //   this.elements.hud.score.classList.add('score-bounce');
+    //   setTimeout(() => {
+    //     scoreElement.classList.remove('score-bounce');
+    //   }, 500);
+    // }
+
+
+    this.gameState.score += 50;
+    // Update HUD
+    this.gameEngine.systems.ui.updateHUD(this.gameState);
+    // Announce for screen readers
+    this.gameEngine.systems.ui.announceForScreenReaders(`Revolution successful! +50 points. Total score: ${this.gameState.score}`);
+  }
 
     // Remove pulsing effect if it exists
     const countryElement = this.elements.countries[countryId];

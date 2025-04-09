@@ -549,3 +549,33 @@
 .grab-screen-shake {
   animation: grab-screen-shake 0.5s ease-in-out;
 }
+
+
+#trump-hand-visual.hit, 
+#trump-hand-visual.grab-success {
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  pointer-events: none !important;
+  /* Don't set opacity:0 or display:none here as it would hide animations */
+}
+
+/* For the hitbox specifically, always keep it visually transparent */
+#trump-hand-hitbox {
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Make animation elements explicitly visible even when parent styles change */
+#trump-hand-visual.hit::before,
+#trump-hand-visual.grab-success .shard3,
+#trump-hand-visual.grab-success .shard4,
+#trump-hand-visual.grab-success .shard5,
+#trump-hand-visual.grab-success .shard6,
+#trump-hand-visual.grab-success .shard7,
+#trump-hand-visual.grab-success .shard8 {
+  visibility: visible !important;
+  display: block !important;
+  /* These ensure the animation elements stay visible */
+}

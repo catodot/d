@@ -11,18 +11,40 @@
   
   .arc-outer {
     fill: none;
-    stroke: #000;
-    stroke-width: 10px;
+    stroke: #ff69b4;  /* Hot pink fill */
+    stroke-width: 25px;
     stroke-linecap: round;
-    filter: drop-shadow(0 0 2px yellow);
+  }
+  
+  .arc-outer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    stroke: #000;  /* Black outline */
+    stroke-width: 28px;  /* Slightly wider than the pink to create outline */
+    z-index: -1;
   }
   
   .arc-inner {
     fill: none;
-    stroke: #000;
-    stroke-width: 7px;
+    stroke: #ff69b4;
+    stroke-width: 20px;
     stroke-linecap: round;
-    filter: drop-shadow(0 0 1px yellow);
+  }
+  
+  .arc-inner::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    stroke: #000;
+    stroke-width: 23px;
+    z-index: -1;
   }
   
   @keyframes shrink-arc-outer {

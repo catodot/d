@@ -978,6 +978,11 @@ loadSound(category, name, index = null) {
     return null;
   }
 
+  if (category === "music" && name === "background" && this.backgroundMusicPlaying && this.backgroundMusic) {
+    console.log("[AUDIO] Skipping background music load since it's already playing");
+    return this.backgroundMusic;
+  }
+
   let soundPath;
   let destination;
 
@@ -2244,27 +2249,106 @@ stopAll(options = {}) {
 /**
  * Reset the audio manager
  */
-reset() {
-  // Stop all sounds
+// reset() {
+//   // Stop all sounds
+//   this.stopAll();
+
+//   // Reset state but keep sound definitions
+//   this.volume = 1.0;
+//   this.muted = false;
+//   this.currentGrabVolume = 0.2;
+
+//   // Clear any active intervals
+//   if (this.grabVolumeInterval) {
+//     clearInterval(this.grabVolumeInterval);
+//     this.grabVolumeInterval = null;
+//   }
+
+//   // Reset active sound tracking
+//   this.activeGrabSound = null;
+//   this.activeProtestorSounds = {};
+
+//   // Return a fresh audio context
+//   return this.resumeAudioContext();
+// }
+
+
+fullReset() {
+  // First stop everything that's currently playing
   this.stopAll();
-
-  // Reset state but keep sound definitions
-  this.volume = 1.0;
-  this.muted = false;
-  this.currentGrabVolume = 0.2;
-
-  // Clear any active intervals
-  if (this.grabVolumeInterval) {
-    clearInterval(this.grabVolumeInterval);
-    this.grabVolumeInterval = null;
-  }
-
-  // Reset active sound tracking
-  this.activeGrabSound = null;
+  
+  // Clear tracking collections
+  this.currentlyPlaying = [];
   this.activeProtestorSounds = {};
-
-  // Return a fresh audio context
-  return this.resumeAudioContext();
+  this.loadedSounds = new Set();
+  this.loadingPromises = {};
+  
+  // Clear the criticalSoundsCache
+  this._criticalSoundsCache = {};
+  
+  // Reset all sound collections but keep the definitions
+  this.sounds = {
+    ui: {},
+    trump: {
+      trumpGrabbing: [],
+      partialAnnexCry: [],
+      fullAnnexCry: [],
+      trumpVictorySounds: [],
+      trumpSob: [],
+    },
+    defense: {
+      slap: [],
+      peopleSayNo: {
+        eastCanadaSaysNo: [],
+        westCanadaSaysNo: [],
+        mexicoSaysNo: [],
+        greenlandSaysNo: [],
+      },
+      protestors: {
+        eastCanadaProtestors: null,
+        westCanadaProtestors: null,
+        mexicoProtestors: null,
+        greenlandProtestors: null,
+        usaProtestors: null,
+      },
+    },
+    resistance: {
+      canada: [],
+      mexico: [],
+      greenland: [],
+    },
+    particles: {
+      freedom: [],
+    },
+    music: {},
+  };
+  
+  // Clear the instant slap sounds cache
+  this._instantSlapSounds = [];
+  
+  // Clear fade intervals
+  Object.keys(this._fadeIntervals).forEach(key => {
+    clearInterval(this._fadeIntervals[key]);
+  });
+  this._fadeIntervals = {};
+  
+  // Reset state variables
+  this.grabVolumeInterval = null;
+  this.currentGrabVolume = 0.2;
+  this.activeGrabSound = null;
+  
+  // Reset the background music variables
+  this.backgroundMusic = null;
+  this.backgroundMusicPlaying = false;
+  
+  // Reset but preserve the audio context
+  this.resumeAudioContext().then(() => {
+    // Reload critical sounds
+    this.preloadCriticalSounds();
+    
+    // Rebuild the instant slap sounds cache
+    this._preloadInstantSlapSounds();
+  });
 }
 
 /**
