@@ -726,26 +726,18 @@ class GameEngine {
     const targetCountry = this.systems.state.currentTarget;
     if (!targetCountry) return;
 
-    try {
-            this.systems.audio.playSuccessfulBlock(smackRegion);
-          } catch (error) {
-            console.warn("[Engine] Error playing block sound:", error);
-            // Fall back to direct slap sound if needed
-            this.systems.audio.playDirect("slap1.mp3", 0.8);
-          }
-    
     // Play successful block sound
-    // if (this.systems.audio) {
-    //   this.systems.audio.resumeAudioContext().then(() => {
-    //     try {
-    //       this.systems.audio.playSuccessfulBlock(smackRegion);
-    //     } catch (error) {
-    //       console.warn("[Engine] Error playing block sound:", error);
-    //       // Fall back to direct slap sound if needed
-    //       this.systems.audio.playDirect("slap1.mp3", 0.8);
-    //     }
-    //   });
-    // }
+    if (this.systems.audio) {
+      this.systems.audio.resumeAudioContext().then(() => {
+        try {
+          this.systems.audio.playSuccessfulBlock(smackRegion);
+        } catch (error) {
+          console.warn("[Engine] Error playing block sound:", error);
+          // Fall back to direct slap sound if needed
+          this.systems.audio.playDirect("slap1.mp3", 0.8);
+        }
+      });
+    }
 
     // Determine specific grab region
     const smackRegion = this._determineSmackRegion(targetCountry);
