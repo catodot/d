@@ -1772,10 +1772,11 @@ playSuccessfulGrab(country, volume = null) {
    * Play a sequence of sounds for successful block
    */
 playSuccessfulBlock(country, volume = null) {
-  this.stopGrabSound();
 
   // First play the slap sound immediately using the optimized path
   this._playInstantSlap(volume);
+
+  this.stopGrabSound();
 
   // Queue up the additional sounds AFTER the slap - this won't block the slap sound
   setTimeout(() => {
