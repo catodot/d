@@ -424,9 +424,9 @@ class UFOManager {
     if (this.audioManager) {
       // Resume audio context first for mobile Safari
       if (typeof this.audioManager.resumeAudioContext === 'function') {
-        this.audioManager.resumeAudioContext().then(() => {
+        // this.audioManager.resumeAudioContext().then(() => {
           this.audioManager.play("ui", "aliens", 0.8);
-        });
+        // });
       } else {
         // Fallback if resumeAudioContext doesn't exist
         this.audioManager.play("ui", "aliens", 0.8);
@@ -587,9 +587,9 @@ class UFOManager {
     if (this.audioManager) {
       // Resume audio context first for mobile Safari
       if (typeof this.audioManager.resumeAudioContext === 'function') {
-        this.audioManager.resumeAudioContext().then(() => {
-          this.audioManager.play("ui", "musk", 0.8);
-        });
+        // this.audioManager.resumeAudioContext().then(() => {
+          this.audioManager.playIfContextReady("ui", "musk", 0.8);
+        // });
       } else {
         // Fallback if resumeAudioContext doesn't exist
         this.audioManager.play("ui", "musk", 0.8);

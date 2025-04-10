@@ -436,67 +436,7 @@ class GameEngine {
     }
   }
 
-  // _playEndGameSounds(sequence) {
-  //   if (!this.systems.audio) {
-  //     return;
-  //   }
-
-  //   // Ensure audio context is resumed first for reliable endgame sounds
-  //   this.systems.audio
-  //     .resumeAudioContext()
-  //     .then(() => {
-  //       try {
-  //         // First, stop ALL sounds except background music
-  //         this.systems.audio.stopAllExceptBackgroundMusic();
-
-  //         // Now fade out background music (which was preserved)
-  //         if (this.systems.audio.backgroundMusic) {
-  //           this.systems.audio.fadeTo(this.systems.audio.backgroundMusic, 0, 1000, () => {
-  //             this.systems.audio.stopBackgroundMusic();
-  //           });
-  //         }
-
-  //         // Only proceed with audio sequence if it exists and is valid
-  //         if (sequence.audioSequence && Array.isArray(sequence.audioSequence)) {
-  //           // Pre-load the end game sounds before attempting to play them
-  //           const preloadPromises = sequence.audioSequence.map(sound => {
-  //             const category = sound === "beenVeryNiceToYou" ? "trump" : "ui";
-  //             // Return the promise from _loadSoundWithPromise
-  //             return this.systems.audio._loadSoundWithPromise(category, sound);
-  //           });
-
-  //           // Once all sounds are loaded, play them in sequence
-  //           Promise.all(preloadPromises)
-  //             .then(() => {
-  //               // Short delay to ensure other sounds have stopped
-  //               setTimeout(() => {
-  //                 // Play each sound in sequence with proper delays
-  //                 sequence.audioSequence.forEach((sound, index) => {
-  //                   setTimeout(() => {
-  //                     this.systems.audio
-  //                       .resumeAudioContext()
-  //                       .then(() => {
-  //                         const category = sound === "beenVeryNiceToYou" ? "trump" : "ui";
-  //                         this.systems.audio.play(category, sound, 0.8);
-  //                       })
-  //                       .catch((e) => console.warn(`[EndGame] Audio context error:`, e));
-  //                   }, index * 800);
-  //                 });
-  //               }, 200);
-  //             })
-  //             .catch(error => {
-  //               console.warn("[EndGame] Error preloading end game sounds:", error);
-  //             });
-  //         }
-  //       } catch (error) {
-  //         console.error("[EndGame] Critical error in end game sound sequence:", error);
-  //       }
-  //     })
-  //     .catch((e) => {
-  //       console.error("[EndGame] Failed to resume audio context:", e);
-  //     });
-
-  // }
+  
 
   _playEndGameSounds(sequence) {
     if (!this.systems.audio) {
@@ -3313,7 +3253,9 @@ class GameSpeedManager {
     }
 
     if (this.audioManager && instruction.audio) {
-      this.audioManager.play("ui", instruction.audio, 0.6);
+      // this.audioManager.play("ui", instruction.audio, 0.6);
+      this.audioManager.playIfContextReady("ui", instruction.audio, 0.8);
+
     }
 
     // Move to next instruction for next time
@@ -3436,9 +3378,9 @@ class GameSpeedManager {
       try {
         // Make sure audioContext is resumed first
         if (typeof this.audioManager.resumeAudioContext === "function") {
-          this.audioManager.resumeAudioContext().then(() => {
-            this.audioManager.play("ui", speedLevel.sound, 0.6);
-          });
+          // this.audioManager.resumeAudioContext().then(() => {
+            this.audioManager.playIfContextReady("ui", speedLevel.sound, 0.6);
+          // });
         } else {
           // Direct play as fallback
           this.audioManager.play("ui", speedLevel.sound, 0.6);

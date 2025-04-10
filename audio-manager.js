@@ -357,6 +357,21 @@ class AudioManager {
   }
 
   /**
+ * Play a non-critical sound only if AudioContext is already running
+ */
+playIfContextReady(category, name, volume = null) {
+  // Only play if AudioContext is already running
+  if (this.audioContext && 
+      this.audioContextRunning && 
+      this.audioContext.state === "running") {
+    return this.play(category, name, volume);
+  }
+  
+  // Otherwise, skip playing this sound
+  return Promise.resolve(null);
+}
+
+  /**
    * Unlock audio playback (especially for iOS)
    */
   unlock() {
