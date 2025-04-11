@@ -621,15 +621,15 @@ class GameEngine {
           } catch (error) {
             console.warn("[Engine] Error playing grab audio:", error);
             // Try direct play as fallback for critical game feedback
-            this.systems.audio.playDirect("grabWarning.mp3", 0.8);
-            this.systems.audio.playDirect("trumpGrabbing1.mp3", 0.8);
+            // this.systems.audio.playDirect("grabWarning.mp3", 0.8);
+            // this.systems.audio.playDirect("trumpGrabbing1.mp3", 0.8);
           }
         })
         .catch((e) => {
           console.warn("[Engine] Failed to resume audio context:", e);
           // Still try to play a direct sound as last resort
           try {
-            this.systems.audio.playDirect("grabWarning.mp3", 0.8);
+            // this.systems.audio.playDirect("grabWarning.mp3", 0.8);
           } catch (err) {
             // Silent fail
           }
@@ -1315,7 +1315,7 @@ _proceedWithGameProgression() {
   _prepareGrabSequence(targetCountry, animationInfo) {
     // Load country-specific sounds when targeting a country
     if (this.systems.audio && typeof this.systems.audio.loadCountrySounds === "function") {
-      this.systems.audio.loadCountrySounds(targetCountry);
+      // this.systems.audio.loadCountrySounds(targetCountry);
     }
 
     // Set state flags
@@ -2845,57 +2845,33 @@ class InputManager {
   }
 
   _setupButtonHandlers() {
-    // Start button
     const startButton = document.getElementById("start-button");
     if (startButton && this.handlers.onStartKey) {
-      // Remove all existing listeners
-      const newStartButton = startButton.cloneNode(true);
-      startButton.parentNode.replaceChild(newStartButton, startButton);
-
-      // Simple direct handler - based on your working test
-      newStartButton.addEventListener("click", (e) => {
+      startButton.addEventListener("click", (e) => {
         e.preventDefault();
-        // console.log("[AUDIO_DEBUG] Start button clicked");
-
-        // Initialize audio - directly in click handler
-        // Initialize audio with proper Promise handling
+  
         if (window.audioManager) {
-          // Resume context with Promise chain
-          (window.audioManager.audioContext ? window.audioManager.audioContext.resume() : Promise.resolve())
+          window.audioManager.resumeAudioContext()
             .then(() => {
-              // Initialize
+              // Initialize audio system
               if (typeof window.audioManager.init === "function") {
                 window.audioManager.init();
-                audioManager.startDiagnosticAuditing();
-
-
+                window.audioManager.startDiagnosticAuditing();
               }
-
-              // Play click sound with proper error handling
+  
+              // Check pool health - only call primeAudioPool once
               try {
-                window.audioManager.play("ui", "click", 0.5).catch((e) => {
-                  console.warn("[Input] Click sound play error:", e);
-                  // Try direct play as fallback
+                window.audioManager.primeAudioPool({ skipClickSound: true });
+              } catch (e) {
+                console.warn("[Input] Error priming audio pool:", e);
+              }
+  
+              // Play click sound
+              window.audioManager.play("ui", "click", 0.5)
+                .catch(error => {
+                  console.warn("[Input] Click sound play error:", error);
                   window.audioManager.playDirect("click.mp3", 0.5);
                 });
-              } catch (error) {
-                console.warn("[Input] Error playing click sound:", error);
-                // Try direct play as fallback
-                try {
-                  window.audioManager.playDirect("click.mp3", 0.5);
-                } catch (e) {
-                  // Silently fail the fallback
-                }
-              }
-
-              // Prime pool with error handling
-              if (typeof window.audioManager.primeAudioPool === "function") {
-                try {
-                  window.audioManager.primeAudioPool({ skipClickSound: true });
-                } catch (e) {
-                  console.warn("[Input] Error priming audio pool:", e);
-                }
-              }
             })
             .catch((e) => {
               console.warn("[Input] Failed to resume audio context:", e);
@@ -2907,7 +2883,7 @@ class InputManager {
               }
             });
         }
-
+  
         // Start game after a short delay
         setTimeout(() => {
           this.handlers.onStartKey();
@@ -3586,32 +3562,6 @@ class GlowOutline {
   return wrapper;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-  //   // Instead of hover, we'll use mousemove/mouseout on the document
-  //   document.addEventListener("mousemove", (e) => {
-  //     const rect = wrapper.getBoundingClientRect();
-  //     if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-  //       outlineContainer.style.boxShadow = `0 0 20px 10px #ff8800`;
-  //     }
-  //   });
-
-  //   document.addEventListener("mouseout", () => {
-  //     outlineContainer.style.boxShadow = `0 0 15px 5px ${this.getRGBAFromColor(color, 0.7)}`;
-  //   });
-
-  //   wrapper.appendChild(outlineContainer);
-  //   return wrapper;
-  // }
 
   // New method specifically for adding glow to record button
   addToRecordButton(buttonElement) {
@@ -5772,7 +5722,16 @@ class ProtestorHitboxManager {
     // Add click handler that calls the freedomManager's handleProtestorClick
     this.setClickHandler(countryId, hitbox, freedomManager);
 
+  
+    const wrapper = document.getElementById(`${countryId}-protestors-wrapper`);
+    if (wrapper) {
+      console.log(`777 Hitbox shown for ${countryId}, wrapper exists`);
+    } else {
+      console.log(`777 Hitbox shown for ${countryId}, but wrapper doesn't exist yet`);
+      
+    }
     return hitbox;
+
   }
 
   /**
@@ -6107,14 +6066,14 @@ class FreedomManager {
   static PROTESTOR_TIMING = {
     // Regular (non-USA) protestors
     INITIAL_ANNEX_MIN_DELAY: 10000, // When a country is first annexed, wait at least 10 seconds before showing protestors
-    INITIAL_ANNEX_MAX_DELAY: 60000, // When a country is first annexed, wait at most 40 seconds before showing protestors
+    INITIAL_ANNEX_MAX_DELAY: 50000, // When a country is first annexed, wait at most 40 seconds before showing protestors
     FADE_AWAY_TIME: 4000, // If protestors aren't clicked, they fade away after 4 seconds
     REGENERATION_DELAY: 10000, // After protestors disappear (fade or liberate), wait 60 seconds before next group appears
 
     // USA protestors
     USA_INITIAL_APPEARANCE_THRESHOLD: 0.75, // USA protestors first appear when 10% of total game time has elapsed
-    USA_REAPPEAR_MIN_TIME: 30000, // After USA protestors disappear, wait at least 20 seconds before next group
-    USA_REAPPEAR_MAX_TIME: 60000, // After USA protestors disappear, wait at most 1 second before next group
+    USA_REAPPEAR_MIN_TIME: 20000, // After USA protestors disappear, wait at least 20 seconds before next group
+    USA_REAPPEAR_MAX_TIME: 40000, // After USA protestors disappear, wait at most 1 second before next group
   };
 
   /**
@@ -6375,17 +6334,10 @@ class FreedomManager {
   
     // Ensure all sounds are properly stopped
     if (this.audioManager) {
-      // Make sure audio context is resumed to properly handle sound stopping
-      this.audioManager
-        .resumeAudioContext()
-        .then(() => {
-          try {
-            // Explicitly stop all protestor sounds
-            this.audioManager.stopAllProtestorSounds();
-          } catch (error) {
-            this.logger.warn("freedom", "Error stopping all protestor sounds:", error);
-          }
-        });
+      // Resume context first to ensure sounds actually stop
+      this.audioManager.resumeAudioContext().then(() => {
+        this.audioManager.stopAllProtestorSounds();
+      });
     }
   
     // Clear all sound state tracking for a clean pause
@@ -6683,99 +6635,87 @@ class FreedomManager {
   }
 
 
-  async _startProtestorSound(countryId) {
-    if (this._soundState.cleanup.has(countryId)) {
-      this._logProtestorEvent(countryId, 'SOUND_SKIP', 'Cleanup in progress');
-      return;
-    }
+
+  // Add to FreedomManager class
+
+// Unified method to start protestor sounds
+_startProtestorSound(countryId) {
+  if (!this.audioManager) return;
   
-    try {
-      await this.audioManager.resumeAudioContext();
+  // Log the action (keep your existing logging)
+  this._logProtestorEvent(countryId, 'SOUND_START', 'Starting protestor sound');
+  
+  try {
+    // Handle canada special case consistently
+    if (countryId === "canada") {
+      // Make sure both east and west Canada sounds are stopped first
+      this.audioManager.stopProtestorSound("eastCanada");
+      this.audioManager.stopProtestorSound("westCanada");
       
-      // Set active state
-      this._soundState.active.set(countryId, true);
-  
-      // Play freedom particles
-      this._logProtestorEvent(countryId, 'SOUND_START', 'Freedom particles');
-      this.audioManager.playRandom("particles", "freedom", null, 0.3);
-  
-      // Wait before protestor sound
-      await new Promise(resolve => setTimeout(resolve, 500));
-  
-      // Check if still active
-      if (!this._soundState.active.get(countryId)) {
-        this._logProtestorEvent(countryId, 'SOUND_SKIP', 'No longer active');
-        return;
-      }
-  
-      // Play appropriate sounds based on country
-      if (countryId === 'canada') {
-        // Clear any existing Canada sounds first to prevent duplicates
-        this.audioManager.stopProtestorSound('eastCanada');
-        this.audioManager.stopProtestorSound('westCanada');
-        
-        ['eastCanada', 'westCanada'].forEach(region => {
-          if (!this._soundState.cleanup.has(region)) {
-            this._logProtestorEvent(region, 'SOUND_START', 'Regional protestor sound');
-            this.audioManager.playProtestorSoundIfReady(region, 0.05);
-            this._soundState.active.set(region, true);
-          }
-        });
-      } else {
-        this._logProtestorEvent(countryId, 'SOUND_START', 'Protestor sound');
-        this.audioManager.playProtestorSoundIfReady(countryId, 0.05);
-      }
-    } catch (error) {
-      this._logProtestorEvent(countryId, 'SOUND_ERROR', error.message);
-    }
-  }
-  
-  // Improved _stopProtestorSound method
-  _stopProtestorSound(countryId) {
-    if (this._soundState.debounceTimers.get(countryId)) {
-      this._logProtestorEvent(countryId, 'SOUND_SKIP', 'Debounce active');
-      return;
-    }
-  
-    this._logProtestorEvent(countryId, 'SOUND_STOP', 'Starting sound cleanup');
-    
-    // Mark as cleaning up
-    this._soundState.cleanup.add(countryId);
-    
-    const regionsToStop = countryId === 'canada' 
-      ? ['eastCanada', 'westCanada'] 
-      : [countryId];
-  
-    regionsToStop.forEach(region => {
-      this._soundState.active.delete(region);
+      // Only start one (either east or west) based on position
+      // You could add logic to determine which side
+      const canadaSide = "eastCanada"; // or determine dynamically
       
-      if (this.audioManager) {
-        this._logProtestorEvent(region, 'SOUND_STOP', 'Stopping regional sound');
-        this.audioManager.stopProtestorSound(region);
-      }
-    });
-  
-    // Set debounce timer
-    this._soundState.debounceTimers.set(countryId, true);
+      // Start with slight delay to ensure proper cleanup
+      setTimeout(() => {
+        this.audioManager.playProtestorSound(canadaSide, 0.05);
+      }, 50);
+    } else {
+      // Clean stop of any existing sound for this country first
+      this.audioManager.stopProtestorSound(countryId);
+      
+      // Start with a small delay to ensure cleanup completes
+      setTimeout(() => {
+        this.audioManager.playProtestorSound(countryId, 0.05);
+      }, 50);
+    }
+    
+    // Play freedom particles sound after protestor sound starts
     setTimeout(() => {
-      this._soundState.debounceTimers.delete(countryId);
-      this._soundState.cleanup.delete(countryId);
-      this._logProtestorEvent(countryId, 'SOUND_CLEANUP', 'Cleanup complete');
-    }, 200);
+      this.audioManager.playRandom("particles", "freedom", null, 0.3);
+    }, 100);
+  } catch (error) {
+    this._logProtestorEvent(countryId, 'SOUND_ERROR', error.message);
   }
+}
+
+// Unified method to stop protestor sounds
+_stopProtestorSound(countryId) {
+  if (!this.audioManager) return;
   
+  this._logProtestorEvent(countryId, 'SOUND_STOP', 'Stopping protestor sound');
+  
+  try {
+    if (countryId === "canada") {
+      // For Canada, always stop both east and west
+      this.audioManager.stopProtestorSound("eastCanada");
+      this.audioManager.stopProtestorSound("westCanada");
+    } else {
+      // For other countries, stop the specific sound
+      this.audioManager.stopProtestorSound(countryId);
+    }
+  } catch (error) {
+    this._logProtestorEvent(countryId, 'SOUND_ERROR', `Stop failed: ${error.message}`);
+  }
+}
+
+
+
   cleanup() {
-    // Clear all states
-    this._soundState.active.clear();
-    this._soundState.cleanup.clear();
-    this._soundState.debounceTimers.clear();
-  
-    // Stop all protestor sounds via AudioManager
+    this._logProtestorEvent('global', 'CLEANUP', 'Complete sound cleanup');
+    
+    // Stop all protestor sounds using the simplified method
     if (this.audioManager) {
       this.audioManager.stopAllProtestorSounds();
     }
+    
+    // Clear all internal state
+    this._soundState.active.clear();
+    this._soundState.cleanup.clear();
+    this._soundState.debounceTimers.clear();
+    this._protestorSoundStates.clear(); // Also clear this one
   }
-  
+
   showProtestors(countryId) {
     this._logProtestorEvent(countryId, 'SHOW_PROTESTORS', 'Starting protestor creation', {
       existingSound: !!this._soundState.active.get(countryId),
@@ -6796,8 +6736,14 @@ class FreedomManager {
     }
   
     const wrapper = this._createProtestorElements(countryId, hitbox);
-    if (!wrapper) return null;
-  
+    if (!wrapper) {
+      this._logProtestorEvent(countryId, '777 CREATION_FAILED', 'Failed to create protestor elements');
+      return null;
+    }
+
+    console.log(`777 Created protestor wrapper for ${countryId} with ID: ${wrapper.id}`);
+
+
     this.countries[countryId].protestorWrapper = wrapper;
     this.countries[countryId].protestorsShown = true;
     this.countries[countryId].clickCounter = 0;
@@ -6887,6 +6833,8 @@ class FreedomManager {
   // }
 
   _cleanupProtestorElements(countryId) {
+    this._logProtestorEvent(countryId, 'zzz CLEANUP_START', `Removing elements for ${countryId}`);
+
     this._logProtestorEvent(countryId, 'CLEANUP_START', 'Comprehensive protestor removal');
     
     // Stop sounds first
@@ -7234,38 +7182,27 @@ class FreedomManager {
       }
     }
 
-    // if (this.audioManager) {
-    //   this.audioManager.stopProtestorSound("usa");
-    //   // Double-check with a slight delay to ensure cleanup
-    //   setTimeout(() => this.audioManager.stopProtestorSound("usa"), 50);
-    // }
-
+  
     // Hide protestors
     this.hideProtestors("usa");
 
     // Play sound with timing aligned to visual effect
     if (this.audioManager) {
       setTimeout(() => {
+        // First ensure any USA protestor sounds are stopped
+        this.audioManager.stopProtestorSound("usa");
+        
+        // Then play the appropriate sound
         if (isFinalShrink) {
-          // this.audioManager.playRandom("trump", "finalShrink", null, 0.9);
+          this.audioManager.playRandom("trump", "finalShrink", null, 0.9);
         } else {
-          // Play shrink sound with proper context management
-          if (this.audioManager) {
-            this.audioManager
-              .resumeAudioContext()
-              .then(() => {
-                try {
-                  this.audioManager.playRandom("trump", "shrink", null, 0.7);
-                } catch (error) {
-                  console.warn("[Freedom] Error playing trump shrink sound:", error);
-                  // Fallback to direct play
-                  this.audioManager.playDirect("no.mp3", 0.7);
-                }
-              })
-              .catch((e) => {
-                console.warn("[Freedom] Failed to resume audio context for shrink sound:", e);
-              });
-          }
+          this.audioManager.resumeAudioContext()
+            .then(() => {
+              this.audioManager.playRandom("trump", "shrink", null, 0.7);
+            })
+            .catch(error => {
+              console.warn("[Freedom] Audio context error:", error);
+            });
         }
       }, 50);
     }
@@ -7584,27 +7521,43 @@ class FreedomManager {
   }
 
   handleProtestorClick(countryId) {
+    console.log("bbb  handleProtestorClick  countryId!!!!!");
+
     // Prevent click handling during animations
     if (this.isProcessingProtestorClick) {
       this._logProtestorEvent(countryId, 'CLICK_IGNORED', 'Already processing click');
-
       return;
     }
-    this.isProcessingProtestorClick = true;
-    this._logProtestorEvent(countryId, 'CLICK', 'Processing click', {
-
-      clickCount: (this.countries[countryId]?.clickCounter || 0) + 1
-    });
-  
-
+    
+    // Get country object first
     const country = this.countries[countryId];
     if (!country) {
       return;
     }
-
+    
+    // Add debounce check
+    const now = Date.now();
+    if (country.lastClickTime && (now - country.lastClickTime < 300)) {
+      this._logProtestorEvent(countryId, 'CLICK_IGNORED', 'Too soon after previous click');
+      return;
+    }
+    country.lastClickTime = now;
+    
+    // Check hitbox validity
+    const hitbox = this.protestorHitboxManager?.protestorHitboxes[countryId]?.element;
+    if (hitbox && hitbox.getAttribute("data-click-inside") === "false") {
+      this._logProtestorEvent(countryId, 'CLICK_IGNORED', 'Click was outside effective hitbox area');
+      return;
+    }
+    
+    this.isProcessingProtestorClick = true;
+    this._logProtestorEvent(countryId, 'CLICK', 'Processing click', {
+      clickCount: (country.clickCounter || 0) + 1
+    });
+  
     // Add animation lock
     this.isProcessingClick = true;
-
+  
     try {
       // Increment click counter
       country.clickCounter = (country.clickCounter || 0) + 1;
@@ -7649,74 +7602,57 @@ class FreedomManager {
       country.protestorWrapper = protestorWrapper;
 
       if (this.audioManager) {
-        this.audioManager.resumeAudioContext().then(() => {
-          let currentVolume = country.currentProtestorVolume || 0.05;
-          currentVolume = Math.min(currentVolume * 1.5, 0.4);
-          country.currentProtestorVolume = currentVolume;
-  
-          this._logProtestorEvent(countryId, 'SOUND_UPDATE', 'Volume increase', {
-            newVolume: currentVolume
-          });
-  
-          // Special handling for Canada
-          if (countryId === 'canada') {
-            ['eastCanada', 'westCanada'].forEach(region => {
-              const protestorSound = this.audioManager.activeProtestorSounds[region];
-              if (protestorSound) {
-                protestorSound.volume = currentVolume;
-                this._logProtestorEvent(region, 'SOUND_UPDATE', 'Volume adjusted', {
-                  newVolume: currentVolume
-                });
-              }
-            });
-          } else {
-            const protestorSound = this.audioManager.activeProtestorSounds[countryId];
-            if (protestorSound) {
-              protestorSound.volume = currentVolume;
-            }
-          }
-        });
+        // Calculate new volume with limits
+        let currentVolume = country.currentProtestorVolume || 0.05;
+        currentVolume = Math.min(currentVolume * 1.5, 0.4);
+        country.currentProtestorVolume = currentVolume;
+        
+        // Use the new AudioManager volume setter method
+        this.audioManager.setProtestorVolume(countryId, currentVolume);
       }
 
       // Handle third click specially
       if (country.clickCounter >= 3) {
+        console.log("bbb three clicks!!!!!");
+        
+        this._stopProtestorSound(countryId);
+    
         if (this.audioManager) {
-          this.audioManager
-            .resumeAudioContext()
-            .then(() => {
-              try {
-                // First stop protestor sound
-                console.log(`calling stopprotestorsound because we are inteh THIURD CLICK from freedom with $countryId`);
+          // Add a small delay before playing resistance sound
+          // This ensures protestor sound has fully stopped
+          const gameSpeedAdjustedDelay = 50 / Math.max(1, this.gameState.gameSpeedMultiplier);
+          
+          setTimeout(() => {
+            this.audioManager.resumeAudioContext()
+              .then(() => {
+                try {
+                  // Play resistance sound AFTER visual changes begin
+                  if (countryId === "usa") {
+                    this.handleUSAThirdClick();
+                    // USA resistance sound handled in handleUSAThirdClick
+                  } else {
+                    this.triggerCountryResistance(countryId);
+                    // Now play resistance sound AFTER triggerCountryResistance starts
+                    setTimeout(() => {
+                      console.log("bbb resist three clicks!!!!!");
 
-                this.audioManager.stopProtestorSound(countryId);
-
-                // Slight delay before playing resistance sound for better audio separation
-                setTimeout(() => {
-                  try {
-                    console.log(`calling playrandom resistance from freedom with $countryId  with null and $initialVolume`);
-
-                    this.audioManager.playRandom("resistance", countryId, null, 0.9);
-                  } catch (e) {
-                    console.log(`calling playrandom WARNING resistance from freedom with $countryId  with null and $initialVolume`);
-
-                    this.logger.warn("freedom", `Error playing resistance sound for ${countryId}:`, e);
-                    this.audioManager.playDirect("canadaResist1.mp3", 0.9);
+                      // this.audioManager.playRandom("resistance", countryId, null, 0.9);
+                    }, 100);
                   }
-                }, 50 / Math.max(1, this.gameState.gameSpeedMultiplier)); // Scale by game speed
-              } catch (error) {
-                this.logger.warn("freedom", `Error managing protestor sounds for ${countryId}:`, error);
-              }
-            })
-            .catch((e) => {
-              this.logger.warn("freedom", "Failed to resume audio context for protestor click:", e);
-            });
-        }
-
-        if (countryId === "usa") {
-          this.handleUSAThirdClick();
+                } catch (error) {
+                  this.logger.warn("freedom", `Error in resistance handling: ${error.message}`);
+                }
+              });
+          }, gameSpeedAdjustedDelay);
         } else {
-          this.triggerCountryResistance(countryId);
+          // No audio manager - just handle the visual effects
+          if (countryId === "usa") {
+            this.handleUSAThirdClick();
+          } else {
+            this.triggerCountryResistance(countryId);
+          }
         }
+        
         country.clickCounter = 0;
       } else {
         this._processProtestorClick(countryId, country.clickCounter, protestorWrapper, protestorSprite);
@@ -8056,11 +7992,9 @@ class FreedomManager {
 
     // Stop protestor sounds first
     if (this.audioManager) {
-      console.log(`calling stopProtestorSound for resistance with ${countryId}`);
-
+      // Don't log this operation - use direct API call
       if (countryId === "canada") {
-        this.audioManager.stopProtestorSound("eastCanada");
-        this.audioManager.stopProtestorSound("westCanada");
+        this.audioManager.stopProtestorSound("canada"); // This handles both east and west
       } else {
         this.audioManager.stopProtestorSound(countryId);
       }
@@ -8953,51 +8887,26 @@ class FreedomManager {
     // FIRST: Stop ALL protestor sounds
     if (this.audioManager) {
       // Make sure audio context is resumed to properly handle sound stopping
-      this.audioManager
-        .resumeAudioContext()
+      this.audioManager.resumeAudioContext()
         .then(() => {
           try {
+            // Single call to stop all protestor sounds 
             this.audioManager.stopAllProtestorSounds();
-  
-            // Double-check after a short delay
+            
+            // Double-check after a short delay to ensure complete cleanup
             setTimeout(() => {
-              try {
-                // Check if any sounds are still active and force stop
-                if (this.audioManager.activeProtestorSounds) {
-                  Object.keys(this.audioManager.activeProtestorSounds).forEach((key) => {
-                    try {
-                      this.audioManager.stopProtestorSound(key);
-                    } catch (e) {
-                      // Silent fail on individual sounds
-                    }
-                  });
-                }
-              } catch (e) {
-                this.logger.warn("freedom", "Error in delayed protestor sound cleanup:", e);
+              if (this.audioManager.activeProtestorSounds && 
+                  Object.keys(this.audioManager.activeProtestorSounds).length > 0) {
+                // Force a second cleanup if needed
+                this.audioManager.stopAllProtestorSounds();
+                
+                // Clear the collection after stopping just to be safe
+                this.audioManager.activeProtestorSounds = {};
               }
             }, 50);
           } catch (error) {
             this.logger.warn("freedom", "Error stopping all protestor sounds:", error);
-            // Try a more direct approach as fallback
-            try {
-              if (this.audioManager.activeProtestorSounds) {
-                Object.keys(this.audioManager.activeProtestorSounds).forEach((key) => {
-                  const sound = this.audioManager.activeProtestorSounds[key];
-                  if (sound && sound.pause) {
-                    sound.pause();
-                    sound.currentTime = 0;
-                  }
-                });
-                // Clear the collection after stopping
-                this.audioManager.activeProtestorSounds = {};
-              }
-            } catch (e) {
-              // Silent fail on fallback
-            }
           }
-        })
-        .catch((e) => {
-          this.logger.warn("freedom", "Failed to resume audio context for protestor cleanup:", e);
         });
     }
   

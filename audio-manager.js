@@ -9,6 +9,16 @@ class AudioManager {
     this.lowMemoryDevice = this._isLowMemoryDevice();
     this.slowConnection = this._detectSlowConnection();
 
+
+    this.POOL_CONFIG = {
+      INITIAL_SIZE: 12,
+      MIN_SIZE: 5,
+      MAX_SIZE: 20
+    };
+
+    
+
+    
     // Debug and initialization tracking
     this.debugInfo = {
       audioContextCreated: false,
@@ -127,7 +137,7 @@ class AudioManager {
         beenVeryNiceToYou: "been-very-nice-to-you.mp3",
         shrink: "no.mp3",
         finalShrink: "ouchie.mp3",
-        trumpSmash: ["smash.mp3", "smash1.mp3", "smash2.mp3"],
+        trumpSmash: ["smash.mp3", "smash1.mp3", "smash.mp3"],
       },
       resistance: {
         canada: ["canadaResist1.mp3", "canadaResist2.mp3", "canadaResist3.mp3"],
@@ -272,6 +282,9 @@ class AudioManager {
 
     // Prepare asset loader
     this._prepareAssetLoader();
+  
+    this._initializeAudioPool();
+
   }
 
   /**
@@ -421,6 +434,56 @@ class AudioManager {
     });
   }
 
+
+  _returnAudioToPool(audio, options = {}) {
+    if (!audio) return;
+    
+    try {
+      // 1. Remove from tracking collections first
+      const playingIndex = this.currentlyPlaying.indexOf(audio);
+      if (playingIndex !== -1) {
+        this.currentlyPlaying.splice(playingIndex, 1);
+      }
+      
+      // 2. Stop playback
+      audio.pause();
+      
+      // 3. Clear all event listeners to prevent memory leaks
+      audio.onended = null;
+      audio.oncanplay = null;
+      audio.oncanplaythrough = null;
+      audio.onerror = null;
+      audio.onloadeddata = null;
+      audio.onloadedmetadata = null;
+      audio.onpause = null;
+      audio.onplay = null;
+      
+      // 4. Reset audio element state
+      audio.currentTime = 0;
+      audio.loop = false;
+      audio.volume = 1.0;
+      audio.playbackRate = 1.0;
+      audio.muted = false;
+      
+      // 5. Clear src to release resources
+      if (!options.keepSrc) {
+        audio.src = "";
+      }
+      
+      // 6. Check pool size and return to pool if not too large
+      const MAX_POOL_SIZE = 20; // Set a reasonable limit
+      if (window._primedAudioPool && window._primedAudioPool.length < MAX_POOL_SIZE) {
+        window._primedAudioPool.push(audio);
+        console.log(`[AUDIO POOL] Returned audio to pool. Size now: ${window._primedAudioPool.length}`);
+      } else {
+        console.log(`[AUDIO POOL] Pool full (${window._primedAudioPool?.length || 0}), not returning audio`);
+        // No reference maintained - let GC handle it
+      }
+    } catch (error) {
+      console.warn("[AUDIO POOL] Error returning audio to pool:", error);
+    }
+  }
+
   /**
    * Configure audio for slow connections
    */
@@ -438,25 +501,22 @@ class AudioManager {
   }
 
 
-
-// Add this method to AudioManager
-_monitorAudioPoolSize() {
-  const poolSize = window._primedAudioPool?.length || 0;
-  console.log(`[AUDIO MONITOR] Audio pool size: ${poolSize}`);
-  
-  // Count active protestor sounds
-  const activeProtestorCount = Object.keys(this.activeProtestorSounds || {}).length;
-  console.log(`[AUDIO MONITOR] Active protestor sounds: ${activeProtestorCount}`);
-  
-  // Count total playing sounds
-  console.log(`[AUDIO MONITOR] Total playing sounds: ${this.currentlyPlaying.length}`);
-  
-  return {
-    poolSize,
-    activeProtestorCount,
-    totalPlaying: this.currentlyPlaying.length
-  };
-}
+  _monitorAudioPoolSize() {
+    const poolSize = window._primedAudioPool?.length || 0;
+    const activeProtestorCount = Object.keys(this.activeProtestorSounds || {}).length;
+    const totalPlaying = this.currentlyPlaying.length;
+    
+    console.log(`[AUDIO MONITOR] Pool size: ${poolSize}`);
+    console.log(`[AUDIO MONITOR] Active protestor sounds: ${activeProtestorCount}`);
+    console.log(`[AUDIO MONITOR] Total playing sounds: ${totalPlaying}`);
+    
+    // Check for potential leaks
+    if (activeProtestorCount > totalPlaying) {
+      console.warn('[AUDIO LEAK] More protestor sounds tracked than total playing sounds');
+    }
+    
+    return { poolSize, activeProtestorCount, totalPlaying };
+  }
 
 
   /**
@@ -565,51 +625,134 @@ _monitorAudioPoolSize() {
     }
   }
 
-  /**
-   * Prime the audio pool for immediate playback
-   */
-  primeAudioPool(options = {}) {
-    // Create the audio pool if it doesn't exist
-    window._primedAudioPool = window._primedAudioPool || [];
-
-    // Only play the click sound if not specifically disabled
-    if (!options.skipClickSound) {
-      const clickAudio = new Audio(this.resolvePath("click.mp3"));
-      clickAudio.volume = 0.3;
-
-      clickAudio
-        .play()
-        .then(() => {
-          // Return to pool after it's done
-          clickAudio.onended = () => {
-            window._primedAudioPool.push(clickAudio);
-          };
-        })
-        .catch(() => {
-          // Silently fail
-        });
+  _initializeAudioPool() {
+    // Check if pool already exists and has elements
+    if (window._primedAudioPool && window._primedAudioPool.length > 0) {
+      console.log(`[AUDIO POOL] Pool already exists with ${window._primedAudioPool.length} elements`);
+      return;
     }
 
-    // Pre-load all slap sounds for immediate playback
-    this._preloadInstantSlapSounds();
-
-    // Prepare the background music
-    const bgMusic = new Audio(this.resolvePath("background-music.mp3"));
-    bgMusic.preload = "auto";
-    bgMusic.load();
-    window._primedAudioPool.push(bgMusic);
-
-    // Load critical sounds in order of importance
-    this.preloadCriticalSounds();
-
-    // Add generic audio elements
-    for (let i = 0; i < 5; i++) {
+    // Create new pool
+    window._primedAudioPool = [];
+    
+    // Fill to initial size
+    for (let i = 0; i < this.POOL_CONFIG.INITIAL_SIZE; i++) {
       const audio = new Audio();
+      audio.preload = "auto";
       window._primedAudioPool.push(audio);
+    }
+    
+    console.log(`[AUDIO POOL] Initialized with ${window._primedAudioPool.length} elements`);
+  }
+
+  primeAudioPool(options = {}) {
+    // Don't create new pool, just ensure health
+    if (!window._primedAudioPool || window._primedAudioPool.length < this.POOL_CONFIG.MIN_SIZE) {
+      this._replenishPool();
+    }
+
+    // Play click sound if needed
+    if (!options.skipClickSound) {
+      const clickAudio = this._getOrCreatePrimedAudio();
+      clickAudio.src = this.resolvePath("click.mp3");
+      clickAudio.volume = 0.3;
+      
+      clickAudio.play()
+        .then(() => {
+          clickAudio.onended = () => this._returnAudioToPool(clickAudio);
+        })
+        .catch(() => this._returnAudioToPool(clickAudio));
     }
 
     return true;
   }
+
+
+
+
+  _getOrCreatePrimedAudio() {
+    // Check if pool needs replenishing BEFORE getting an element
+    if (!window._primedAudioPool || window._primedAudioPool.length < this.POOL_CONFIG.MIN_SIZE) {
+      console.log(`[AUDIO POOL] Pool low (${window._primedAudioPool?.length || 0}), replenishing`);
+      this._replenishPool();
+    }
+  
+    const audio = window._primedAudioPool.pop();
+    console.log(`[AUDIO POOL] Reused audio from pool. Remaining: ${window._primedAudioPool.length}`);
+    
+    // Reset the audio element completely
+    audio.pause();
+    audio.currentTime = 0;
+    audio.loop = false;
+    audio.volume = 1.0;
+    audio.playbackRate = 1.0;
+    audio.muted = false;
+    audio.src = "";
+    
+    return audio;
+  }
+  
+  _replenishPool() {
+    const currentSize = window._primedAudioPool?.length || 0;
+    // Always replenish to INITIAL_SIZE, not just minimum
+    const needed = this.POOL_CONFIG.INITIAL_SIZE - currentSize;
+    
+    if (needed > 0) {
+      console.log(`[AUDIO POOL] Replenishing pool with ${needed} elements`);
+      for (let i = 0; i < needed; i++) {
+        const audio = new Audio();
+        audio.preload = "auto";
+        window._primedAudioPool.push(audio);
+      }
+    }
+  }
+  
+  _returnAudioToPool(audio, options = {}) {
+    if (!audio) return;
+    
+    try {
+      // Remove from tracking collections first
+      const playingIndex = this.currentlyPlaying.indexOf(audio);
+      if (playingIndex !== -1) {
+        this.currentlyPlaying.splice(playingIndex, 1);
+      }
+      
+      // Stop playback and reset state
+      audio.pause();
+      audio.currentTime = 0;
+      audio.loop = false;
+      audio.volume = 1.0;
+      audio.playbackRate = 1.0;
+      audio.muted = false;
+      
+      // Clear src unless specifically told not to
+      if (!options.keepSrc) {
+        audio.src = "";
+      }
+      
+      // Clear all event listeners
+      audio.onended = null;
+      audio.oncanplay = null;
+      audio.oncanplaythrough = null;
+      audio.onerror = null;
+      
+      // Add back to pool if under max size
+      if (window._primedAudioPool && window._primedAudioPool.length < this.POOL_CONFIG.MAX_SIZE) {
+        window._primedAudioPool.push(audio);
+        console.log(`[AUDIO POOL] Returned audio to pool. Size now: ${window._primedAudioPool.length}`);
+        
+        // Check if we should replenish after return
+        if (window._primedAudioPool.length < this.POOL_CONFIG.MIN_SIZE) {
+          this._replenishPool();
+        }
+      } else {
+        console.log(`[AUDIO POOL] Pool full (${window._primedAudioPool?.length || 0}), not returning audio`);
+      }
+    } catch (error) {
+      console.warn("[AUDIO POOL] Error returning audio to pool:", error);
+    }
+  }
+
 
   /**
    * Prepare asset loader and catalog all sound paths
@@ -802,64 +945,113 @@ _monitorAudioPoolSize() {
       
       const stats = this._monitorAudioPoolSize();
       
-      // Only log full details every 5th time to avoid cluttering the console
+      // Only log full details every 5th time
       if (this._auditCount % 5 === 0) {
         console.log('[AUDIO AUDIT] ======= DETAILED AUDIO STATE =======');
         console.log('Active protestor sounds:', Object.keys(this.activeProtestorSounds));
         
-        // Check for potential leaks - elements not in pool or currently playing
+        // Check for elements not in pool or currently playing
         let inPoolCount = window._primedAudioPool?.length || 0;
         let playingCount = this.currentlyPlaying.length;
         
         console.log(`[AUDIO AUDIT] Pool: ${inPoolCount}, Playing: ${playingCount}`);
         
-        // Check for any sounds with protestor paths still playing
+        // Check for lingering protestor sounds
         const protestorSoundsStillPlaying = this.currentlyPlaying.filter(
           sound => sound.src && sound.src.includes('protestors')
         ).length;
         
         if (protestorSoundsStillPlaying > 0) {
-          console.warn(`[AUDIO LEAK?] Found ${protestorSoundsStillPlaying} protestor sounds in currently playing array`);
+          console.warn(`[AUDIO LEAK?] Found ${protestorSoundsStillPlaying} protestor sounds still in currently playing array`);
         }
       }
     }, 3000); // Check every 3 seconds
     
-    console.log('[AUDIO AUDIT] Started diagnostic auditing');
     return true;
   }
 
 
-  /**
-   * Get or create an audio element from the pool
-   */
   _getOrCreatePrimedAudio() {
-    // Make sure pool exists
-    if (!window._primedAudioPool) {
-      window._primedAudioPool = [];
+    // Check if pool needs replenishing BEFORE getting an element
+    if (!window._primedAudioPool || window._primedAudioPool.length < this.POOL_CONFIG.MIN_SIZE) {
+      console.log(`[AUDIO POOL] Pool low (${window._primedAudioPool?.length || 0}), replenishing`);
+      this._replenishPool();
     }
-
-    // Get audio from pool or create new
-    const audio = window._primedAudioPool.length > 0 ? window._primedAudioPool.pop() : new Audio();
-
-    if (window._primedAudioPool.length > 0) {
-      console.log(`[AUDIO POOL] Reused audio from pool. Remaining: ${window._primedAudioPool.length}`);
-    } else {
-      console.log(`[AUDIO POOL] Created new Audio() element - pool was empty!`);
-    }
-
-    // Reset ALL properties including volume and src to prevent lingering issues
-    audio.loop = false;
-    audio.muted = false;
+  
+    const audio = window._primedAudioPool.pop();
+    console.log(`[AUDIO POOL] Reused audio from pool. Remaining: ${window._primedAudioPool.length}`);
+    
+    // Reset the audio element completely
+    audio.pause();
     audio.currentTime = 0;
+    audio.loop = false;
     audio.volume = 1.0;
     audio.playbackRate = 1.0;
-
-    // Reset src on mobile to avoid caching issues with previous audio
-    if (this.isMobile) {
-      audio.src = "";
-    }
-
+    audio.muted = false;
+    audio.src = "";
+    
     return audio;
+  }
+  
+  _replenishPool() {
+    const currentSize = window._primedAudioPool?.length || 0;
+    // Always replenish to INITIAL_SIZE, not just minimum
+    const needed = this.POOL_CONFIG.INITIAL_SIZE - currentSize;
+    
+    if (needed > 0) {
+      console.log(`[AUDIO POOL] Replenishing pool with ${needed} elements`);
+      for (let i = 0; i < needed; i++) {
+        const audio = new Audio();
+        audio.preload = "auto";
+        window._primedAudioPool.push(audio);
+      }
+    }
+  }
+  
+  _returnAudioToPool(audio, options = {}) {
+    if (!audio) return;
+    
+    try {
+      // Remove from tracking collections first
+      const playingIndex = this.currentlyPlaying.indexOf(audio);
+      if (playingIndex !== -1) {
+        this.currentlyPlaying.splice(playingIndex, 1);
+      }
+      
+      // Stop playback and reset state
+      audio.pause();
+      audio.currentTime = 0;
+      audio.loop = false;
+      audio.volume = 1.0;
+      audio.playbackRate = 1.0;
+      audio.muted = false;
+      
+      // Clear src unless specifically told not to
+      if (!options.keepSrc) {
+        audio.src = "";
+      }
+      
+      // Clear all event listeners
+      audio.onended = null;
+      audio.oncanplay = null;
+      audio.oncanplaythrough = null;
+      audio.onerror = null;
+      
+      // Add back to pool if under max size
+      if (window._primedAudioPool && window._primedAudioPool.length < this.POOL_CONFIG.MAX_SIZE) {
+        window._primedAudioPool.push(audio);
+        console.log(`[AUDIO POOL] Returned audio to pool. Size now: ${window._primedAudioPool.length}`);
+        
+        // Check if we should replenish after return
+        if (window._primedAudioPool.length < this.POOL_CONFIG.MIN_SIZE) {
+          this._replenishPool();
+        }
+      } else {
+        console.log(`[AUDIO POOL] Pool full (${window._primedAudioPool?.length || 0}), not returning audio`);
+      }
+    } catch (error) {
+      console.warn("[AUDIO POOL] Error returning audio to pool:", error);
+    }
   }
 
   /**
@@ -1206,16 +1398,23 @@ _monitorAudioPoolSize() {
    * Get a shuffled sound from a category
    */
   _getShuffledSound(category, subcategory, country = null) {
-    // Determine which array to use
+    console.log('Getting shuffled sound:', { category, subcategory, country });
+  
+    // Defensive checks
+    if (!this.soundFiles || !this.soundPriorities) {
+      console.warn('[AUDIO] Sound files or priorities not initialized');
+      return null;
+    }
+  
+    // Determine sound array and key
     let soundArray;
     let soundKey;
-
+  
     try {
       if (category === "particles" && subcategory === "freedom") {
         soundArray = this.soundFiles.particles?.freedom;
         soundKey = "particles.freedom";
       } else if (country && subcategory === "peopleSayNo") {
-        // Handle protest sounds with country name + "SaysNo"
         const countrySaysNo = country.endsWith("SaysNo") ? country : country + "SaysNo";
         soundArray = this.soundFiles.defense?.peopleSayNo?.[countrySaysNo];
         soundKey = `defense.peopleSayNo.${countrySaysNo}`;
@@ -1232,49 +1431,69 @@ _monitorAudioPoolSize() {
         soundArray = this.soundFiles[category][subcategory];
         soundKey = `${category}.${subcategory}`;
       }
-
-      // If no sounds available, return null
+  
+      // Extensive logging for debugging
+      console.log('[AUDIO DEBUG] Sound Array:', soundArray);
+      console.log('[AUDIO DEBUG] Sound Key:', soundKey);
+  
+      // Validate sound array
       if (!soundArray || soundArray.length === 0) {
+        console.warn(`[AUDIO] No sounds found for ${soundKey}`);
         return null;
       }
-
-      // If not an array, just return it directly
+  
+      // If not an array, return directly
       if (!Array.isArray(soundArray)) {
+        console.log('[AUDIO DEBUG] Returning non-array sound');
         return soundArray;
       }
-
-      // If only one sound in array, return that
+  
+      // If only one sound, return it
       if (soundArray.length === 1) {
+        console.log('[AUDIO DEBUG] Only one sound in array');
         return soundArray[0];
       }
-
-      // If we don't have a shuffled array for this sound category yet, create one
+  
+      // Initialize shuffle tracking if not exists
+      if (!this.shuffleTracking.arrays) this.shuffleTracking.arrays = {};
+      if (!this.shuffleTracking.indices) this.shuffleTracking.indices = {};
+  
+      // Create shuffled array if not exists
       if (!this.shuffleTracking.arrays[soundKey]) {
-        // Create an array of indices
         const indices = Array.from({ length: soundArray.length }, (_, i) => i);
-
-        // Shuffle the indices
         this.shuffleTracking.arrays[soundKey] = this._shuffleArray(indices);
         this.shuffleTracking.indices[soundKey] = 0;
       }
-
-      // Get the current position in the shuffled array
+  
+      // Get current position
       const position = this.shuffleTracking.indices[soundKey] || 0;
-
-      // Get the index from the shuffled array
+  
+      // Get index from shuffled array
       const soundIndex = this.shuffleTracking.arrays[soundKey][position];
-
-      // Increment position
+  
+      // Log current state
+      console.log('[AUDIO DEBUG] Current shuffle state:', {
+        soundKey,
+        position,
+        soundIndex,
+        soundArrayLength: soundArray.length,
+        shuffledIndices: this.shuffleTracking.arrays[soundKey]
+      });
+  
+      // Increment position, wrapping around
       this.shuffleTracking.indices[soundKey] = (position + 1) % soundArray.length;
-
-      // Return a single sound file path
+  
+      // Return the sound file
       return soundArray[soundIndex];
+  
     } catch (error) {
-      // Fallback: if we can get the first sound from the array, return that
+      console.error('[AUDIO] Error in _getShuffledSound:', error);
+      
+      // Fallback: return first sound if possible
       if (Array.isArray(soundArray) && soundArray.length > 0) {
         return soundArray[0];
       }
-
+  
       return null;
     }
   }
@@ -1345,6 +1564,9 @@ _monitorAudioPoolSize() {
    * Play a sound from a randomly selected file within a category
    */
   playRandom(category, subcategory, country = null, volume = null) {
+    if (category === "resistance") {
+      console.log("777 Resistance sound called from:", new Error().stack);
+  }
     if (!this.initialized || this.muted) return null;
 
     // Determine which file to play using the shuffle system
@@ -1461,241 +1683,66 @@ _monitorAudioPoolSize() {
    */
   playDirect(soundPath, volume = null) {
     if (!this.initialized || this.muted) return null;
-
+  
     try {
       // Get an audio element from pool
       const audio = this._getOrCreatePrimedAudio();
-
+  
       // Set properties
       audio.loop = false;
       audio.muted = false;
       audio.currentTime = 0;
-
+  
       // Set source and volume
       audio.src = this.resolvePath(soundPath);
       audio.volume = volume !== null ? volume : this.volume;
-
+  
       // Add to tracking
       this.currentlyPlaying.push(audio);
-
-      // Set up ended handler for cleanup
+  
+      // Set up ended handler for cleanup using our new method
       audio.onended = () => {
-        // Remove from playing list
-        const index = this.currentlyPlaying.indexOf(audio);
-        if (index !== -1) {
-          this.currentlyPlaying.splice(index, 1);
-        }
-
-        // Clear the callback to prevent memory leaks
-        audio.onended = null;
-
-        // Reset audio element
-        audio.pause();
-        audio.currentTime = 0;
-        audio.src = "";
-
-        // Return to pool
-        if (window._primedAudioPool) {
-          window._primedAudioPool.push(audio);
-        }
+        this._returnAudioToPool(audio);
       };
-
+  
       // Play it
       const playPromise = audio.play();
-
+  
       if (playPromise) {
-        playPromise.catch(() => {
-          // Remove from currently playing on failure
-          const index = this.currentlyPlaying.indexOf(audio);
-          if (index !== -1) {
-            this.currentlyPlaying.splice(index, 1);
-          }
-
-          // Return to pool
-          if (window._primedAudioPool) {
-            window._primedAudioPool.push(audio);
-          }
+        playPromise.catch((error) => {
+          console.warn(`[AUDIO] Play failed for ${soundPath}:`, error);
+          // Return to pool on failure
+          this._returnAudioToPool(audio);
         });
       }
-
+  
       return audio;
     } catch (e) {
+      console.warn(`[AUDIO] Error in playDirect:`, e);
       return null;
     }
   }
 
+ 
   
-  playProtestorSoundIfReady(country, volume = 0.9) {
-    // Only proceed if AudioContext is already running
-    if (this.audioContext && this.audioContextRunning && 
-        this.audioContext.state === "running" && !this.muted) {
-      return this.playProtestorSound(country, volume);
-    }
-    return Promise.resolve(null);
-  }
-  
-  playProtestorSound(country, volume = 0.5) {
-    console.log(`[PROTESTOR SOUND] Starting sound for ${country}. Pool size: ${window._primedAudioPool?.length}`);
 
-    if (this.muted) return Promise.resolve(null);
   
-    // First stop any existing sound for this country
-    this.stopProtestorSound(country);
-    
-    return this.resumeAudioContext().then(() => {
-      try {
-        // Determine sound country (handle canada specially)
-        let soundCountry = country === "canada" ? 
-          (Math.random() < 0.5 ? "eastCanada" : "westCanada") : country;
   
-        // Validate country
-        const validCountries = ["eastCanada", "westCanada", "mexico", "greenland", "usa"];
-        if (!validCountries.includes(soundCountry)) {
-          soundCountry = "eastCanada"; // Default fallback
-        }
-  
-        const protestorKey = soundCountry + "Protestors";
-        const soundFile = this.soundFiles.defense.protestors[protestorKey]?.[0];
-  
-        if (!soundFile) return Promise.resolve(null);
-  
-        // Get audio from pool instead of creating new
-        const soundObj = this._getOrCreatePrimedAudio();
-        soundObj.src = this.resolvePath(soundFile);
-        soundObj.loop = true;
-        soundObj.volume = Math.min(1, Math.max(0, volume)) * this.volume;
-  
-        // Store sound first, then play
-        this.activeProtestorSounds[soundCountry] = soundObj;
-        this.currentlyPlaying.push(soundObj);
-  
-        return soundObj.play()
-        .then(() => {
-          console.log(`[PROTESTOR SOUND] Successfully playing for ${soundCountry}. Active count: ${Object.keys(this.activeProtestorSounds).length}`);
-          return soundObj;
-        })
-        .catch((e) => {
-          console.warn(`[AUDIO] Protestor sound failed for ${soundCountry}:`, e);
-          this._cleanupProtestorSound(soundCountry);
-          return null;
-        });
 
 
-      } catch (error) {
-        console.warn("[AUDIO] Protestor sound error:", error);
-        return Promise.resolve(null);
-      }
-    });
-  }
   
-  _cleanupProtestorSound(soundCountry) {
-    console.log(`[PROTESTOR SOUND] Cleaning up ${soundCountry}. Before pool size: ${window._primedAudioPool?.length}`);
-
-    const sound = this.activeProtestorSounds[soundCountry];
-    
-    if (sound) {
-      try {
-        // Clear event handler first
-        sound.onended = null;
-        
-        // Stop the sound
-        sound.pause();
-        sound.currentTime = 0;
-        
-        // Clear source to ensure release
-        sound.src = "";
-  
-        // Remove from currently playing
-        const index = this.currentlyPlaying.indexOf(sound);
-        if (index !== -1) {
-          this.currentlyPlaying.splice(index, 1);
-        }
-        
-        // Return to audio pool for reuse
-        if (window._primedAudioPool) {
-          window._primedAudioPool.push(sound);
-        }
-  
-        // Remove the reference
-        delete this.activeProtestorSounds[soundCountry];
-      } catch (e) {
-        console.warn(`[AUDIO] Error cleaning up protestor sound for ${soundCountry}:`, e);
-      }
-    }
-  
-    console.log(`[PROTESTOR SOUND] After cleanup for ${soundCountry}. Pool size: ${window._primedAudioPool?.length}`);
-
-  }
 
 
-stopProtestorSound(country = null) {
-  console.log(`[PROTESTOR SOUND] Stopping sound for ${country || 'ALL'}. Before: Active=${Object.keys(this.activeProtestorSounds).length}, Pool=${window._primedAudioPool?.length}`);
 
-  // Handle the special case for canada
-  if (country === "canada") {
-    this._cleanupProtestorSound("eastCanada");
-    this._cleanupProtestorSound("westCanada");
-    return;
-  }
   
-  // Handle no country - stop all
-  const countriesToStop = country 
-    ? [country] 
-    : Object.keys(this.activeProtestorSounds);
 
-  countriesToStop.forEach((key) => {
-    this._cleanupProtestorSound(key);
-  });
-  console.log(`[PROTESTOR SOUND] After stopping: Active=${Object.keys(this.activeProtestorSounds).length}, Pool=${window._primedAudioPool?.length}`);
 
-}
-  
-  _stopSingleProtestorSound(soundCountry) {
-    const sound = this.activeProtestorSounds[soundCountry];
-    
-    if (sound) {
-      try {
-        // Clear event handler first
-        sound.onended = null;
-        
-        // Stop the sound
-        sound.pause();
-        sound.currentTime = 0;
-        sound.playing = false;
-        
-        // Clear source to ensure release
-        sound.src = "";
-  
-        // Remove from currently playing
-        const index = this.currentlyPlaying.findIndex(s => s === sound);
-        if (index !== -1) {
-          this.currentlyPlaying.splice(index, 1);
-        }
-  
-        // Remove the reference
-        delete this.activeProtestorSounds[soundCountry];
-      } catch (e) {
-        console.warn(`[AUDIO] Error stopping protestor sound for ${soundCountry}:`, e);
-      }
-    }
-  }
-  
+  /**
+   * Stop all protestor sounds
+   */
   stopAllProtestorSounds() {
-    if (!this.activeProtestorSounds) {
-      this.activeProtestorSounds = {};
-      return;
-    }
-  
-    // Get a snapshot of keys to avoid modification during iteration
-    const keys = [...Object.keys(this.activeProtestorSounds)];
-    keys.forEach(key => {
-      this._cleanupProtestorSound(key);
-    });
+    this.stopProtestorSound(); // No parameter means stop all
   }
-
-
-
-
 
   /**
    * Play grab warning sound with delay
@@ -1782,30 +1829,25 @@ stopProtestorSound(country = null) {
       return grabSound;
     });
   }
-
-  /**
-   * Stop grab sound
-   */
   stopGrabSound() {
     // Clear the volume increase interval
     if (this.grabVolumeInterval) {
       clearInterval(this.grabVolumeInterval);
       this.grabVolumeInterval = null;
     }
-
+  
     // Stop the active grab sound if there is one
     if (this.activeGrabSound) {
-      this.activeGrabSound.pause();
-      this.activeGrabSound.currentTime = 0;
-
-      // Remove from currently playing sounds
-      const index = this.currentlyPlaying.indexOf(this.activeGrabSound);
-      if (index !== -1) {
-        this.currentlyPlaying.splice(index, 1);
-      }
-
+      console.log(`[AUDIO] Stopping grab sound`);
+      
+      const grabSound = this.activeGrabSound;
+      
+      // Clear reference first
       this.activeGrabSound = null;
-
+      
+      // Use our centralized cleanup
+      this._returnAudioToPool(grabSound);
+      
       // Reset grab volume for next time
       this.currentGrabVolume = 0.2;
     }
@@ -2012,6 +2054,137 @@ stopProtestorSound(country = null) {
     });
   }
 
+
+
+  // Add to the AudioManager class
+
+// Play a protestor sound with proper tracking
+playProtestorSound(countryId, initialVolume = 0.05) {
+  if (this.muted) return null;
+  
+  console.log(`[AUDIO] Playing protestor sound for ${countryId}`);
+  
+  // First stop any existing sound for this country
+  this.stopProtestorSound(countryId);
+  
+  // Get the correct sound file path
+  const protestorKey = countryId + "Protestors";
+  let soundPath;
+  
+  if (this.sounds.defense?.protestors?.[protestorKey]) {
+    // Use preloaded sound if available
+    soundPath = this.sounds.defense.protestors[protestorKey].src;
+  } else if (this.soundFiles.defense?.protestors?.[protestorKey]?.[0]) {
+    // Fall back to file path
+    soundPath = this.soundFiles.defense.protestors[protestorKey][0];
+  } else {
+    // Last resort fallback
+    soundPath = "protestorsEastCan1.mp3";
+  }
+  
+  // Create a new audio element from the pool
+  const audio = this._getOrCreatePrimedAudio();
+  
+  // Configure the audio element
+  audio.loop = true;
+  audio.src = this.resolvePath(soundPath);
+  audio.volume = initialVolume;
+  
+  // Track this sound
+  this.activeProtestorSounds[countryId] = audio;
+  this.currentlyPlaying.push(audio);
+  
+  // Play with proper error handling
+  const playPromise = audio.play();
+  if (playPromise) {
+    playPromise.catch(error => {
+      console.warn(`[AUDIO] Failed to play protestor sound for ${countryId}:`, error);
+      this._cleanupProtestorSound(countryId);
+    });
+  }
+  
+  return audio;
+}
+
+// Stop a protestor sound with proper cleanup
+stopProtestorSound(countryId = null) {
+  // If no country specified, stop all protestor sounds
+  if (countryId === null) {
+    Object.keys(this.activeProtestorSounds).forEach(country => {
+      this._cleanupProtestorSound(country);
+    });
+    return;
+  }
+  
+  // Handle the special case for Canada
+  if (countryId === "canada") {
+    // Stop both east and west Canada sounds
+    this._cleanupProtestorSound("eastCanada");
+    this._cleanupProtestorSound("westCanada");
+    return;
+  }
+  
+  // Stop the specific country sound
+  this._cleanupProtestorSound(countryId);
+}
+
+// Set volume for a protestor sound
+setProtestorVolume(countryId, volume) {
+  if (!this.initialized || this.muted) return;
+  
+  const effectiveVolume = Math.min(1, Math.max(0, volume)) * this.volume;
+  
+  // Handle country-specific sound
+  if (countryId === "canada") {
+    // For Canada, handle both east and west regions
+    if (this.activeProtestorSounds["eastCanada"]) {
+      this.activeProtestorSounds["eastCanada"].volume = effectiveVolume;
+    }
+    if (this.activeProtestorSounds["westCanada"]) {
+      this.activeProtestorSounds["westCanada"].volume = effectiveVolume;
+    }
+  } else {
+    // Handle regular country
+    if (this.activeProtestorSounds[countryId]) {
+      this.activeProtestorSounds[countryId].volume = effectiveVolume;
+    }
+  }
+}
+
+_cleanupProtestorSound(soundCountry) {
+  const audio = this.activeProtestorSounds[soundCountry];
+  
+  if (audio) {
+    console.log(`[AUDIO] Cleaning up protestor sound for ${soundCountry}`);
+    
+    // Stop the sound first
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+      
+      // Remove from currently playing array
+      const playingIndex = this.currentlyPlaying.indexOf(audio);
+      if (playingIndex !== -1) {
+        this.currentlyPlaying.splice(playingIndex, 1);
+      }
+      
+      // Clear all event listeners
+      audio.onended = null;
+      audio.oncanplay = null;
+      audio.oncanplaythrough = null;
+      audio.onerror = null;
+      
+      // Return to pool
+      this._returnAudioToPool(audio);
+      
+      // Remove from active tracking
+      delete this.activeProtestorSounds[soundCountry];
+    } catch (error) {
+      console.warn(`[AUDIO] Error cleaning up protestor sound for ${soundCountry}:`, error);
+    }
+  }
+}
+
   /**
    * Fade audio to a target volume over time
    */
@@ -2064,44 +2237,56 @@ stopProtestorSound(country = null) {
     return fadeInterval;
   }
 
-  /**
-   * Start background music
-   */
   startBackgroundMusic(volume = null) {
     if (!this.initialized || this.muted) return Promise.resolve(false);
-
+  
+    // First stop any existing background music
+    this.stopBackgroundMusic();
+  
     // Resume AudioContext first (mobile requirement)
     return this.resumeAudioContext().then(() => {
       try {
-        // Prioritize loading and using a cached background music track
-        if (this.sounds.music && this.sounds.music.background) {
-          const music = this.sounds.music.background;
-          music.loop = true;
-          music.volume = volume !== null ? volume : this.volume * 0.5; // Lower default volume
-
-          const playPromise = music.play();
-          if (playPromise !== undefined) {
-            return playPromise
-              .then(() => {
-                this.backgroundMusic = music;
-                this.backgroundMusicPlaying = true;
-                return true;
-              })
-              .catch((error) => {
-                // Try fallback approach
-                return this._createNewBackgroundMusic(volume);
-              });
-          }
-
-          this.backgroundMusic = music;
-          this.backgroundMusicPlaying = true;
-          return Promise.resolve(true);
-        } else {
-          // Fallback to creating new background music
-          return this._createNewBackgroundMusic(volume);
-        }
+        // Get an audio element from the pool
+        const music = this._getOrCreatePrimedAudio();
+        
+        // Configure it
+        music.loop = true;
+        music.src = this.resolvePath(this.soundFiles.music.background);
+        music.volume = volume !== null ? volume : this.volume * 0.5; // Lower default volume
+  
+        return music.play()
+          .then(() => {
+            // Store references
+            this.backgroundMusic = music;
+            this.backgroundMusicPlaying = true;
+            this.currentlyPlaying.push(music);
+  
+            // Set up error recovery
+            music.onerror = () => {
+              console.warn(`[AUDIO] Background music error, attempting recover`);
+              this.stopBackgroundMusic();
+              this.startBackgroundMusic(volume);
+            };
+  
+            return true;
+          })
+          .catch((error) => {
+            console.warn(`[AUDIO] Background music play failed:`, error);
+            this._returnAudioToPool(music);
+            
+            // On mobile, set up auto-recovery
+            if (this.isMobile) {
+              document.addEventListener("click", () => {
+                if (!this.backgroundMusicPlaying) {
+                  this.startBackgroundMusic(volume);
+                }
+              }, { once: true });
+            }
+            
+            return false;
+          });
       } catch (e) {
-        console.error("[AUDIO] Error starting background music:", e.message);
+        console.warn(`[AUDIO] Error creating background music:`, e);
         return Promise.resolve(false);
       }
     });
@@ -2163,27 +2348,20 @@ stopProtestorSound(country = null) {
     }
   }
 
-  /**
-   * Stop background music
-   */
   stopBackgroundMusic() {
     if (this.backgroundMusic) {
-      this.backgroundMusic.pause();
-      this.backgroundMusic.currentTime = 0;
-
-      // Reset volume before returning to pool
-      this.backgroundMusic.volume = this.volume * 0.5; // Reset to default
-
-      // Return to pool for reuse
-      if (window._primedAudioPool) {
-        window._primedAudioPool.push(this.backgroundMusic);
-      }
-
-      this.backgroundMusicPlaying = false;
+      console.log(`[AUDIO] Stopping background music`);
+      
+      const music = this.backgroundMusic;
+      
+      // Clear references first
       this.backgroundMusic = null;
+      this.backgroundMusicPlaying = false;
+      
+      // Use our centralized cleanup
+      this._returnAudioToPool(music);
     }
   }
-
   /**
    * Toggle mute state
    */
@@ -2362,32 +2540,34 @@ stopProtestorSound(country = null) {
     });
   }
 
-  /**
-   * Stop all sounds
-   */
   stopAll(options = {}) {
-    // Stop and clear all currently playing sounds
-    this.currentlyPlaying.forEach((sound) => {
-      if (sound && typeof sound.pause === "function") {
-        sound.pause();
-        sound.currentTime = 0;
-        sound.onended = null; // Clear callback
-        sound.src = ""; // Release memory
+    console.log(`[AUDIO] Stopping all sounds`);
+    
+    // Make a copy of the array to avoid modification during iteration
+    const sounds = [...this.currentlyPlaying];
+    
+    // Process each sound
+    sounds.forEach((sound) => {
+      // Skip background music if excepted
+      if (options.exceptBackgroundMusic && sound === this.backgroundMusic) {
+        return;
       }
+      
+      // Use our centralized cleanup (this will also handle removing from currentlyPlaying)
+      this._returnAudioToPool(sound);
     });
-    this.currentlyPlaying = [];
-
-    // Stop background music if not excepted
-    if (!options.exceptBackgroundMusic) {
+  
+    // Special case for background music if not excepted
+    if (!options.exceptBackgroundMusic && this.backgroundMusic) {
       this.stopBackgroundMusic();
     }
-
+  
     // Stop grab sound
     this.stopGrabSound();
-
+  
     // Stop all protestor sounds
     this.stopAllProtestorSounds();
-
+  
     // Clear any active fades
     Object.keys(this._fadeIntervals).forEach((key) => {
       clearInterval(this._fadeIntervals[key]);
@@ -2552,7 +2732,7 @@ stopProtestorSound(country = null) {
     if (this.soundFiles.resistance[targetCountry]) {
       const soundArray = this.soundFiles.resistance[targetCountry];
       for (let i = 0; i < Math.min(2, soundArray.length); i++) {
-        this.loadSound("resistance", targetCountry, i);
+        // this.loadSound("resistance", targetCountry, i); << - this somehow plays the sond instad of just loading it
       }
     }
 
