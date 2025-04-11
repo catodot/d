@@ -4,8 +4,8 @@ class UFOManager {
     
     this.config = {
       timing: {
-        minTimePercentage: 0.15,
-        maxTimePercentage: 0.26,
+        minTimePercentage: 0.65,
+        maxTimePercentage: 0.86,
         intervalBetweenUFOs: {
           min: 180000,  // 3 minute
           max: 680000   

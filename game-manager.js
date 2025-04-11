@@ -6106,15 +6106,15 @@ class FreedomManager {
 
   static PROTESTOR_TIMING = {
     // Regular (non-USA) protestors
-    INITIAL_ANNEX_MIN_DELAY: 1000, // When a country is first annexed, wait at least 10 seconds before showing protestors
-    INITIAL_ANNEX_MAX_DELAY: 6000, // When a country is first annexed, wait at most 40 seconds before showing protestors
+    INITIAL_ANNEX_MIN_DELAY: 10000, // When a country is first annexed, wait at least 10 seconds before showing protestors
+    INITIAL_ANNEX_MAX_DELAY: 60000, // When a country is first annexed, wait at most 40 seconds before showing protestors
     FADE_AWAY_TIME: 4000, // If protestors aren't clicked, they fade away after 4 seconds
-    REGENERATION_DELAY: 4000, // After protestors disappear (fade or liberate), wait 60 seconds before next group appears
+    REGENERATION_DELAY: 10000, // After protestors disappear (fade or liberate), wait 60 seconds before next group appears
 
     // USA protestors
-    USA_INITIAL_APPEARANCE_THRESHOLD: 0.95, // USA protestors first appear when 10% of total game time has elapsed
-    USA_REAPPEAR_MIN_TIME: 2000, // After USA protestors disappear, wait at least 20 seconds before next group
-    USA_REAPPEAR_MAX_TIME: 3000, // After USA protestors disappear, wait at most 1 second before next group
+    USA_INITIAL_APPEARANCE_THRESHOLD: 0.75, // USA protestors first appear when 10% of total game time has elapsed
+    USA_REAPPEAR_MIN_TIME: 30000, // After USA protestors disappear, wait at least 20 seconds before next group
+    USA_REAPPEAR_MAX_TIME: 60000, // After USA protestors disappear, wait at most 1 second before next group
   };
 
   /**
