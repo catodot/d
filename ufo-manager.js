@@ -4,8 +4,8 @@ class UFOManager {
     
     this.config = {
       timing: {
-        minTimePercentage: 0.3,
-        maxTimePercentage: 0.6,
+        minTimePercentage: 0.15,
+        maxTimePercentage: 0.26,
         intervalBetweenUFOs: {
           min: 180000,  // 3 minute
           max: 680000   
@@ -227,11 +227,11 @@ class UFOManager {
       // Play sound
       if (this.audioManager) {
         if (typeof this.audioManager.resumeAudioContext === 'function') {
-          this.audioManager.resumeAudioContext().then(() => {
+          // this.audioManager.resumeAudioContext().then(() => {
             this.audioManager.playRandom("defense", "slap", null, 0.8);
-          });
+          // });
         } else {
-          this.audioManager.playRandom("defense", "slap", null, 0.8);
+          // this.audioManager.playRandom("defense", "slap", null, 0.8);
         }
       }
   
@@ -429,7 +429,7 @@ class UFOManager {
         // });
       } else {
         // Fallback if resumeAudioContext doesn't exist
-        this.audioManager.play("ui", "aliens", 0.8);
+        // this.audioManager.play("ui", "aliens", 0.8);
       }
     }
     // Get viewport dimensions and flight positions
@@ -703,37 +703,53 @@ class UFOManager {
     return true;
   }
 
+
   startElonSpriteAnimation() {
-    let currentFrame = 0;
-
-    if (this.timers.elonAnimation) {
-      clearInterval(this.timers.elonAnimation);
+    if (!this.elements.elon) {
+      return;
     }
-
-    this.timers.elonAnimation = setInterval(() => {
-      if (!this.elements.elon) {
-        clearInterval(this.timers.elonAnimation);
-        return;
+    
+    // Create animation for Elon with frame toggling
+    const frameDuration = window.DeviceUtils && window.DeviceUtils.isMobileDevice ? 
+      this.config.elon.frameDuration * 1.5 : this.config.elon.frameDuration;
+    
+    // Use a custom function with animation manager
+    let currentFrame = 0;
+    const animationId = window.animationManager.createSpriteAnimation({
+      element: {style: {}}, // Dummy element - we're handling our own animation
+      frameCount: 2,
+      frameDuration: frameDuration,
+      loop: true,
+      id: 'elon-animation',
+      customUpdater: () => {
+        if (!this.elements.elon) {
+          window.animationManager.stopSpriteAnimation(animationId);
+          return;
+        }
+        
+        // Toggle frame
+        currentFrame = currentFrame === 0 ? 1 : 0;
+        
+        // Show current frame, hide the other
+        if (currentFrame === 0) {
+          this.elements.elonFrame0.style.display = "block";
+          this.elements.elonFrame1.style.display = "none";
+        } else {
+          this.elements.elonFrame0.style.display = "none";
+          this.elements.elonFrame1.style.display = "block";
+        }
       }
-
-      // Toggle frame
-      currentFrame = currentFrame === 0 ? 1 : 0;
-
-      // Show current frame, hide the other
-      if (currentFrame === 0) {
-        this.elements.elonFrame0.style.display = "block";
-        this.elements.elonFrame1.style.display = "none";
-      } else {
-        this.elements.elonFrame0.style.display = "none";
-        this.elements.elonFrame1.style.display = "block";
-      }
-    }, this.config.elon.frameDuration);
+    });
+    
+    // Store animation ID for cleanup
+    this.elonAnimationId = animationId;
   }
+
+
   stopElonAnimation() {
-    if (this.timers.elonAnimation) {
-      clearInterval(this.timers.elonAnimation);
-      this.timers.elonAnimation = null;
-      // console.log("Cleared Elon animation interval");
+    if (this.elonAnimationId) {
+      window.animationManager.stopSpriteAnimation(this.elonAnimationId);
+      this.elonAnimationId = null;
     }
   }
 
@@ -848,7 +864,7 @@ class UFOManager {
     };
 
     this.cleanupElonElements({ immediate: true });
-    this.cleanupOrphanedElements();
+    // this.cleanupOrphanedElements();
 
     if (this.elements.ufo) {
       this.elements.ufo.style.opacity = "0";
@@ -857,8 +873,8 @@ class UFOManager {
     this.removeGrayscaleEffect();
 
     if (this.audioManager) {
-      this.audioManager.stop("ui", "aliens");
-      this.audioManager.stop("ui", "musk");
+      // this.audioManager.stop("ui", "aliens");
+      // this.audioManager.stop("ui", "musk");
     }
   }
 

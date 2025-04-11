@@ -191,13 +191,6 @@ function initializeSocialSharing() {
         recorderModal.style.display = "none";
         recorderModal.style.opacity = "0";
         recorderModal.style.visibility = "hidden";
-
-        restartButton.style.display = "block";  // Use display, not visibility
-
-        const restartButton = document.getElementById("restart-button");
-        if (restartButton) {
-        }
-  
       });
     } else {
       console.error("Close button or modal not found");

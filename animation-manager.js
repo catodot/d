@@ -391,7 +391,6 @@ class AnimationManager {
   }
 
   init() {
-
     // Start with progressive loading
     // 1. Load only highest priority animations (idle)
     this._loadAnimationsByPriority(1).then(() => {
@@ -562,105 +561,98 @@ class AnimationManager {
     // Mark as transitioning
     this.isTransitioning = true;
 
-    // Wait for a good moment to change state
-    const safeStateChange = () => {
-      // Determine state name based on current size if needed
-      const currentSize = window.freedomManager?.getTrumpSize()?.size || "normal";
-      let finalStateName = stateName;
+    // Ensure sprite stays visible during transition
+    if (this.trumpSprite) {
+      this.trumpSprite.style.display = "block";
+      this.trumpSprite.style.visibility = "visible";
+    }
 
-      if (currentSize !== "normal") {
-        const sizedStateName = `${stateName}${currentSize.charAt(0).toUpperCase() + currentSize.slice(1)}`;
-        if (this.animations[sizedStateName]) {
-          finalStateName = sizedStateName;
-        }
-      }
-
-      // Update state directly
-      if (this.animations[finalStateName]) {
-        this.currentState = finalStateName;
-        this.currentFrame = 0;
-        this.loopCount = 0;
-        this.onAnimationEnd = onEndCallback;
-
-        // Update sprite image
-        if (this.trumpSprite) {
-          this.trumpSprite.style.backgroundImage = `url('${this.animations[finalStateName].spriteSheet}')`;
-        }
-
-        // Update initial frame
-        this.updateFrame(0);
-
-        // CRUCIAL: Restart the animation
-        this.play();
-      }
+    // Use requestAnimationFrame for smoother transition
+    requestAnimationFrame(() => {
+      // Update actual state
+      this._updateStateDirectly(stateName, onEndCallback);
 
       // Mark transition as complete
       this.isTransitioning = false;
 
       // Process next queued state change if any
       this.processStateQueue();
-    };
-
-    // Use requestAnimationFrame for smoother transition
-    requestAnimationFrame(safeStateChange);
+    });
   }
 
-  // Modify existing methods to use queueStateChange
-  // changeState(stateName, onEndCallback = null) {
-  //   this.queueStateChange(stateName, onEndCallback);
-  // }
-  // end new
+  // Helper method to handle the actual state change
+  _updateStateDirectly(stateName, onEndCallback) {
+    // Determine state name based on current size if needed
+    const currentSize = window.freedomManager?.getTrumpSize()?.size || "normal";
+    let finalStateName = stateName;
+
+    if (currentSize !== "normal") {
+      const sizedStateName = `${stateName}${currentSize.charAt(0).toUpperCase() + currentSize.slice(1)}`;
+      if (this.animations[sizedStateName]) {
+        finalStateName = sizedStateName;
+      }
+    }
+
+    // Update state directly
+    if (this.animations[finalStateName]) {
+      this.currentState = finalStateName;
+      this.currentFrame = 0;
+      this.loopCount = 0;
+      this.onAnimationEnd = onEndCallback;
+
+      // Update sprite image
+      if (this.trumpSprite) {
+        this.trumpSprite.style.backgroundImage = `url('${this.animations[finalStateName].spriteSheet}')`;
+      }
+
+      // Update initial frame
+      this.updateFrame(0);
+
+      // CRUCIAL: Restart the animation
+      this.play();
+    }
+  }
 
   changeState(stateName, onEndCallback = null) {
-    // First get current size from FreedomManager
     const currentSize = window.freedomManager?.getTrumpSize()?.size || "normal";
-    
+
     // Adjust the stateName for the current size if needed
     if (currentSize !== "normal") {
-        const sizedStateName = `${stateName}${currentSize.charAt(0).toUpperCase() + currentSize.slice(1)}`;
-        if (this.animations[sizedStateName]) {
-            stateName = sizedStateName;
-        }
+      const sizedStateName = `${stateName}${currentSize.charAt(0).toUpperCase() + currentSize.slice(1)}`;
+      if (this.animations[sizedStateName]) {
+        stateName = sizedStateName;
+      }
     }
-    
+
     // Check if state exists
     if (!this.animations[stateName]) {
-        console.warn(`Animation state not found: ${stateName}`);
-        return;
+      console.warn(`Animation state not found: ${stateName}`);
+      return;
     }
-    
-    // Get animation data - THIS WAS MISSING
     const animation = this.animations[stateName];
     const spriteSheet = animation.spriteSheet;
-    
+
     // Fade out current animation
     if (this.trumpSprite) {
-        this.trumpSprite.style.opacity = "0.7";
-        
-        // Use small timeout to allow transition
-        setTimeout(() => {
-            // Load if needed
-            if (!this.loadedSprites.has(spriteSheet)) {
-                this._loadSprites([spriteSheet]).then(() => {
-                    this.queueStateChange(stateName, onEndCallback);
-                    // Fade back in
-                    this.trumpSprite.style.opacity = "1";
-                });
-            } else {
-                // Change immediately if loaded
-                this.queueStateChange(stateName, onEndCallback);
-                // Fade back in
-                this.trumpSprite.style.opacity = "1";
-            }
-        }, 50); // Brief fade transition
+      // Use small timeout to allow transition
+      setTimeout(() => {
+        // Load if needed
+        if (!this.loadedSprites.has(spriteSheet)) {
+          this._loadSprites([spriteSheet]).then(() => {
+            this.queueStateChange(stateName, onEndCallback);
+          });
+        } else {
+          // Change immediately if loaded
+          this.queueStateChange(stateName, onEndCallback);
+        }
+      }, 50); // Brief fade transition
     } else {
-        // Direct change if no sprite element
-        this.queueStateChange(stateName, onEndCallback);
+      // Direct change if no sprite element
+      this.queueStateChange(stateName, onEndCallback);
     }
-}
+  }
 
   updateFrame(frameIndex) {
-
     if (!this.trumpSprite) return;
 
     const animation = this.animations[this.currentState];
@@ -686,11 +678,6 @@ class AnimationManager {
     }
   }
 
-  /**
-   * Play a sequence of animations with lazy loading
-   * @param {string} startState - Starting animation state
-   * @param {function} onComplete - Callback when sequence completes
-   */
   async playAnimationSequence(startState, onComplete = null) {
     const animation = this.animations[startState];
     if (!animation) {
@@ -755,7 +742,7 @@ class AnimationManager {
     // Animation loop using requestAnimationFrame
     const animateFrame = (timestamp) => {
       if (this.isPaused) {
-        this.animationFrame = requestAnimationFrame(animateFrame);
+        // this.animationFrame = requestAnimationFrame(animateFrame);
         return;
       }
 
@@ -806,10 +793,13 @@ class AnimationManager {
     };
 
     // Start the animation loop
-    this.animationFrame = requestAnimationFrame(animateFrame);
+    if (!this.isPaused) {
+      this.animationFrame = requestAnimationFrame(animateFrame);
+    }
   }
 
   stop() {
+    // Clear timers but DON'T change sprite visibility
     if (this.animationInterval) {
       clearInterval(this.animationInterval);
       this.animationInterval = null;
@@ -818,6 +808,12 @@ class AnimationManager {
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = null;
+    }
+
+    // Make sure sprite stays visible
+    if (this.trumpSprite) {
+      this.trumpSprite.style.display = "block";
+      this.trumpSprite.style.visibility = "visible";
     }
   }
 
@@ -839,11 +835,15 @@ class AnimationManager {
       overlay.parentNode.removeChild(overlay);
     }
 
+    if (this.spriteAnimations) {
+      Object.keys(this.spriteAnimations).forEach((id) => {
+        clearInterval(this.spriteAnimations[id].interval);
+      });
+      this.spriteAnimations = {};
+    }
   }
 
-  
   changeSizeState(newSize) {
-
     // Don't process if we're already at this size
     if (this.currentSizeVariant === newSize) {
       return;
@@ -879,7 +879,6 @@ class AnimationManager {
   }
 
   async preloadNextSize(targetSize) {
-
     // Preload the size variant before actually switching to it
     await this.preloadSizeVariant(targetSize);
 
@@ -907,11 +906,9 @@ class AnimationManager {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = null;
     }
-
   }
 
   resume() {
-
     if (!this.isPaused) {
       return;
     }
@@ -920,7 +917,6 @@ class AnimationManager {
 
     // If we have saved state, restore it
     if (this._pausedState) {
-
       // If it's a smack animation, special handling
       if (this._pausedState.state && this._pausedState.state.startsWith("smack")) {
         // For smack animations, we need to restart from beginning
@@ -964,35 +960,8 @@ class AnimationManager {
       return;
     }
 
-    // Determine the correct smack animation name
-    let smackAnimationName = "";
-
-    if (typeof animationNameOrCountry === "string") {
-      // If it already starts with "smack", use it directly
-      if (animationNameOrCountry.startsWith("smack")) {
-        smackAnimationName = animationNameOrCountry;
-      } else {
-        // Map country names to their corresponding smack animations
-        const countryToAnimation = {
-          eastcanada: "smackEastCanada",
-          westcanada: "smackWestCanada",
-          greenland: "smackGreenland",
-          mexico: "smackMexico",
-          canada: "smackEastCanada", // Default for generic "canada"
-        };
-
-        const lowerCountry = animationNameOrCountry.toLowerCase();
-        if (countryToAnimation[lowerCountry]) {
-          smackAnimationName = countryToAnimation[lowerCountry];
-        } else {
-          // Construct a name if not found in the mapping
-          smackAnimationName = `smack${animationNameOrCountry.charAt(0).toUpperCase() + animationNameOrCountry.slice(1)}`;
-        }
-      }
-    } else {
-      console.error(`Invalid animation or country name: ${animationNameOrCountry}`);
-      smackAnimationName = "smackMexico"; // Fallback to a default animation
-    }
+    // Determine the correct smack animation name (keep your existing logic)
+    let smackAnimationName = this._determineSmackAnimationName(animationNameOrCountry);
 
     // Check if animation exists
     if (!this.animations[smackAnimationName]) {
@@ -1008,41 +977,36 @@ class AnimationManager {
 
     // Lazy load the sprite if it's not already loaded
     if (!this.loadedSprites.has(smackAnimation.spriteSheet)) {
-      try {
-        await this._loadSprites([smackAnimation.spriteSheet]);
-      } catch (error) {
+      this._loadSprites([smackAnimation.spriteSheet]).catch((error) => {
         console.error(`Failed to load smack sprite: ${smackAnimation.spriteSheet}`, error);
-        // Continue anyway but log the error
-      }
+      });
     }
 
-    // Set overlay background to smack animation
-    overlay.style.backgroundImage = `url('${smackAnimation.spriteSheet}')`;
-    overlay.style.display = "block";
-    overlay.style.backgroundPosition = "0% 0%";
+    // Precompute frame positions for efficiency
+    const framePositions = Array.from({ length: smackAnimation.frameCount }, (_, i) => `${(i / (smackAnimation.frameCount - 1)) * 100}%`);
 
-    // Track current frame and set up interval
+    // Use the animation's frame duration or default, adjusted for game speed
+    const frameDuration = Math.max(
+      50, // Minimum frame duration
+      (smackAnimation.frameDuration || 120) / this.gameSpeed
+    );
+
+    // Track current frame and impact state
     let currentFrame = 0;
     let hasTriggeredImpact = false;
     const impactFrame = 3; // Frame at which we'll trigger the callback
 
-    // Use the animation's own frameDuration or default to a fast value for smacks
-    const frameDuration = smackAnimation.frameDuration || 120;
-
-    // Create interval for overlay animation
-    const overlayInterval = setInterval(() => {
+    // Use requestAnimationFrame for smoother rendering
+    const updateFrame = (timestamp) => {
       // Update frame
       currentFrame++;
 
-      // Calculate progress through animation
-      const percentPosition = (currentFrame / (smackAnimation.frameCount - 1)) * 100;
-      overlay.style.backgroundPosition = `${percentPosition}% 0%`;
+      // Update background position using precomputed positions
+      overlay.style.backgroundPosition = `${framePositions[currentFrame]} 0%`;
 
-      // Check if we've reached impact frame but haven't triggered the impact yet
+      // Check impact frame
       if (!hasTriggeredImpact && currentFrame >= impactFrame) {
         hasTriggeredImpact = true;
-
-        // Call callback to change Trump's animation to slapped
         if (typeof onCompleteCallback === "function") {
           onCompleteCallback();
         }
@@ -1050,10 +1014,43 @@ class AnimationManager {
 
       // Check if animation is complete
       if (currentFrame >= smackAnimation.frameCount - 1) {
-        clearInterval(overlayInterval);
         overlay.style.display = "none";
+        return;
       }
-    }, frameDuration);
+
+      // Schedule next frame with adaptive timing
+      setTimeout(() => requestAnimationFrame(updateFrame), frameDuration);
+    };
+
+    // Set up overlay
+    overlay.style.backgroundImage = `url('${smackAnimation.spriteSheet}')`;
+    overlay.style.display = "block";
+    overlay.style.backgroundPosition = "0% 0%";
+
+    // Start animation
+    requestAnimationFrame(updateFrame);
+  }
+
+  // Helper method to determine smack animation name (keep your existing logic)
+  _determineSmackAnimationName(animationNameOrCountry) {
+    if (typeof animationNameOrCountry === "string") {
+      if (animationNameOrCountry.startsWith("smack")) {
+        return animationNameOrCountry;
+      }
+
+      const countryToAnimation = {
+        eastcanada: "smackEastCanada",
+        westcanada: "smackWestCanada",
+        greenland: "smackGreenland",
+        mexico: "smackMexico",
+        canada: "smackEastCanada", // Default for generic "canada"
+      };
+
+      const lowerCountry = animationNameOrCountry.toLowerCase();
+      return countryToAnimation[lowerCountry] || `smack${animationNameOrCountry.charAt(0).toUpperCase() + animationNameOrCountry.slice(1)}`;
+    }
+
+    return "smackMexico"; // Fallback
   }
 
   // Enable or disable debug mode
@@ -1086,12 +1083,6 @@ class AnimationManager {
     this.changeState("idle"); // Return to normal idle state
   }
 
-  /**
-   * Preload a specific size variant of animations
-   * This is more focused than the original _preloadImportantSprites
-   * @param {string} size - Size variant ('normal', 'Small', 'Smaller', 'Smallest')
-   * @returns {Promise} - Resolves when loading is complete
-   */
   preloadSizeVariant(size) {
     const suffix = size === "normal" ? "" : size;
     const animationsToLoad = [];
@@ -1107,6 +1098,91 @@ class AnimationManager {
 
     console.log(`Preloading ${animationsToLoad.length} animations for size variant: ${size}`);
     return this._loadSpecificAnimations(animationsToLoad);
+  }
+
+  createSpriteAnimation(options) {
+    const {
+      element, // DOM element to animate
+      frameCount, // Number of frames in the sprite
+      frameDuration, // Duration per frame
+      loop = true, // Whether to loop the animation
+      onComplete, // Callback when animation completes
+      id, // Unique identifier for this animation
+      customUpdater, // Custom update function (optional)
+    } = options;
+
+    if (!element && !customUpdater) {
+      console.error("Cannot create sprite animation: No element provided");
+      return null;
+    }
+
+    // Use a unique ID for tracking this animation
+    const animationId = id || `sprite-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    // Clear any existing animation with this ID
+    if (this.spriteAnimations && this.spriteAnimations[animationId]) {
+      clearInterval(this.spriteAnimations[animationId].interval);
+    }
+
+    // Initialize sprite animations tracking if needed
+    if (!this.spriteAnimations) {
+      this.spriteAnimations = {};
+    }
+
+    let currentFrame = 0;
+    const maxLoops = loop ? Infinity : 1;
+    let loopCount = 0;
+
+    // Create the animation interval
+    const interval = setInterval(() => {
+      // Skip if paused
+      if (this.isPaused) return;
+
+      // Use custom updater if provided
+      if (customUpdater) {
+        customUpdater();
+        return;
+      }
+
+      // Standard sprite sheet animation
+      currentFrame = (currentFrame + 1) % frameCount;
+      const percentPosition = (currentFrame / (frameCount - 1)) * 100;
+      element.style.backgroundPosition = `${percentPosition}% 0%`;
+
+      // Handle loop counting
+      if (currentFrame === 0 && !loop) {
+        loopCount++;
+        if (loopCount >= maxLoops) {
+          this.stopSpriteAnimation(animationId);
+          if (typeof onComplete === "function") {
+            onComplete();
+          }
+        }
+      }
+    }, frameDuration);
+
+    // Store the animation data
+    this.spriteAnimations[animationId] = {
+      interval,
+      element,
+      currentFrame,
+      frameCount,
+      loopCount,
+      maxLoops,
+      onComplete,
+    };
+
+    return animationId;
+  }
+
+  stopSpriteAnimation(animationId) {
+    if (!this.spriteAnimations || !this.spriteAnimations[animationId]) {
+      return false;
+    }
+
+    clearInterval(this.spriteAnimations[animationId].interval);
+    delete this.spriteAnimations[animationId];
+    return true;
   }
 }
 
