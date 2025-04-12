@@ -6065,8 +6065,8 @@ class FreedomManager {
 
   static PROTESTOR_TIMING = {
     // Regular (non-USA) protestors
-    INITIAL_ANNEX_MIN_DELAY: 10000, // When a country is first annexed, wait at least 10 seconds before showing protestors
-    INITIAL_ANNEX_MAX_DELAY: 50000, // When a country is first annexed, wait at most 40 seconds before showing protestors
+    INITIAL_ANNEX_MIN_DELAY: 1000, // When a country is first annexed, wait at least 10 seconds before showing protestors
+    INITIAL_ANNEX_MAX_DELAY: 5000, // When a country is first annexed, wait at most 40 seconds before showing protestors
     FADE_AWAY_TIME: 4000, // If protestors aren't clicked, they fade away after 4 seconds
     REGENERATION_DELAY: 10000, // After protestors disappear (fade or liberate), wait 60 seconds before next group appears
 
@@ -6636,68 +6636,9 @@ class FreedomManager {
 
 
 
-  // Add to FreedomManager class
 
-// Unified method to start protestor sounds
-_startProtestorSound(countryId) {
-  if (!this.audioManager) return;
-  
-  // Log the action (keep your existing logging)
-  this._logProtestorEvent(countryId, 'SOUND_START', 'Starting protestor sound');
-  
-  try {
-    // Handle canada special case consistently
-    if (countryId === "canada") {
-      // Make sure both east and west Canada sounds are stopped first
-      this.audioManager.stopProtestorSound("eastCanada");
-      this.audioManager.stopProtestorSound("westCanada");
-      
-      // Only start one (either east or west) based on position
-      // You could add logic to determine which side
-      const canadaSide = "eastCanada"; // or determine dynamically
-      
-      // Start with slight delay to ensure proper cleanup
-      setTimeout(() => {
-        this.audioManager.playProtestorSound(canadaSide, 0.05);
-      }, 50);
-    } else {
-      // Clean stop of any existing sound for this country first
-      this.audioManager.stopProtestorSound(countryId);
-      
-      // Start with a small delay to ensure cleanup completes
-      setTimeout(() => {
-        this.audioManager.playProtestorSound(countryId, 0.05);
-      }, 50);
-    }
-    
-    // Play freedom particles sound after protestor sound starts
-    setTimeout(() => {
-      this.audioManager.playRandom("particles", "freedom", null, 0.3);
-    }, 100);
-  } catch (error) {
-    this._logProtestorEvent(countryId, 'SOUND_ERROR', error.message);
-  }
-}
 
-// Unified method to stop protestor sounds
-_stopProtestorSound(countryId) {
-  if (!this.audioManager) return;
-  
-  this._logProtestorEvent(countryId, 'SOUND_STOP', 'Stopping protestor sound');
-  
-  try {
-    if (countryId === "canada") {
-      // For Canada, always stop both east and west
-      this.audioManager.stopProtestorSound("eastCanada");
-      this.audioManager.stopProtestorSound("westCanada");
-    } else {
-      // For other countries, stop the specific sound
-      this.audioManager.stopProtestorSound(countryId);
-    }
-  } catch (error) {
-    this._logProtestorEvent(countryId, 'SOUND_ERROR', `Stop failed: ${error.message}`);
-  }
-}
+
 
 
 
@@ -6705,9 +6646,13 @@ _stopProtestorSound(countryId) {
     this._logProtestorEvent('global', 'CLEANUP', 'Complete sound cleanup');
     
     // Stop all protestor sounds using the simplified method
-    if (this.audioManager) {
-      this.audioManager.stopAllProtestorSounds();
-    }
+  if (this.audioManager) {
+    // First stop specific countries - especially Canada's sides
+    this._stopProtestorSound("canada");
+    
+    // Then do the general cleanup
+    this.audioManager.stopAllProtestorSounds();
+  }
     
     // Clear all internal state
     this._soundState.active.clear();
@@ -6933,71 +6878,104 @@ _stopProtestorSound(countryId) {
   }
 
 
+  // Updated _startProtestorSound method in FreedomManager
+_startProtestorSound(countryId) {
+  if (!this.audioManager) return;
   
-  // hideProtestors(countryId) {
-  //   this._logProtestorEvent(countryId, 'HIDE', 'Starting immediate hide (liberation)');
-    
-  //   // Clear any pending timeouts
-  //   if (this.countries[countryId]?.disappearTimeout) {
-  //     clearTimeout(this.countries[countryId].disappearTimeout);
-  //   }
+  // Log the action
+  this._logProtestorEvent(countryId, 'SOUND_START', 'Starting protestor sound');
   
-  //   // Stop sounds and cleanup
-  //   this._stopProtestorSound(countryId);
-  //   this._cleanupProtestorElements(countryId);
-    
-  //   // Hide hitbox
-  //   if (this.protestorHitboxManager) {
-  //     this.protestorHitboxManager.hideProtestorHitbox(countryId);
-  //   }
-  
-  //   // Reset country state
-  //   if (this.countries[countryId]) {
-  //     this.countries[countryId].protestorWrapper = null;
-  //     this.countries[countryId].protestorsShown = false;
-  //     this.countries[countryId].clickCounter = 0;
-  //   }
-  
-  //   // Schedule next appearance
-  //   setTimeout(() => {
-  //     if (!this._soundState.cleanup.has(countryId)) {
-  //       this._scheduleProtestors(countryId);
-  //     }
-  //   }, 200);
-  // }
-  
-  hideProtestors(countryId) {
-    this._logProtestorEvent(countryId, 'HIDE', 'Starting immediate hide (liberation)');
-    
-    // Clear any pending timeouts
-    if (this.countries[countryId]?.disappearTimeout) {
-      clearTimeout(this.countries[countryId].disappearTimeout);
-      this.countries[countryId].disappearTimeout = null;
+  try {
+    // Special handling for canada
+    if (countryId === "canada") {
+      // First ensure both sides are stopped
+      this.audioManager.stopProtestorSound("canada"); // This will handle both east and west
+      
+      // Determine which side to play - could be based on game state
+      // For simplicity, randomly select east or west
+      const canadaSide = Math.random() < 0.5 ? "eastCanada" : "westCanada";
+      
+      // Store which side we're using for canada
+      this._canadaActiveSide = canadaSide;
+      
+      // Play the selected side with delay to ensure cleanup completes
+      setTimeout(() => {
+        this.audioManager.playProtestorSound(canadaSide, 0.05);
+      }, 50);
+    } else {
+      // For other countries, simply play the sound
+      this.audioManager.stopProtestorSound(countryId);
+      
+      setTimeout(() => {
+        this.audioManager.playProtestorSound(countryId, 0.05);
+      }, 50);
     }
-  
-    // Stop sounds and cleanup all DOM elements
-    this._stopProtestorSound(countryId);
-    this._cleanupProtestorElements(countryId);
     
-    // Hide hitbox
-    if (this.protestorHitboxManager) {
-      this.protestorHitboxManager.hideProtestorHitbox(countryId);
-    }
-  
-    // Reset country state
-    if (this.countries[countryId]) {
-      this.countries[countryId].protestorWrapper = null;
-      this.countries[countryId].protestorsShown = false;
-      this.countries[countryId].clickCounter = 0;
-    }
-  
-    // Schedule next appearance
+    // Play freedom particles sound after protestor sound starts
     setTimeout(() => {
-      if (!this._soundState.cleanup.has(countryId)) {
-        this._scheduleProtestors(countryId);
-      }
-    }, 200);
+      this.audioManager.playRandom("particles", "freedom", null, 0.3);
+    }, 100);
+  } catch (error) {
+    this._logProtestorEvent(countryId, 'SOUND_ERROR', error.message);
   }
+}
+
+// Updated _stopProtestorSound method in FreedomManager
+_stopProtestorSound(countryId) {
+  if (!this.audioManager) return;
+  
+  this._logProtestorEvent(countryId, 'SOUND_STOP', 'Stopping protestor sound');
+  
+  try {
+    // Use the improved AudioManager method that properly handles Canada
+    this.audioManager.stopProtestorSound(countryId);
+    
+    // Clear our tracking if it was Canada
+    if (countryId === "canada") {
+      this._canadaActiveSide = null;
+    }
+  } catch (error) {
+    this._logProtestorEvent(countryId, 'SOUND_ERROR', `Stop failed: ${error.message}`);
+  }
+}
+
+// Fix the hideProtestors method to use _stopProtestorSound
+hideProtestors(countryId) {
+  console.log(`[AUDIO DEBUG] DESTROYING ALL PROTESTORS FOR ${countryId}`);
+
+  this._logProtestorEvent(countryId, 'HIDE', 'Starting immediate hide (liberation)');
+  
+  // Use our sound stopping method
+  this._stopProtestorSound(countryId);
+  
+  // Clear any pending timeouts
+  if (this.countries[countryId]?.disappearTimeout) {
+    clearTimeout(this.countries[countryId].disappearTimeout);
+    this.countries[countryId].disappearTimeout = null;
+  }
+  
+  // Clean up DOM elements
+  this._cleanupProtestorElements(countryId);
+  
+  // Hide hitbox
+  if (this.protestorHitboxManager) {
+    this.protestorHitboxManager.hideProtestorHitbox(countryId);
+  }
+  
+  // Reset country state
+  if (this.countries[countryId]) {
+    this.countries[countryId].protestorWrapper = null;
+    this.countries[countryId].protestorsShown = false;
+    this.countries[countryId].clickCounter = 0;
+  }
+  
+  // Schedule next appearance
+  setTimeout(() => {
+    if (!this._soundState.cleanup.has(countryId)) {
+      this._scheduleProtestors(countryId);
+    }
+  }, 200);
+}
 
 
   _shrinkAndHideProtestors(countryId) {

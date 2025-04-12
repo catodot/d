@@ -956,13 +956,20 @@ class AudioManager {
         
         console.log(`[AUDIO AUDIT] Pool: ${inPoolCount}, Playing: ${playingCount}`);
         
-        // Check for lingering protestor sounds
-        const protestorSoundsStillPlaying = this.currentlyPlaying.filter(
+        // Count actual protestor sounds in currently playing array
+        const protestorSoundsPlaying = this.currentlyPlaying.filter(
           sound => sound.src && sound.src.includes('protestors')
         ).length;
         
-        if (protestorSoundsStillPlaying > 0) {
-          console.warn(`[AUDIO LEAK?] Found ${protestorSoundsStillPlaying} protestor sounds still in currently playing array`);
+        // Only warn if the number of playing protestor sounds doesn't match active tracking
+        const activeProtestorCount = Object.keys(this.activeProtestorSounds).length;
+        if (protestorSoundsPlaying !== activeProtestorCount) {
+          console.warn(`[AUDIO LEAK] Mismatch: ${protestorSoundsPlaying} protestor sounds playing, but ${activeProtestorCount} being tracked`);
+          // Log the details to help debugging
+          console.log('Currently playing protestor sounds:', this.currentlyPlaying.filter(
+            sound => sound.src && sound.src.includes('protestors')
+          ).map(sound => sound.src));
+          console.log('Tracked protestor sounds:', Object.keys(this.activeProtestorSounds));
         }
       }
     }, 3000); // Check every 3 seconds
@@ -2056,13 +2063,16 @@ class AudioManager {
 
 
 
-  // Add to the AudioManager class
-
-// Play a protestor sound with proper tracking
 playProtestorSound(countryId, initialVolume = 0.05) {
   if (this.muted) return null;
   
   console.log(`[AUDIO] Playing protestor sound for ${countryId}`);
+  
+  // Special handling for "canada" - this should never happen but let's handle it
+  if (countryId === "canada") {
+    console.warn("[AUDIO] 'canada' passed to playProtestorSound - using eastCanada instead");
+    countryId = "eastCanada"; // Default to east when given generic 'canada'
+  }
   
   // First stop any existing sound for this country
   this.stopProtestorSound(countryId);
@@ -2072,14 +2082,11 @@ playProtestorSound(countryId, initialVolume = 0.05) {
   let soundPath;
   
   if (this.sounds.defense?.protestors?.[protestorKey]) {
-    // Use preloaded sound if available
     soundPath = this.sounds.defense.protestors[protestorKey].src;
   } else if (this.soundFiles.defense?.protestors?.[protestorKey]?.[0]) {
-    // Fall back to file path
     soundPath = this.soundFiles.defense.protestors[protestorKey][0];
   } else {
-    // Last resort fallback
-    soundPath = "protestorsEastCan1.mp3";
+    soundPath = "protestorsEastCan1.mp3"; // Fallback
   }
   
   // Create a new audio element from the pool
@@ -2090,9 +2097,16 @@ playProtestorSound(countryId, initialVolume = 0.05) {
   audio.src = this.resolvePath(soundPath);
   audio.volume = initialVolume;
   
-  // Track this sound
+  // Track this sound with specific metadata
+  audio._protestorId = countryId; // Add a property to track which country this belongs to
+  
+  // Store in our tracking map
   this.activeProtestorSounds[countryId] = audio;
   this.currentlyPlaying.push(audio);
+  
+  // Log current state after setup
+  console.log(`[AUDIO DEBUG] After setup - Current playing count: ${this.currentlyPlaying.length}`);
+  console.log(`[AUDIO DEBUG] Active protestor sounds after:`, Object.keys(this.activeProtestorSounds));
   
   // Play with proper error handling
   const playPromise = audio.play();
@@ -2106,18 +2120,36 @@ playProtestorSound(countryId, initialVolume = 0.05) {
   return audio;
 }
 
-// Stop a protestor sound with proper cleanup
 stopProtestorSound(countryId = null) {
   // If no country specified, stop all protestor sounds
   if (countryId === null) {
-    Object.keys(this.activeProtestorSounds).forEach(country => {
+    console.log("[AUDIO] Stopping ALL protestor sounds");
+    
+    // First get a copy of all keys to avoid modification during iteration
+    const allCountries = [...Object.keys(this.activeProtestorSounds)];
+    
+    // Stop each protestor sound individually
+    allCountries.forEach(country => {
       this._cleanupProtestorSound(country);
     });
+    
+    // Double check for any protestor sounds that might have been missed
+    this.currentlyPlaying = this.currentlyPlaying.filter(sound => {
+      if (sound.src && sound.src.includes('protestors')) {
+        sound.pause();
+        sound.currentTime = 0;
+        this._returnAudioToPool(sound);
+        return false;
+      }
+      return true;
+    });
+    
     return;
   }
   
   // Handle the special case for Canada
   if (countryId === "canada") {
+    console.log("[AUDIO] Stopping both eastCanada and westCanada protestor sounds");
     // Stop both east and west Canada sounds
     this._cleanupProtestorSound("eastCanada");
     this._cleanupProtestorSound("westCanada");
@@ -2128,7 +2160,51 @@ stopProtestorSound(countryId = null) {
   this._cleanupProtestorSound(countryId);
 }
 
-// Set volume for a protestor sound
+_cleanupProtestorSound(soundCountry) {
+  console.log(`[AUDIO DEBUG] CLEANUP ${soundCountry} - Active sounds before cleanup:`, 
+    Object.keys(this.activeProtestorSounds));
+  console.log(`[AUDIO DEBUG] CLEANUP ${soundCountry} - All playing sounds:`, 
+    this.currentlyPlaying.map(sound => sound.src));
+
+  // First stop the tracked sound
+  const audio = this.activeProtestorSounds[soundCountry];
+  if (audio) {
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+  
+      // Remove from active tracking first
+      delete this.activeProtestorSounds[soundCountry];
+      
+      // Now find and clean up ALL protestor sounds for this country from currently playing
+      this.currentlyPlaying = this.currentlyPlaying.filter(sound => {
+        // Check if this is a protestor sound for this country
+        if (sound._protestorId === soundCountry || 
+            (sound.src && sound.src.includes('protestors') && 
+             sound.src.includes(soundCountry.replace('east', '').replace('west', '')))) {
+          // Stop it
+          sound.pause();
+          sound.currentTime = 0;
+          // Clear listeners
+          sound.onended = null;
+          sound.oncanplay = null;
+          sound.oncanplaythrough = null;
+          sound.onerror = null;
+          // Return to pool
+          this._returnAudioToPool(sound);
+          // Filter it out
+          return false;
+        }
+        return true;
+      });
+    } catch (error) {
+      console.warn(`[AUDIO] Error cleaning up protestor sound for ${soundCountry}:`, error);
+    }
+  }
+  
+  console.log(`[AUDIO DEBUG] Cleanup - Playing count after: ${this.currentlyPlaying.length}`);
+}
+
 setProtestorVolume(countryId, volume) {
   if (!this.initialized || this.muted) return;
   
@@ -2147,40 +2223,6 @@ setProtestorVolume(countryId, volume) {
     // Handle regular country
     if (this.activeProtestorSounds[countryId]) {
       this.activeProtestorSounds[countryId].volume = effectiveVolume;
-    }
-  }
-}
-
-_cleanupProtestorSound(soundCountry) {
-  const audio = this.activeProtestorSounds[soundCountry];
-  
-  if (audio) {
-    console.log(`[AUDIO] Cleaning up protestor sound for ${soundCountry}`);
-    
-    // Stop the sound first
-    try {
-      audio.pause();
-      audio.currentTime = 0;
-      
-      // Remove from currently playing array
-      const playingIndex = this.currentlyPlaying.indexOf(audio);
-      if (playingIndex !== -1) {
-        this.currentlyPlaying.splice(playingIndex, 1);
-      }
-      
-      // Clear all event listeners
-      audio.onended = null;
-      audio.oncanplay = null;
-      audio.oncanplaythrough = null;
-      audio.onerror = null;
-      
-      // Return to pool
-      this._returnAudioToPool(audio);
-      
-      // Remove from active tracking
-      delete this.activeProtestorSounds[soundCountry];
-    } catch (error) {
-      console.warn(`[AUDIO] Error cleaning up protestor sound for ${soundCountry}:`, error);
     }
   }
 }
@@ -2252,7 +2294,7 @@ _cleanupProtestorSound(soundCountry) {
         // Configure it
         music.loop = true;
         music.src = this.resolvePath(this.soundFiles.music.background);
-        music.volume = volume !== null ? volume : this.volume * 0.5; // Lower default volume
+        music.volume = volume !== null ? volume : this.volume * 0.1; // Lower default volume
   
         return music.play()
           .then(() => {
