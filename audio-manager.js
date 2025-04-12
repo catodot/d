@@ -435,54 +435,54 @@ class AudioManager {
   }
 
 
-  _returnAudioToPool(audio, options = {}) {
-    if (!audio) return;
+  // _returnAudioToPool(audio, options = {}) {
+  //   if (!audio) return;
     
-    try {
-      // 1. Remove from tracking collections first
-      const playingIndex = this.currentlyPlaying.indexOf(audio);
-      if (playingIndex !== -1) {
-        this.currentlyPlaying.splice(playingIndex, 1);
-      }
+  //   try {
+  //     // 1. Remove from tracking collections first
+  //     const playingIndex = this.currentlyPlaying.indexOf(audio);
+  //     if (playingIndex !== -1) {
+  //       this.currentlyPlaying.splice(playingIndex, 1);
+  //     }
       
-      // 2. Stop playback
-      audio.pause();
+  //     // 2. Stop playback
+  //     audio.pause();
       
-      // 3. Clear all event listeners to prevent memory leaks
-      audio.onended = null;
-      audio.oncanplay = null;
-      audio.oncanplaythrough = null;
-      audio.onerror = null;
-      audio.onloadeddata = null;
-      audio.onloadedmetadata = null;
-      audio.onpause = null;
-      audio.onplay = null;
+  //     // 3. Clear all event listeners to prevent memory leaks
+  //     audio.onended = null;
+  //     audio.oncanplay = null;
+  //     audio.oncanplaythrough = null;
+  //     audio.onerror = null;
+  //     audio.onloadeddata = null;
+  //     audio.onloadedmetadata = null;
+  //     audio.onpause = null;
+  //     audio.onplay = null;
       
-      // 4. Reset audio element state
-      audio.currentTime = 0;
-      audio.loop = false;
-      audio.volume = 1.0;
-      audio.playbackRate = 1.0;
-      audio.muted = false;
+  //     // 4. Reset audio element state
+  //     audio.currentTime = 0;
+  //     audio.loop = false;
+  //     audio.volume = 1.0;
+  //     audio.playbackRate = 1.0;
+  //     audio.muted = false;
       
-      // 5. Clear src to release resources
-      if (!options.keepSrc) {
-        audio.src = "";
-      }
+  //     // 5. Clear src to release resources
+  //     if (!options.keepSrc) {
+  //       audio.src = "";
+  //     }
       
-      // 6. Check pool size and return to pool if not too large
-      const MAX_POOL_SIZE = 20; // Set a reasonable limit
-      if (window._primedAudioPool && window._primedAudioPool.length < MAX_POOL_SIZE) {
-        window._primedAudioPool.push(audio);
-        console.log(`[AUDIO POOL] Returned audio to pool. Size now: ${window._primedAudioPool.length}`);
-      } else {
-        console.log(`[AUDIO POOL] Pool full (${window._primedAudioPool?.length || 0}), not returning audio`);
-        // No reference maintained - let GC handle it
-      }
-    } catch (error) {
-      console.warn("[AUDIO POOL] Error returning audio to pool:", error);
-    }
-  }
+  //     // 6. Check pool size and return to pool if not too large
+  //     const MAX_POOL_SIZE = 20; // Set a reasonable limit
+  //     if (window._primedAudioPool && window._primedAudioPool.length < MAX_POOL_SIZE) {
+  //       window._primedAudioPool.push(audio);
+  //       console.log(`[AUDIO POOL] Returned audio to pool. Size now: ${window._primedAudioPool.length}`);
+  //     } else {
+  //       console.log(`[AUDIO POOL] Pool full (${window._primedAudioPool?.length || 0}), not returning audio`);
+  //       // No reference maintained - let GC handle it
+  //     }
+  //   } catch (error) {
+  //     console.warn("[AUDIO POOL] Error returning audio to pool:", error);
+  //   }
+  // }
 
   /**
    * Configure audio for slow connections
@@ -670,88 +670,75 @@ class AudioManager {
 
 
 
-  _getOrCreatePrimedAudio() {
-    // Check if pool needs replenishing BEFORE getting an element
-    if (!window._primedAudioPool || window._primedAudioPool.length < this.POOL_CONFIG.MIN_SIZE) {
-      console.log(`[AUDIO POOL] Pool low (${window._primedAudioPool?.length || 0}), replenishing`);
-      this._replenishPool();
-    }
+  // _getOrCreatePrimedAudio() {
+  //   // Check if pool needs replenishing BEFORE getting an element
+  //   if (!window._primedAudioPool || window._primedAudioPool.length < this.POOL_CONFIG.MIN_SIZE) {
+  //     console.log(`[AUDIO POOL] Pool low (${window._primedAudioPool?.length || 0}), replenishing`);
+  //     this._replenishPool();
+  //   }
   
-    const audio = window._primedAudioPool.pop();
-    console.log(`[AUDIO POOL] Reused audio from pool. Remaining: ${window._primedAudioPool.length}`);
+  //   const audio = window._primedAudioPool.pop();
+  //   console.log(`[AUDIO POOL] Reused audio from pool. Remaining: ${window._primedAudioPool.length}`);
     
-    // Reset the audio element completely
-    audio.pause();
-    audio.currentTime = 0;
-    audio.loop = false;
-    audio.volume = 1.0;
-    audio.playbackRate = 1.0;
-    audio.muted = false;
-    audio.src = "";
+  //   // Reset the audio element completely
+  //   audio.pause();
+  //   audio.currentTime = 0;
+  //   audio.loop = false;
+  //   audio.volume = 1.0;
+  //   audio.playbackRate = 1.0;
+  //   audio.muted = false;
+  //   audio.src = "";
     
-    return audio;
-  }
+  //   return audio;
+  // }
   
-  _replenishPool() {
-    const currentSize = window._primedAudioPool?.length || 0;
-    // Always replenish to INITIAL_SIZE, not just minimum
-    const needed = this.POOL_CONFIG.INITIAL_SIZE - currentSize;
-    
-    if (needed > 0) {
-      console.log(`[AUDIO POOL] Replenishing pool with ${needed} elements`);
-      for (let i = 0; i < needed; i++) {
-        const audio = new Audio();
-        audio.preload = "auto";
-        window._primedAudioPool.push(audio);
-      }
-    }
-  }
+ 
   
-  _returnAudioToPool(audio, options = {}) {
-    if (!audio) return;
+  // _returnAudioToPool(audio, options = {}) {
+  //   if (!audio) return;
     
-    try {
-      // Remove from tracking collections first
-      const playingIndex = this.currentlyPlaying.indexOf(audio);
-      if (playingIndex !== -1) {
-        this.currentlyPlaying.splice(playingIndex, 1);
-      }
+  //   try {
+  //     // Remove from tracking collections first
+  //     const playingIndex = this.currentlyPlaying.indexOf(audio);
+  //     if (playingIndex !== -1) {
+  //       this.currentlyPlaying.splice(playingIndex, 1);
+  //     }
       
-      // Stop playback and reset state
-      audio.pause();
-      audio.currentTime = 0;
-      audio.loop = false;
-      audio.volume = 1.0;
-      audio.playbackRate = 1.0;
-      audio.muted = false;
+  //     // Stop playback and reset state
+  //     audio.pause();
+  //     audio.currentTime = 0;
+  //     audio.loop = false;
+  //     audio.volume = 1.0;
+  //     audio.playbackRate = 1.0;
+  //     audio.muted = false;
       
-      // Clear src unless specifically told not to
-      if (!options.keepSrc) {
-        audio.src = "";
-      }
+  //     // Clear src unless specifically told not to
+  //     if (!options.keepSrc) {
+  //       audio.src = "";
+  //     }
       
-      // Clear all event listeners
-      audio.onended = null;
-      audio.oncanplay = null;
-      audio.oncanplaythrough = null;
-      audio.onerror = null;
+  //     // Clear all event listeners
+  //     audio.onended = null;
+  //     audio.oncanplay = null;
+  //     audio.oncanplaythrough = null;
+  //     audio.onerror = null;
       
-      // Add back to pool if under max size
-      if (window._primedAudioPool && window._primedAudioPool.length < this.POOL_CONFIG.MAX_SIZE) {
-        window._primedAudioPool.push(audio);
-        console.log(`[AUDIO POOL] Returned audio to pool. Size now: ${window._primedAudioPool.length}`);
+  //     // Add back to pool if under max size
+  //     if (window._primedAudioPool && window._primedAudioPool.length < this.POOL_CONFIG.MAX_SIZE) {
+  //       window._primedAudioPool.push(audio);
+  //       console.log(`[AUDIO POOL] Returned audio to pool. Size now: ${window._primedAudioPool.length}`);
         
-        // Check if we should replenish after return
-        if (window._primedAudioPool.length < this.POOL_CONFIG.MIN_SIZE) {
-          this._replenishPool();
-        }
-      } else {
-        console.log(`[AUDIO POOL] Pool full (${window._primedAudioPool?.length || 0}), not returning audio`);
-      }
-    } catch (error) {
-      console.warn("[AUDIO POOL] Error returning audio to pool:", error);
-    }
-  }
+  //       // Check if we should replenish after return
+  //       if (window._primedAudioPool.length < this.POOL_CONFIG.MIN_SIZE) {
+  //         this._replenishPool();
+  //       }
+  //     } else {
+  //       console.log(`[AUDIO POOL] Pool full (${window._primedAudioPool?.length || 0}), not returning audio`);
+  //     }
+  //   } catch (error) {
+  //     console.warn("[AUDIO POOL] Error returning audio to pool:", error);
+  //   }
+  // }
 
 
   /**
@@ -1014,72 +1001,77 @@ class AudioManager {
       }
     }
   }
-  
   _returnAudioToPool(audio, options = {}) {
     if (!audio) return;
     
+    console.log(`[nnn] Attempting to return audio to pool: ${audio.src}`);
+    console.log(`[nnn] Audio state before return:`, {
+      ended: audio.ended,
+      paused: audio.paused,
+      currentTime: audio.currentTime,
+      duration: audio.duration
+    });
+  
     try {
-      // Remove from tracking collections first
+      // Force stop the audio
+      if (!audio.paused) {
+        audio.pause();
+      }
+      
+      // Reset to beginning
+      audio.currentTime = 0;
+  
+      // Remove from currently playing
       const playingIndex = this.currentlyPlaying.indexOf(audio);
       if (playingIndex !== -1) {
         this.currentlyPlaying.splice(playingIndex, 1);
+        console.log(`[nnn] Removed from currentlyPlaying. New count: ${this.currentlyPlaying.length}`);
       }
-      
-      // Stop playback and reset state
-      audio.pause();
-      audio.currentTime = 0;
-      audio.loop = false;
-      audio.volume = 1.0;
-      audio.playbackRate = 1.0;
-      audio.muted = false;
-      
-      // Clear src unless specifically told not to
-      if (!options.keepSrc) {
-        audio.src = "";
-      }
-      
-      // Clear all event listeners
+  
+      // Clear all event listeners to prevent memory leaks
       audio.onended = null;
+      audio.onerror = null;
       audio.oncanplay = null;
       audio.oncanplaythrough = null;
-      audio.onerror = null;
-      
-      // Add back to pool if under max size
+  
+      // Clear source
+      if (!options.keepSrc) {
+        audio.removeAttribute('src');
+        audio.src = '';
+        try {
+          audio.load(); // Force browser to clear the source
+        } catch (e) {}
+      }
+  
+      // Return to pool if not too many
       if (window._primedAudioPool && window._primedAudioPool.length < this.POOL_CONFIG.MAX_SIZE) {
         window._primedAudioPool.push(audio);
-        console.log(`[AUDIO POOL] Returned audio to pool. Size now: ${window._primedAudioPool.length}`);
-        
-        // Check if we should replenish after return
-        if (window._primedAudioPool.length < this.POOL_CONFIG.MIN_SIZE) {
-          this._replenishPool();
-        }
-      } else {
-        console.log(`[AUDIO POOL] Pool full (${window._primedAudioPool?.length || 0}), not returning audio`);
+        console.log(`[nnn] Added back to pool. Pool size now: ${window._primedAudioPool.length}`);
       }
+  
     } catch (error) {
-      console.warn("[AUDIO POOL] Error returning audio to pool:", error);
+      console.warn("[nnn] Error returning audio to pool:", error);
     }
   }
+  // /**
+  //  * Set up an audio element with standard properties
+  //  */
+  // _setupAudioElement(audio, options = {}) {
+  //   if (!audio) return audio;
 
-  /**
-   * Set up an audio element with standard properties
-   */
-  _setupAudioElement(audio, options = {}) {
-    if (!audio) return audio;
+  //   // Apply standard properties
+  //   audio.loop = options.loop || false;
+  //   audio.muted = this.muted;
+  //   audio.volume = options.volume !== undefined ? options.volume : this.volume;
+  //   audio.playbackRate = options.playbackRate || 1.0;
 
-    // Apply standard properties
-    audio.loop = options.loop || false;
-    audio.muted = this.muted;
-    audio.volume = options.volume !== undefined ? options.volume : this.volume;
-    audio.playbackRate = options.playbackRate || 1.0;
+  //   // Reset playback position if requested
+  //   if (options.resetPosition) {
+  //     audio.currentTime = 0;
+  //   }
 
-    // Reset playback position if requested
-    if (options.resetPosition) {
-      audio.currentTime = 0;
-    }
-
-    return audio;
-  }
+  //   return audio;
+  // }
 
   /**
    * Load a sound by name
@@ -1405,8 +1397,20 @@ class AudioManager {
    * Get a shuffled sound from a category
    */
   _getShuffledSound(category, subcategory, country = null) {
-    console.log('Getting shuffled sound:', { category, subcategory, country });
-  
+
+    if (!this.shuffleTracking) {
+      this.shuffleTracking = {
+        indices: {},
+        arrays: {}
+      };
+    }
+    console.log(`[nnn] Getting shuffled sound for ${category}.${subcategory}`);
+    console.log(`[nnn] Current shuffle tracking state:`, {
+      arrays: this.shuffleTracking.arrays[`${category}.${subcategory}`],
+      index: this.shuffleTracking.indices[`${category}.${subcategory}`]
+    });
+
+
     // Defensive checks
     if (!this.soundFiles || !this.soundPriorities) {
       console.warn('[AUDIO] Sound files or priorities not initialized');
@@ -1491,6 +1495,8 @@ class AudioManager {
       this.shuffleTracking.indices[soundKey] = (position + 1) % soundArray.length;
   
       // Return the sound file
+      console.log(`[nnn] Selected sound file: ${soundArray[soundIndex]}`);
+
       return soundArray[soundIndex];
   
     } catch (error) {
@@ -1498,6 +1504,8 @@ class AudioManager {
       
       // Fallback: return first sound if possible
       if (Array.isArray(soundArray) && soundArray.length > 0) {
+        console.log(`[nnn] fallback Selected sound file: ${soundArray[soundIndex]}`);
+
         return soundArray[0];
       }
   
@@ -1691,41 +1699,59 @@ class AudioManager {
   playDirect(soundPath, volume = null) {
     if (!this.initialized || this.muted) return null;
   
+    console.log(`[nnn] PlayDirect called for ${soundPath} with volume ${volume}`);
+    console.log(`[nnn] Current playing count before: ${this.currentlyPlaying.length}`);
+    
+
+
+  // Sanity check for too many playing sounds
+  if (this.currentlyPlaying.length > 4) {
+    console.warn(`[nnn] Too many playing sounds (${this.currentlyPlaying.length}), cleaning up...`);
+    // Clean up any ended or very old sounds
+    this.currentlyPlaying = this.currentlyPlaying.filter(sound => {
+      if (sound.ended || sound.paused || sound.currentTime >= sound.duration) {
+        this._returnAudioToPool(sound);
+        return false;
+      }
+      return true;
+    });
+  }
+
     try {
-      // Get an audio element from pool
+      const alreadyPlaying = this.currentlyPlaying.find(s => s.src === this.resolvePath(soundPath));
+    if (alreadyPlaying) {
+      console.warn(`[nnn] Sound ${soundPath} is already playing, returning existing instance`);
+      return alreadyPlaying;
+    }
       const audio = this._getOrCreatePrimedAudio();
+      console.log(`[nnn] Audio element created/retrieved from pool for ${soundPath}`);
   
-      // Set properties
       audio.loop = false;
       audio.muted = false;
       audio.currentTime = 0;
-  
-      // Set source and volume
       audio.src = this.resolvePath(soundPath);
       audio.volume = volume !== null ? volume : this.volume;
   
-      // Add to tracking
       this.currentlyPlaying.push(audio);
+      console.log(`[nnn] Added to currentlyPlaying. New count: ${this.currentlyPlaying.length}`);
   
-      // Set up ended handler for cleanup using our new method
       audio.onended = () => {
+        console.log(`[nnn] Sound ended naturally: ${soundPath}`);
         this._returnAudioToPool(audio);
       };
   
-      // Play it
       const playPromise = audio.play();
   
       if (playPromise) {
         playPromise.catch((error) => {
-          console.warn(`[AUDIO] Play failed for ${soundPath}:`, error);
-          // Return to pool on failure
+          console.warn(`[nnn] Play failed for ${soundPath}:`, error);
           this._returnAudioToPool(audio);
         });
       }
   
       return audio;
     } catch (e) {
-      console.warn(`[AUDIO] Error in playDirect:`, e);
+      console.warn(`[nnn] Error in playDirect for ${soundPath}:`, e);
       return null;
     }
   }
@@ -1867,60 +1893,60 @@ class AudioManager {
   playSuccessfulGrab(country, volume = null) {
     if (this.muted) return null;
   
-    // Sanitize game speed to ensure positive number
     const gameSpeedMultiplier = this._sanitizeGameSpeed();
   
     this.stopGrabSound();
   
     return this.resumeAudioContext().then(() => {
-      // Define audio sequence with files and base durations
       const audioSequence = [
         { 
           type: 'breaking', 
           getFile: () => this._getShuffledSound("trump", "trumpSmash"),
-          baseDuration: 0.5 
+          baseDuration: 0.4 
         },
         { 
           type: 'annex', 
           getFile: () => this._getShuffledSound("trump", "partialAnnexCry"),
-          baseDuration: 1.6 
+          baseDuration: 0.6 
         },
         { 
           type: 'ya', 
           getFile: () => this._getShuffledSound("trump", "trumpYa"),
-          baseDuration: 1.0 
+          baseDuration: 0.5 
         }
       ];
   
-      // Unified audio playback method
       const playAudioSequence = () => {
         let totalElapsedTime = 0;
   
-        audioSequence.forEach((soundItem) => {
-          // Adjust delay based on game speed (ensure it doesn't go below 0)
+        audioSequence.forEach((soundItem, index) => {
           const adjustedDelay = Math.max(0, totalElapsedTime / gameSpeedMultiplier);
           
           setTimeout(() => {
             const soundFile = soundItem.getFile();
-            const playedSound = this.playDirect(soundFile, volume);
-            console.log(`Playing ${soundItem.type} sound: ${soundFile}`);
+            const audio = this.playDirect(soundFile, volume);
+            
+            if (audio) {
+              // Ensure sound is returned to pool only after it ends
+              audio.onended = () => {
+                this._returnAudioToPool(audio);
+              };
+            }
           }, adjustedDelay * 1000);
   
-          // Accumulate time for next sound (adjusted by game speed)
           totalElapsedTime += soundItem.baseDuration / gameSpeedMultiplier;
         });
   
-        // Play catchphrase after sequence
+        // Schedule catchphrase similarly
         setTimeout(() => {
-          console.log(`Playing catchphrase for ${country}`);
           this.playCatchphrase(country, volume);
         }, totalElapsedTime * 1000);
       };
   
-      // Trigger audio sequence
       playAudioSequence();
     });
   }
+  
   
   playSuccessfulBlock(country, volume = null) {
     // Immediately play the slap sound
@@ -1983,13 +2009,13 @@ class AudioManager {
         { 
           type: 'breaking', 
           getFile: () => this._getShuffledSound("trump", "trumpSmash"),
-          baseDuration: 0.5,
+          baseDuration: 0.4, // <- this doesn'twork like we think it does! theres a problem
           tinyPause: 0.1 // Optional pause between sounds
         },
         { 
           type: 'fullAnnex', 
           getFile: () => this._getShuffledSound("trump", "fullAnnexCry"),
-          baseDuration: 3.5 // Longest duration + small buffer
+          baseDuration: 0.5 // Longest duration + small buffer
         },
         { 
           type: 'victory', 
@@ -2294,7 +2320,7 @@ setProtestorVolume(countryId, volume) {
         // Configure it
         music.loop = true;
         music.src = this.resolvePath(this.soundFiles.music.background);
-        music.volume = volume !== null ? volume : this.volume * 0.1; // Lower default volume
+        music.volume = volume !== null ? volume : this.volume * 0.9; // Lower default volume
   
         return music.play()
           .then(() => {

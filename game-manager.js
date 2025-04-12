@@ -1542,19 +1542,19 @@ _proceedWithGameProgression() {
     const claimCount = state.countries.canada.claims;
 
     if (this.systems.audio) {
-      this.systems.audio.resumeAudioContext().then(() => {
-        try {
+      // this.systems.audio.resumeAudioContext().then(() => {
+      //   try {
           if (claimCount < state.countries.canada.maxClaims) {
             this.systems.audio.playSuccessfulGrab("canada");
           } else {
             this.systems.audio.playCountryFullyAnnexedCry("canada");
           }
-        } catch (error) {
-          console.warn("[Engine] Error playing grab success sound:", error);
-          // Fall back to direct sound
-          this.systems.audio.playDirect("partialAnnex1.mp3", 0.8);
-        }
-      });
+      //   } catch (error) {
+      //     console.warn("[Engine] Error playing grab success sound:", error);
+      //     // Fall back to direct sound
+      //     // this.systems.audio.playDirect("partialAnnex1.mp3", 0.8);
+      //   }
+      // });
     }
 
     // Update flag overlay
@@ -1564,29 +1564,23 @@ _proceedWithGameProgression() {
     this.systems.ui.announceForScreenReaders(`Trump has claimed part of Canada! ${claimCount} out of 3 parts taken.`);
   }
   _handleStandardCountryGrab(country) {
+    console.log("nnn handling a standard country grab");
+    
     const state = this.systems.state;
-
-    // Increment claim count
     state.countries[country].claims = Math.min(state.countries[country].claims + 1, state.countries[country].maxClaims);
-
-    // Get current claim count
     const claimCount = state.countries[country].claims;
-
     const isFullAnnexation = claimCount >= state.countries[country].maxClaims;
+  
     if (this.systems.audio) {
-      this.systems.audio.resumeAudioContext().then(() => {
-        try {
-          if (isFullAnnexation) {
-            this.systems.audio.playCountryFullyAnnexedCry(country);
-          } else {
-            this.systems.audio.playSuccessfulGrab(country);
-          }
-        } catch (error) {
-          console.warn("[Engine] Error playing grab success sound:", error);
-          // Fall back to direct sound
+      // this.systems.audio.resumeAudioContext().then(() => {
+        if (isFullAnnexation) {
+          this.systems.audio.playCountryFullyAnnexedCry(country);
+        } else {
           this.systems.audio.playSuccessfulGrab(country);
         }
-      });
+      // }).catch(error => {
+        // console.warn("[Engine] Error playing grab success sound:", error);
+      // });
     }
 
     // Update flag overlay
@@ -2995,11 +2989,11 @@ class GameSpeedManager {
     // Speed levels configuration
     this.speedLevels = [
       { multiplier: 0.9, name: "Tutorial", sound: "tutorial" },
-      { multiplier: 1.3, name: "Faster?", sound: "faster" },
-      { multiplier: 1.8, name: "oopsie trade war", sound: "oopsieTradeWar" },
-      { multiplier: 2.2, name: "Faster", sound: "faster" },
-      { multiplier: 3.1, name: "no one is coming", sound: "noOneIsComingToSaveUs" }, // Reduced from 3.5
-      { multiplier: 4.0, name: "get up and fight", sound: "getUpAndFight" },
+      { multiplier: 2.2, name: "Faster?", sound: "faster" },
+      { multiplier: 2.9, name: "oopsie trade war", sound: "oopsieTradeWar" },
+      { multiplier: 3.5, name: "Faster", sound: "faster" },
+      { multiplier: 3.9, name: "no one is coming", sound: "noOneIsComingToSaveUs" }, // Reduced from 3.5
+      { multiplier: 4.9, name: "get up and fight", sound: "getUpAndFight" },
     ];
 
     // Tutorial instruction messages
@@ -4503,26 +4497,26 @@ class HandHitboxManager {
       // Prevent event bubbling
       e.stopPropagation();
 
-      if (this.audioManager) {
-        this.audioManager
-          .resumeAudioContext()
-          .then(() => {
-            try {
-              this.audioManager.play("ui", "click", 0.5);
-            } catch (error) {
-              console.warn("[Hitbox] Error playing click sound:", error);
-              // Try direct play as fallback
-              try {
-                this.audioManager.playDirect("click.mp3", 0.5);
-              } catch (e) {
-                // Silent fail on fallback
-              }
-            }
-          })
-          .catch((e) => {
-            console.warn("[Hitbox] Failed to resume audio context for click:", e);
-          });
-      }
+      // if (this.audioManager) {
+      //   this.audioManager
+      //     .resumeAudioContext()
+      //     .then(() => {
+      //       try {
+      //         this.audioManager.play("ui", "click", 0.5);
+      //       } catch (error) {
+      //         console.warn("[Hitbox] Error playing click sound:", error);
+      //         // Try direct play as fallback
+      //         try {
+      //           this.audioManager.playDirect("click.mp3", 0.5);
+      //         } catch (e) {
+      //           // Silent fail on fallback
+      //         }
+      //       }
+      //     })
+      //     .catch((e) => {
+      //       console.warn("[Hitbox] Failed to resume audio context for click:", e);
+      //     });
+      // }
     };
 
     // Add the event listeners
@@ -6065,8 +6059,8 @@ class FreedomManager {
 
   static PROTESTOR_TIMING = {
     // Regular (non-USA) protestors
-    INITIAL_ANNEX_MIN_DELAY: 1000, // When a country is first annexed, wait at least 10 seconds before showing protestors
-    INITIAL_ANNEX_MAX_DELAY: 5000, // When a country is first annexed, wait at most 40 seconds before showing protestors
+    INITIAL_ANNEX_MIN_DELAY: 10000, // When a country is first annexed, wait at least 10 seconds before showing protestors
+    INITIAL_ANNEX_MAX_DELAY: 40000, // When a country is first annexed, wait at most 40 seconds before showing protestors
     FADE_AWAY_TIME: 4000, // If protestors aren't clicked, they fade away after 4 seconds
     REGENERATION_DELAY: 10000, // After protestors disappear (fade or liberate), wait 60 seconds before next group appears
 
@@ -6980,10 +6974,7 @@ hideProtestors(countryId) {
 
   _shrinkAndHideProtestors(countryId) {
     this._logProtestorEvent(countryId, 'SHRINK_START', 'Starting shrink animation');
-  
-    // Stop sounds during shrink
-    this._stopProtestorSound(countryId);
-  
+
     const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "shrinking");
     if (!protestorWrapper) return;
   
@@ -7006,6 +6997,8 @@ hideProtestors(countryId) {
         }
       }, 500);
     }
+        // Stop sounds during shrink
+        // this._stopProtestorSound(countryId);
   }
 
 
