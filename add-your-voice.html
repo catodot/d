@@ -1,76 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    
+        <title>WHACK-A--HOLE: Shout! Smack! Fight back!</title>
+    
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap" rel="stylesheet" />
+    
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@700&family=Alfa+Slab+One&display=swap" rel="stylesheet" />
+    
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&display=swap" rel="stylesheet" />
+    
+        <!-- Stylesheets -->
+        <link href="./styles.css" rel="stylesheet" type="text/css" />
+        <link href="./debug.css" rel="stylesheet" type="text/css" />
+        <link href="./trumpHand.css" rel="stylesheet" type="text/css" />
+        <link href="./shrink.css" rel="stylesheet" type="text/css" />
+    
+    
+    
+        <link href="./voice-recorder.css" rel="stylesheet" type="text/css" />
+    
+        <link href="https://fonts.googleapis.com/css2?family=PT+Mono&display=swap" rel="stylesheet" />
+    
+        <meta name="author" content="Cato Döt" />
+        <meta name="description" content="WHACK-A--HOLE: Shout! Smack! Fight back!" />
+        <!-- Open Graph / Yuck -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://catodot.github.io/d/" />
+        <meta property="og:title" content="WHACK-A--HOLE: Shout! Smack! Fight back!" />
+        <meta
+          property="og:description"
+          content="Smack grabby hands and rally the resistance in this whack-a--hole dedicated to a delusional despot who just can't keep his hands to himself. Plus: add your voice to the game!" />
+        <meta property="og:image" content="https://catodot.github.io/d/images/grab.png" />
+    
+    
+        <!-- Eewww Card Tags  -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="WHACK-A--HOLE: Shout! Smack! Fight back!" />
+        <meta
+          name="twitter:description"
+          content="Smack grabby hands and rally the resistance in this whack-a--hole dedicated to a delusional despot who just can't keep his hands to himself. Plus: add your voice to the game!" />
+        <meta name="twitter:image" content="https://catodot.github.io/d/images/grab.png" />
+    
+        <link rel="me" href="https://mastodon.social/@freedom" />
+    
+        <!-- Bluesky/AT Protocol -->
+        <meta property="bsky:title" content="WHACK-A--HOLE: Shout! Smack! Fight back!" />
+        <meta
+          property="bsky:description"
+          content="Smack grabby hands and rally the resistance in this whack-a--hole dedicated to a delusional despot who just can't keep his hands to himself. Plus: add your voice to the game!" />
+        <meta property="bsky:image" content="https://catodot.github.io/d/images/grab.png" />
+    
+        <meta
+          name="description"
+          content="Smack grabby hands and rally the resistance in this whack-a--hole dedicated to a delusional despot who just can't keep his hands to himself. Plus: add your voice to the game!" />
+    
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+        <link rel="manifest" href="./site.webmanifest" />
+      </head>
+    <script>
+        // This code runs when the page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            // Hide intro screen
+            document.getElementById('intro-screen').classList.add('hidden');
+            
+            // Show game over screen
+            const gameOverScreen = document.getElementById('game-over-screen');
+            gameOverScreen.classList.remove('hidden');
+            gameOverScreen.style.display = 'block';
 
+            // Set some default stats
+            document.getElementById('final-score').textContent = '420';
+            document.getElementById('blocks-stat').textContent = '69 attacks';
+            document.getElementById('time-stat').textContent = '8 months';
 
-    <title>WHACK-A--HOLE: Shout! Smack! Fight back!</title>
+            // Show recording modal
+            const recorderModal = document.getElementById('voice-recorder-modal');
+            recorderModal.classList.remove('hidden');
+            recorderModal.style.display = 'flex';
+            recorderModal.style.opacity = '1';
+            recorderModal.style.visibility = 'visible';
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap" rel="stylesheet" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@700&family=Alfa+Slab+One&display=swap" rel="stylesheet" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&display=swap" rel="stylesheet" />
-
-    <!-- Stylesheets -->
-    <link href="./styles.css" rel="stylesheet" type="text/css" />
-    <link href="./debug.css" rel="stylesheet" type="text/css" />
-    <link href="./trumpHand.css" rel="stylesheet" type="text/css" />
-    <link href="./shrink.css" rel="stylesheet" type="text/css" />
-
-
-
-    <link href="./voice-recorder.css" rel="stylesheet" type="text/css" />
-
-    <link href="https://fonts.googleapis.com/css2?family=PT+Mono&display=swap" rel="stylesheet" />
-
-    <meta name="author" content="Cato Döt" />
-    <meta name="description" content="WHACK-A--HOLE: Shout! Smack! Fight back!" />
-    <!-- Open Graph / Yuck -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://catodot.github.io/d/" />
-    <meta property="og:title" content="WHACK-A--HOLE: Shout! Smack! Fight back!" />
-    <meta
-      property="og:description"
-      content="Smack grabby hands and rally the resistance in this whack-a--hole dedicated to a delusional despot who just can't keep his hands to himself. Plus: add your voice to the game!" />
-    <meta property="og:image" content="https://catodot.github.io/d/images/grab.png" />
-
-
-    <!-- Eewww Card Tags  -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="WHACK-A--HOLE: Shout! Smack! Fight back!" />
-    <meta
-      name="twitter:description"
-      content="Smack grabby hands and rally the resistance in this whack-a--hole dedicated to a delusional despot who just can't keep his hands to himself. Plus: add your voice to the game!" />
-    <meta name="twitter:image" content="https://catodot.github.io/d/images/grab.png" />
-
-    <link rel="me" href="https://mastodon.social/@freedom" />
-
-    <!-- Bluesky/AT Protocol -->
-    <meta property="bsky:title" content="WHACK-A--HOLE: Shout! Smack! Fight back!" />
-    <meta
-      property="bsky:description"
-      content="Smack grabby hands and rally the resistance in this whack-a--hole dedicated to a delusional despot who just can't keep his hands to himself. Plus: add your voice to the game!" />
-    <meta property="bsky:image" content="https://catodot.github.io/d/images/grab.png" />
-
-    <meta
-      name="description"
-      content="Smack grabby hands and rally the resistance in this whack-a--hole dedicated to a delusional despot who just can't keep his hands to himself. Plus: add your voice to the game!" />
-
-    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
-    <link rel="manifest" href="./site.webmanifest" />
-  </head>
-
-  <body>
+            // Initialize voice recorder
+            if (!window.voiceRecorder) {
+                window.voiceRecorder = new VoiceRecorder();
+                window.voiceRecorder.init();
+            }
+        });
+    </script>
+</head>
+<body>
 
 
     <!-- Intro Screen -->
@@ -243,4 +273,3 @@
 
   </body>
 </html>
-

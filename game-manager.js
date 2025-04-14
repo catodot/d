@@ -165,32 +165,32 @@ class GameEngine {
     window.gameManager = this; // For backward compatibility
 
     // Add visibility change handler
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        // Only pause if the game is active and not already paused
-        if (this.systems.state.isPlaying && !this.systems.state.isPaused) {
-          // Use the existing pause functionality instead of partial pausing
-          this.togglePause();
+    // document.addEventListener("visibilitychange", () => {
+    //   if (document.hidden) {
+    //     // Only pause if the game is active and not already paused
+    //     if (this.systems.state.isPlaying && !this.systems.state.isPaused) {
+    //       // Use the existing pause functionality instead of partial pausing
+    //       this.togglePause();
 
-          // Set a flag to indicate this was auto-paused due to visibility change
-          this.systems.state.autopaused = true;
+    //       // Set a flag to indicate this was auto-paused due to visibility change
+    //       this.systems.state.autopaused = true;
 
-          // If a grab is in progress, force-complete it
-          if (this.systems.state.currentTarget) {
-            this.grabSuccess(this.systems.state.currentTarget);
-          }
-        }
-      } else {
-        // Resume only if game was auto-paused by visibility change
-        if (this.systems.state.isPlaying && this.systems.state.isPaused && this.systems.state.autopaused) {
-          // Remove auto-pause flag
-          this.systems.state.autopaused = false;
+    //       // If a grab is in progress, force-complete it
+    //       if (this.systems.state.currentTarget) {
+    //         this.grabSuccess(this.systems.state.currentTarget);
+    //       }
+    //     }
+    //   } else {
+    //     // Resume only if game was auto-paused by visibility change
+    //     if (this.systems.state.isPlaying && this.systems.state.isPaused && this.systems.state.autopaused) {
+    //       // Remove auto-pause flag
+    //       this.systems.state.autopaused = false;
 
-          // Resume the game
-          this.togglePause();
-        }
-      }
-    });
+    //       // Resume the game
+    //       this.togglePause();
+    //     }
+    //   }
+    // });
 
     return this;
   }
@@ -2425,33 +2425,33 @@ class UIManager {
     });
 
     // Add visibility change handler for audio
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        // Pause audio when page is hidden
-        if (this.audio) {
-          this.audio.pauseAll();
-        } else if (window.audioManager) {
-          window.audioManager.pauseAll();
-        }
-      } else {
-        // Resume audio context when page becomes visible again
-        if (this.audio) {
-          // Resume audio context first to ensure mobile compatibility
-          this.audio.resumeAudioContext().then(() => {
-            // Only resume playback if game is playing and not paused
-            if (this.state && this.state.isPlaying && !this.state.isPaused) {
-              this.audio.resumeAll();
-            }
-          });
-        } else if (window.audioManager) {
-          window.audioManager.resumeAudioContext().then(() => {
-            if (this.state && this.state.isPlaying && !this.state.isPaused) {
-              window.audioManager.resumeAll();
-            }
-          });
-        }
-      }
-    });
+    // document.addEventListener("visibilitychange", () => {
+    //   if (document.hidden) {
+    //     // Pause audio when page is hidden
+    //     if (this.audio) {
+    //       this.audio.pauseAll();
+    //     } else if (window.audioManager) {
+    //       window.audioManager.pauseAll();
+    //     }
+    //   } else {
+    //     // Resume audio context when page becomes visible again
+    //     if (this.audio) {
+    //       // Resume audio context first to ensure mobile compatibility
+    //       this.audio.resumeAudioContext().then(() => {
+    //         // Only resume playback if game is playing and not paused
+    //         if (this.state && this.state.isPlaying && !this.state.isPaused) {
+    //           this.audio.resumeAll();
+    //         }
+    //       });
+    //     } else if (window.audioManager) {
+    //       window.audioManager.resumeAudioContext().then(() => {
+    //         if (this.state && this.state.isPlaying && !this.state.isPaused) {
+    //           window.audioManager.resumeAll();
+    //         }
+    //       });
+    //     }
+    //   }
+    // });
   }
 
   // Add new helper method to update map dimensions CSS variables
@@ -6031,7 +6031,7 @@ class FreedomManager {
     BASE: 500,
     CONFETTI: 505,
     FIREWORKS: 510,
-    FLASH: 515,
+    FLASH: 0,
     TEXT: 520,
     PROTESTORS: 525,
   };
@@ -9107,4 +9107,74 @@ window.addEventListener('DOMContentLoaded', () => {
           }, 100);
       }
   }
+});
+
+
+
+document.addEventListener('click', function(event) {
+  const trumpHandHitbox = document.getElementById('trump-hand-hitbox');
+  const trumpHandVisual = document.getElementById('trump-hand-visual');
+  const protestorHitboxes = document.querySelectorAll('[id$="-protestor-hitbox"]');
+
+  // Check if click is within Trump's hand hitbox
+  const isClickInTrumpHitbox = trumpHandHitbox ? 
+    event.clientX >= trumpHandHitbox.getBoundingClientRect().left &&
+    event.clientX <= trumpHandHitbox.getBoundingClientRect().right &&
+    event.clientY >= trumpHandHitbox.getBoundingClientRect().top &&
+    event.clientY <= trumpHandHitbox.getBoundingClientRect().bottom 
+    : false;
+
+  // Check if click is within any protestor hitboxes
+  const protestorHitboxIntersections = Array.from(protestorHitboxes).map(hitbox => {
+    const rect = hitbox.getBoundingClientRect();
+    const isIntersecting = 
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom;
+    
+    return {
+      id: hitbox.id,
+      isIntersecting,
+      rect
+    };
+  });
+
+  console.log('bbb 🤚 Comprehensive Click Debug:', {
+    clickCoordinates: {
+      x: event.clientX,
+      y: event.clientY
+    },
+    clickedElement: {
+      tagName: event.target.tagName,
+      id: event.target.id,
+      className: event.target.className
+    },
+    trumpHandHitbox: trumpHandHitbox ? {
+      exists: true,
+      rect: trumpHandHitbox.getBoundingClientRect(),
+      style: {
+        display: trumpHandHitbox.style.display,
+        visibility: trumpHandHitbox.style.visibility,
+        opacity: trumpHandHitbox.style.opacity,
+        pointerEvents: trumpHandHitbox.style.pointerEvents,
+        zIndex: trumpHandHitbox.style.zIndex
+      },
+      isClickWithin: isClickInTrumpHitbox
+    } : { exists: false },
+    protestorHitboxes: {
+      count: protestorHitboxes.length,
+      intersections: protestorHitboxIntersections
+    },
+    handHitboxManager: window.handHitboxManager ? {
+      isVisible: window.handHitboxManager.isVisible,
+      currentState: window.handHitboxManager.currentState,
+      currentFrame: window.handHitboxManager.currentFrame
+    } : 'No HandHitboxManager',
+    gameState: window.gameEngine ? {
+      isPlaying: window.gameEngine.systems.state.isPlaying,
+      isPaused: window.gameEngine.systems.state.isPaused,
+      currentTarget: window.gameEngine.systems.state.currentTarget
+    } : 'Game engine not available'
+  });
 });

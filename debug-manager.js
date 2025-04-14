@@ -778,24 +778,18 @@ togglePanel(forceState) {
     });
   
     const restartBtn = this.createButton("Restart Game", () => {
-      console.log("yoopo");
-
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('')) {
-        
-        // Force a clean URL by constructing it from origin and pathname
-        window.location.href = window.location.origin + window.location.pathname;
+      if (urlParams.has('record')) {
+        // Load the base game without any parameters
+        window.location.href = window.location.pathname;
+        // window.location.href = window.location.origin + window.location.pathname;
+
       } else {
         // Normal restart
         if (window.gameEngine?.restartGame) {
-          window.location.href = window.location.origin + window.location.pathname;
-console.log("yooo");
-
-          // window.gameEngine.restartGame();
+          window.gameEngine.restartGame();
         }
       }
-      console.log("yoopo");
-
     });
   
     flowControls.appendChild(startBtn);
