@@ -220,6 +220,20 @@ class VoiceRecorder {
     startRecording() {
       if (this.isRecording) return;
       
+      if (!window.recordingCount) window.recordingCount = 0;
+
+      if (window.recordingCount >= 3) {
+        const errorElement = document.getElementById('recorder-error-message');
+        if (errorElement) {
+          errorElement.textContent = "3 recordings is enough. Hit 'add to game'!";
+          errorElement.style.display = 'block';
+        }
+        return;
+      }
+
+      window.recordingCount++;
+
+
       // Reset audio chunks
       this.audioChunks = [];
       
@@ -672,6 +686,10 @@ class VoiceRecorder {
             URL.revokeObjectURL(recording.url);
             this.recordings.splice(actualIndex, 1);
             
+            // Decrement the global recording count
+  window.recordingCount = Math.max(0, (window.recordingCount || 1) - 1);
+  
+
             // Update UI
             this.updateRecordingsList();
             
@@ -732,9 +750,11 @@ class VoiceRecorder {
       }
     
       validateSendButton() {
-        const isValid = this.recordings.length > 0 && this.selectedLocation && 
-                        (this.selectedLocation !== "Other" || this.otherLocation.trim() !== "");
+        // const isValid = this.recordings.length > 0 && this.selectedLocation && 
+        //                 (this.selectedLocation !== "Other" || this.otherLocation.trim() !== "");
     
+        const isValid = this.recordings.length > 0;
+
         this.elements.sendButton.disabled = !isValid;
       }
     
@@ -840,8 +860,8 @@ class VoiceRecorder {
           URL.revokeObjectURL(recording.url);
         });
     
-        this.recordings = [];
-        this.elements.recordingsContainer.classList.add("hidden");
+ window.recordingCount = 0;
+    this.recordings = [];        this.elements.recordingsContainer.classList.add("hidden");
         this.elements.recordingsList.innerHTML = "";
         this.elements.modal.classList.add("hidden");
       }

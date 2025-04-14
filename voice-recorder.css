@@ -86,7 +86,7 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.instruction-text {
+.instruction-text, #recorder-error-message {
   text-align: center;
   font-size: 1.5rem;
   line-height: 1.6;
@@ -95,6 +95,11 @@
   margin: 15px 0;
   font-family: system-ui;
   color: #bebcf4;
+}
+
+#recorder-error-message {
+  color: var(--pink);
+
 }
 .examples{
   font-style: italic;
@@ -657,7 +662,7 @@
     font-size: 4rem;
   }
   
-  .instruction-text {
+  .instruction-text, #recorder-error-message {
     font-size: 1.2rem;
   }
 }
@@ -677,7 +682,7 @@
     font-size: 14px;
   }
   
-  .instruction-text {
+  .instruction-text, #recorder-error-message {
     font-size: 1rem;
   }
   

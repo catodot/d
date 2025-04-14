@@ -1964,6 +1964,13 @@ class UIManager {
       // Add fresh click handler
       newButton.addEventListener("click", (e) => {
         e.preventDefault();
+
+        const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('record')) {
+    // If we're in recording mode, just reload the main page
+    window.location.href = window.location.pathname;
+
+  }
         // console.log("Restart button clicked directly from game over screen");
         if (window.gameEngine) {
           window.gameEngine.restartGame();
