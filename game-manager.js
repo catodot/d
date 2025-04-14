@@ -2125,7 +2125,10 @@ class UIManager {
     const pauseOverlay = document.createElement("div");
     pauseOverlay.id = "pause-overlay";
     pauseOverlay.innerHTML = '<div class="pause-overlay-message">Game Paused</div>';
-    this.elements.screens.game.appendChild(pauseOverlay);
+    const gameContainer = document.getElementById("game-container");
+    if (gameContainer) {
+      gameContainer.appendChild(pauseOverlay);
+    }
   }
 
   /**
@@ -9072,3 +9075,36 @@ hideProtestors(countryId) {
 
 // Export the FreedomManager globally
 // window.FreedomManager = FreedomManager;
+
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('record')) {
+      // Hide intro screen
+      document.getElementById('intro-screen').classList.add('hidden');
+      
+      // Directly show game over screen without animations
+      if (window.gameEngine) {
+          // Skip animations and flash effects
+          window.gameEngine.systems.state.gameEnding = true;
+          window.gameEngine.systems.state.isPlaying = false;
+          
+          // Show game over screen directly
+          window.gameEngine.systems.ui.showGameOverScreen(true, window.gameEngine.systems.state);
+          
+          // Show recorder after a slight delay
+          setTimeout(() => {
+              openVoiceRecordingInterface();
+          }, 500);
+      } else {
+          // If game engine isn't ready yet, wait a short moment
+          setTimeout(() => {
+              window.gameEngine.systems.state.gameEnding = true;
+              window.gameEngine.systems.state.isPlaying = false;
+              window.gameEngine.systems.ui.showGameOverScreen(true, window.gameEngine.systems.state);
+              setTimeout(() => {
+                  openVoiceRecordingInterface();
+              }, 500);
+          }, 100);
+      }
+  }
+});

@@ -94,7 +94,7 @@ class DebugManager {
     this.setupHitboxControlsSection();
     this.setupAudioControlsSection();
     this.setupResistanceControlsSection();
-    this.setupProtestorControlsSection();
+    // this.setupProtestorControlsSection();
     this.setupUfoControlsSection();
     this.setupPerformanceControlsSection();
 
@@ -453,6 +453,195 @@ togglePanel(forceState) {
         this.updateResistanceStatus();
       }, 500);
     }
+
+    
+  }
+
+  setupResistanceControlsSection() {
+    const { content } = this.createSection("resistance", "Resistance & Protestor Controls");
+  
+    // Country selector
+    const countrySelector = document.createElement("select");
+    countrySelector.className = "dbg-select";
+    countrySelector.style.marginRight = "5px";
+    ["canada", "mexico", "greenland", "usa"].forEach((country) => {
+      const option = document.createElement("option");
+      option.value = country;
+      option.textContent = country;
+      countrySelector.appendChild(option);
+    });
+  
+    const selectorWrapper = document.createElement("div");
+    selectorWrapper.className = "dbg-group";
+    selectorWrapper.innerHTML = `<div class="dbg-label">Country: </div>`;
+    selectorWrapper.appendChild(countrySelector);
+    content.appendChild(selectorWrapper);
+  
+    // Flag controls
+    const flagControls = document.createElement("div");
+    flagControls.className = "dbg-group";
+  
+    const claimsControls = document.createElement("div");
+    claimsControls.style.display = "flex";
+    claimsControls.style.flexWrap = "wrap";
+    claimsControls.style.gap = "5px";
+    claimsControls.style.marginTop = "5px";
+  
+    // Claims buttons (0-3)
+    [0, 1, 2, 3].forEach((claims) => {
+      const btn = this.createButton(
+        `Set ${claims}/3`,
+        () => {
+          const country = countrySelector.value;
+          if (window.freedomManager) {
+            window.freedomManager.setCountryClaims(country, claims);
+          }
+        },
+        { small: true }
+      );
+      claimsControls.appendChild(btn);
+    });
+  
+    flagControls.appendChild(claimsControls);
+    content.appendChild(flagControls);
+  
+    // Protestor controls
+    const protestorControls = document.createElement("div");
+    protestorControls.className = "dbg-group";
+  
+    // Show/Hide controls
+    const visibilityControls = document.createElement("div");
+    visibilityControls.style.display = "flex";
+    visibilityControls.style.gap = "5px";
+    visibilityControls.style.marginBottom = "10px";
+  
+    const showProtestorsBtn = this.createButton(
+      "Show Protestors",
+      () => {
+        const country = countrySelector.value;
+        if (window.freedomManager) {
+          window.freedomManager.showProtestors(country);
+        }
+      },
+      { small: true }
+    );
+  
+    const hideProtestorsBtn = this.createButton(
+      "Hide Protestors",
+      () => {
+        const country = countrySelector.value;
+        if (window.freedomManager) {
+          window.freedomManager.hideProtestors(country);
+        }
+      },
+      { small: true }
+    );
+  
+    visibilityControls.appendChild(showProtestorsBtn);
+    visibilityControls.appendChild(hideProtestorsBtn);
+    protestorControls.appendChild(visibilityControls);
+  
+    // Action controls
+    const actionControls = document.createElement("div");
+    actionControls.style.display = "flex";
+    actionControls.style.flexWrap = "wrap";
+    actionControls.style.gap = "5px";
+  
+    const triggerResistanceBtn = this.createButton(
+      "Trigger Resistance",
+      () => {
+        const country = countrySelector.value;
+        if (window.freedomManager) {
+          window.freedomManager.triggerCountryResistance(country);
+        }
+      },
+      { small: true }
+    );
+  
+    const cleanupAllBtn = this.createButton(
+      "Cleanup All",
+      () => {
+        if (window.freedomManager) {
+          window.freedomManager.cleanupAllProtestors();
+        }
+      },
+      { small: true }
+    );
+  
+    // Size controls
+    const sizeControls = document.createElement("div");
+    sizeControls.style.display = "flex";
+    sizeControls.style.gap = "5px";
+    sizeControls.style.marginTop = "5px";
+  
+    const scaleUpBtn = this.createButton(
+      "Scale Up",
+      () => {
+        const country = countrySelector.value;
+        if (window.protestorHitboxManager) {
+          window.protestorHitboxManager.updateSize(country, 1.2);
+        }
+      },
+      { small: true }
+    );
+    
+    const resetSizeBtn = this.createButton(
+      "Reset Size",
+      () => {
+        const country = countrySelector.value;
+        if (window.protestorHitboxManager) {
+          window.protestorHitboxManager.updateSize(country, 1.0);
+        }
+      },
+      { small: true }
+    );
+  
+    actionControls.appendChild(triggerResistanceBtn);
+    actionControls.appendChild(cleanupAllBtn);
+    sizeControls.appendChild(scaleUpBtn);
+    sizeControls.appendChild(resetSizeBtn);
+  
+    protestorControls.appendChild(actionControls);
+    protestorControls.appendChild(sizeControls);
+    content.appendChild(protestorControls);
+  
+    // Status display
+    const resistanceStatus = this.createStatus("resistance-status", "Resistance & protestor status");
+    content.appendChild(resistanceStatus);
+  
+    // Update status periodically
+    setInterval(() => this.updateResistanceStatus(), 500);
+  }
+  
+  // Update the status display method
+  updateResistanceStatus() {
+    if (!window.freedomManager) return;
+  
+    const statusElement = document.getElementById("resistance-status");
+    if (!statusElement) return;
+  
+    try {
+      let statusHTML = "";
+  
+      // For each country, show resistance status
+      Object.keys(window.freedomManager.countries).forEach((country) => {
+        const countryData = window.freedomManager.countries[country];
+        const gameCountry = this.gameState?.countries?.[country];
+  
+        statusHTML += `
+          <div style="margin-bottom: 5px;">
+            <strong>${country}:</strong> 
+            ${gameCountry ? `${gameCountry.claims}/${gameCountry.maxClaims} claims` : "Unknown"} |
+            Protestors: ${countryData.protestorsShown ? "Shown" : "Hidden"} |
+            Click Count: ${countryData.clickCounter || 0}
+          </div>
+        `;
+      });
+  
+      statusElement.innerHTML = statusHTML;
+    } catch (e) {
+      statusElement.textContent = "Error updating resistance status: " + e.message;
+    }
   }
 
   /**
@@ -522,7 +711,7 @@ togglePanel(forceState) {
     timeControls.appendChild(timeButtons);
     content.appendChild(timeControls);
   
-    // Score controls
+    // Score controls 
     const scoreControls = document.createElement("div");
     scoreControls.className = "dbg-group";
     scoreControls.innerHTML = `
@@ -546,132 +735,18 @@ togglePanel(forceState) {
     scoreControls.appendChild(setScoreBtn);
     content.appendChild(scoreControls);
   
-    // Game speed controls - updated with all speed levels
-    const speedControls = document.createElement("div");
-    speedControls.className = "dbg-group";
-    speedControls.innerHTML = `<div>Speed Controls:</div>`;
-  
-    const speedButtons = document.createElement("div");
-    speedButtons.style.display = "flex";
-    speedButtons.style.gap = "5px";
-    speedButtons.style.marginTop = "5px";
-    speedButtons.style.flexWrap = "wrap";
-  
-    const speedInput = document.createElement("input");
-    speedInput.id = "debug-speed-input";
-    speedInput.type = "number";
-    speedInput.step = "0.1";
-    speedInput.min = "0.1";
-    speedInput.max = "5.0";
-    speedInput.value = "1.0";
-    speedInput.className = "dbg-input";
-    speedInput.style.width = "60px";
-  
-    const setSpeedBtn = this.createButton(
-      "Set Speed",
-      () => {
-        if (window.speedManager) {
-          const customSpeed = parseFloat(document.getElementById("debug-speed-input").value);
-          if (!isNaN(customSpeed)) {
-            window.speedManager.setSpeed(customSpeed);
-          }
-        }
-      },
-      { small: true }
-    );
-  
-    // Add buttons for all speed levels from SpeedManager
-    if (window.speedManager && window.speedManager.speedLevels) {
-      window.speedManager.speedLevels.forEach((level) => {
-        const btn = this.createButton(
-          `${level.multiplier}x ${level.name}`,
-          () => {
-            if (window.speedManager) {
-              window.speedManager.setSpeed(level.multiplier);
-            }
-          },
-          { small: true }
-        );
-        speedButtons.appendChild(btn);
-      });
-    } else {
-      // Fallback if speed manager not available
-      [0.7, 1.0, 1.3, 1.8, 2.2, 3.1, 4.0].forEach((speed) => {
-        const btn = this.createButton(
-          `${speed}x`,
-          () => {
-            if (window.speedManager) {
-              window.speedManager.setSpeed(speed);
-            }
-          },
-          { small: true }
-        );
-        speedButtons.appendChild(btn);
-      });
-    }
-  
-    const speedControls2 = document.createElement("div");
-    speedControls2.style.display = "flex";
-    speedControls2.style.gap = "5px";
-    speedControls2.style.marginTop = "5px";
-    speedControls2.appendChild(speedInput);
-    speedControls2.appendChild(setSpeedBtn);
-  
-    speedControls.appendChild(speedButtons);
-    speedControls.appendChild(speedControls2);
-    content.appendChild(speedControls);
-  
-    // Tutorial controls - enhanced
-    const tutorialControls = document.createElement("div");
-    tutorialControls.className = "dbg-group";
-    tutorialControls.innerHTML = `<div>Tutorial Controls:</div>`;
-  
-    const completeTutorialBtn = this.createButton(
-      "Complete Tutorial",
-      () => {
-        if (window.speedManager) {
-          window.speedManager.state.tutorialCompleted = true;
-          window.speedManager._startRegularSpeedProgression();
-        }
-      }
-    );
-  
-    const showInstructionBtn = this.createButton(
-      "Show Instruction",
-      () => {
-        if (window.speedManager) {
-          window.speedManager.showNextInstruction();
-        }
-      }
-    );
-  
-    const resetTutorialBtn = this.createButton(
-      "Reset Tutorial",
-      () => {
-        if (window.speedManager) {
-          window.speedManager.reset();
-          window.speedManager.startSpeedProgression();
-        }
-      }
-    );
-  
-    tutorialControls.appendChild(completeTutorialBtn);
-    tutorialControls.appendChild(showInstructionBtn);
-    tutorialControls.appendChild(resetTutorialBtn);
-    content.appendChild(tutorialControls);
-  
-    // Game flow controls with enhanced world shrink testing
+    // Game flow controls with game end states
     const flowControls = document.createElement("div");
     flowControls.className = "dbg-group";
   
     const startBtn = this.createButton("Start Game", () => {
-      if (window.gameEngine && window.gameEngine.startGame) {
+      if (window.gameEngine?.startGame) {
         window.gameEngine.startGame();
       }
     });
   
     const pauseBtn = this.createButton("Toggle Pause", () => {
-      if (window.gameEngine && window.gameEngine.togglePause) {
+      if (window.gameEngine?.togglePause) {
         window.gameEngine.togglePause();
       }
     });
@@ -682,53 +757,51 @@ togglePanel(forceState) {
     gameOverBtns.style.marginTop = "5px";
     gameOverBtns.style.flexWrap = "wrap";
   
-    const winBtn = this.createButton(
-      "Win Game",
-      () => {
-        if (window.gameEngine && window.gameEngine.endGame) {
-          window.gameEngine.endGame(true);
-        }
-      },
-      { className: "dbg-button small" }
-    );
+    // Updated end game buttons to match new states
+    const endStates = {
+      "Trump Victory": "trump_victory",
+      "Resistance Win": "resistance_win",
+      "Trump Destroyed": "trump_destroyed"
+    };
   
-    const loseBtn = this.createButton(
-      "Lose Game",
-      () => {
-        if (window.gameEngine && window.gameEngine.endGame) {
-          window.gameEngine.endGame(false);
-        }
-      },
-      { className: "dbg-button small" }
-    );
-  
-    const worldShrinkBtn = this.createButton(
-      "World Shrink",
-      () => {
-        if (window.gameEngine && window.gameEngine.endGame) {
-          window.gameEngine.endGame(false, { 
-            showWorldShrinkAnimation: true,
-            animationDuration: 7000,
-            keepTrumpAnimating: true 
-          });
-        }
-      },
-      { className: "dbg-button small" }
-    );
+    Object.entries(endStates).forEach(([label, state]) => {
+      const btn = this.createButton(
+        label,
+        () => {
+          if (window.gameEngine?.triggerGameEnd) {
+            window.gameEngine.triggerGameEnd(state);
+          }
+        },
+        { className: "dbg-button small" }
+      );
+      gameOverBtns.appendChild(btn);
+    });
   
     const restartBtn = this.createButton("Restart Game", () => {
-      if (window.gameEngine && window.gameEngine.restartGame) {
-        window.gameEngine.restartGame();
+      console.log("yoopo");
+
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('')) {
+        
+        // Force a clean URL by constructing it from origin and pathname
+        window.location.href = window.location.origin + window.location.pathname;
+      } else {
+        // Normal restart
+        if (window.gameEngine?.restartGame) {
+          window.location.href = window.location.origin + window.location.pathname;
+console.log("yooo");
+
+          // window.gameEngine.restartGame();
+        }
       }
+      console.log("yoopo");
+
     });
   
     flowControls.appendChild(startBtn);
     flowControls.appendChild(pauseBtn);
     flowControls.appendChild(gameOverBtns);
     flowControls.appendChild(restartBtn);
-    gameOverBtns.appendChild(winBtn);
-    gameOverBtns.appendChild(loseBtn);
-    gameOverBtns.appendChild(worldShrinkBtn);
     content.appendChild(flowControls);
   
     // Game state display
@@ -739,7 +812,8 @@ togglePanel(forceState) {
     setInterval(() => this._updateGameStateDisplay(), 500);
   }
   
-  // Update the game state display method
+
+
   _updateGameStateDisplay() {
     if (!this.gameState) return;
   
@@ -754,35 +828,13 @@ togglePanel(forceState) {
       <div>Time: ${this.gameState.timeRemaining}s</div>
       <div>Score: ${this.gameState.score}</div>
       <div>Speed: ${speed.multiplier.toFixed(1)}x (${speed.name})</div>
-      <div>Tutorial Complete: ${window.speedManager?.state.tutorialCompleted ? "Yes" : "No"}</div>
-      <div>Blocks: ${this.gameState.stats.successfulBlocks}</div>
-      <div>Consecutive Hits: ${this.gameState.consecutiveHits}</div>
+      <div>Tutorial Complete: ${window.speedManager?.state?.tutorialCompleted ? "Yes" : "No"}</div>
+      <div>Blocks: ${this.gameState.stats?.successfulBlocks || 0}</div>
+      <div>Consecutive Hits: ${this.gameState.consecutiveHits || 0}</div>
+      ${this.gameState.gameEnding ? '<div style="color: #f55;">Game Ending: ' + this.gameState.endReason + '</div>' : ''}
     `;
   }
 
-/**
- * Update game state display
- * @private
- */
-_updateGameStateDisplay() {
-    if (!this.gameState) return;
-
-    const status = document.getElementById("game-state-status");
-    if (!status) return;
-
-    const speed = window.speedManager ? window.speedManager.getCurrentSpeed() : { multiplier: 1, name: "Normal" };
-
-    status.innerHTML = `
-        <div>Playing: ${this.gameState.isPlaying ? "Yes" : "No"}</div>
-        <div>Paused: ${this.gameState.isPaused ? "Yes" : "No"}</div>
-        <div>Time: ${this.gameState.timeRemaining}s</div>
-        <div>Score: ${this.gameState.score}</div>
-        <div>Speed: ${speed.multiplier.toFixed(1)}x (${speed.name})</div>
-        <div>Tutorial Complete: ${window.speedManager?.state.tutorialCompleted ? "Yes" : "No"}</div>
-        <div>Blocks: ${this.gameState.stats.successfulBlocks}</div>
-        <div>Consecutive Hits: ${this.gameState.consecutiveHits}</div>
-    `;
-}
 
   /**
    * Update game UI
@@ -1092,126 +1144,126 @@ _updateGameStateDisplay() {
   }
   
 // Update the calibration panel creation to be floating instead of in the debug panel
-_createCalibrationPanel(animationName) {
-  // Remove existing panel if there is one
-  const existingPanel = document.getElementById("calibration-panel");
-  if (existingPanel) existingPanel.remove();
+// _createCalibrationPanel(animationName) {
+//   // Remove existing panel if there is one
+//   const existingPanel = document.getElementById("calibration-panel");
+//   if (existingPanel) existingPanel.remove();
 
-  const panel = document.createElement("div");
-  panel.id = "calibration-panel";
-  panel.style.cssText = `
-    position: fixed;
-    top: 7rem;
-    right: 13rem;
+//   const panel = document.createElement("div");
+//   panel.id = "calibration-panel";
+//   panel.style.cssText = `
+//     position: fixed;
+//     top: 7rem;
+//     right: 13rem;
 
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    z-index: 50000;
-  `;
+//     background: rgba(0, 0, 0, 0.8);
+//     color: white;
+//     padding: 10px;
+//     border-radius: 5px;
+//     z-index: 50000;
+//   `;
 
-  panel.innerHTML = `
-    <h4 style="margin: 0 0 10px 0">Calibrating: ${animationName}</h4>
-    <div style="margin-bottom: 10px">
-      Frame: <span id="current-frame">0</span>
-      <button id="prev-frame" style="margin: 0 5px">◀</button>
-      <button id="next-frame" style="margin: 0 5px">▶</button>
-    </div>
-    <div id="coords-display" style="margin-bottom: 10px">Click to place hitbox</div>
-    <div style="display: flex; gap: 5px;">
-      <button id="save-calib">Save</button>
-      <button id="cancel-calib">Cancel</button>
-    </div>
-  `;
+//   panel.innerHTML = `
+//     <h4 style="margin: 0 0 10px 0">Calibrating: ${animationName}</h4>
+//     <div style="margin-bottom: 10px">
+//       Frame: <span id="current-frame">0</span>
+//       <button id="prev-frame" style="margin: 0 5px">◀</button>
+//       <button id="next-frame" style="margin: 0 5px">▶</button>
+//     </div>
+//     <div id="coords-display" style="margin-bottom: 10px">Click to place hitbox</div>
+//     <div style="display: flex; gap: 5px;">
+//       <button id="save-calib">Save</button>
+//       <button id="cancel-calib">Cancel</button>
+//     </div>
+//   `;
 
-  document.body.appendChild(panel);
+//   document.body.appendChild(panel);
 
-  // Add event listeners
-  panel.querySelector("#prev-frame").addEventListener("click", () => {
-    console.log("Previous frame");
-  });
+//   // Add event listeners
+//   panel.querySelector("#prev-frame").addEventListener("click", () => {
+//     console.log("Previous frame");
+//   });
 
-  panel.querySelector("#next-frame").addEventListener("click", () => {
-    console.log("Next frame");
-  });
+//   panel.querySelector("#next-frame").addEventListener("click", () => {
+//     console.log("Next frame");
+//   });
 
-  panel.querySelector("#save-calib").addEventListener("click", () => {
-    this.endCalibration(true);
-  });
+//   panel.querySelector("#save-calib").addEventListener("click", () => {
+//     this.endCalibration(true);
+//   });
 
-  panel.querySelector("#cancel-calib").addEventListener("click", () => {
-    this.endCalibration(false);
-  });
-}
+//   panel.querySelector("#cancel-calib").addEventListener("click", () => {
+//     this.endCalibration(false);
+//   });
+// }
 
 // Update the hitbox dragging functionality to match the old code
-_makeHitboxDraggable() {
-  const hitbox = document.getElementById("calibration-hitbox");
-  const container = document.getElementById("trump-sprite-container");
-  if (!hitbox || !container) return;
+// _makeHitboxDraggable() {
+//   const hitbox = document.getElementById("calibration-hitbox");
+//   const container = document.getElementById("trump-sprite-container");
+//   if (!hitbox || !container) return;
 
-  let isDragging = false;
-  let offsetX = 0;
-  let offsetY = 0;
+//   let isDragging = false;
+//   let offsetX = 0;
+//   let offsetY = 0;
 
-  const onMouseDown = (e) => {
-    isDragging = true;
-    const hitboxRect = hitbox.getBoundingClientRect();
-    offsetX = e.clientX - hitboxRect.left;
-    offsetY = e.clientY - hitboxRect.top;
-    e.preventDefault();
-  };
+//   const onMouseDown = (e) => {
+//     isDragging = true;
+//     const hitboxRect = hitbox.getBoundingClientRect();
+//     offsetX = e.clientX - hitboxRect.left;
+//     offsetY = e.clientY - hitboxRect.top;
+//     e.preventDefault();
+//   };
 
-  const onMouseMove = (e) => {
-    if (!isDragging) return;
+//   const onMouseMove = (e) => {
+//     if (!isDragging) return;
 
-    const containerRect = container.getBoundingClientRect();
-    const x = e.clientX - containerRect.left - offsetX;
-    const y = e.clientY - containerRect.top - offsetY;
+//     const containerRect = container.getBoundingClientRect();
+//     const x = e.clientX - containerRect.left - offsetX;
+//     const y = e.clientY - containerRect.top - offsetY;
 
-    hitbox.style.left = `${x}px`;
-    hitbox.style.top = `${y}px`;
-    hitbox.style.transform = 'none';
+//     hitbox.style.left = `${x}px`;
+//     hitbox.style.top = `${y}px`;
+//     hitbox.style.transform = 'none';
 
-    // Update coordinate display
-    const coordsDisplay = document.getElementById("coords-display");
-    if (coordsDisplay) {
-      coordsDisplay.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
-    }
+//     // Update coordinate display
+//     const coordsDisplay = document.getElementById("coords-display");
+//     if (coordsDisplay) {
+//       coordsDisplay.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
+//     }
 
-    // Store coordinates for current frame
-    const currentFrame = parseInt(document.getElementById("current-frame").textContent);
-    this.calibration.frameCoordinates[currentFrame] = {
-      x: Math.round(x),
-      y: Math.round(y),
-      width: parseInt(hitbox.style.width) || 50,
-      height: parseInt(hitbox.style.height) || 50
-    };
-  };
+//     // Store coordinates for current frame
+//     const currentFrame = parseInt(document.getElementById("current-frame").textContent);
+//     this.calibration.frameCoordinates[currentFrame] = {
+//       x: Math.round(x),
+//       y: Math.round(y),
+//       width: parseInt(hitbox.style.width) || 50,
+//       height: parseInt(hitbox.style.height) || 50
+//     };
+//   };
 
-  const onMouseUp = () => {
-    isDragging = false;
-  };
+//   const onMouseUp = () => {
+//     isDragging = false;
+//   };
 
-  // Add both mouse and touch events
-  hitbox.addEventListener('mousedown', onMouseDown);
-  document.addEventListener('mousemove', onMouseMove);
-  document.addEventListener('mouseup', onMouseUp);
+//   // Add both mouse and touch events
+//   hitbox.addEventListener('mousedown', onMouseDown);
+//   document.addEventListener('mousemove', onMouseMove);
+//   document.addEventListener('mouseup', onMouseUp);
 
-  // Touch events
-  hitbox.addEventListener('touchstart', (e) => {
-    const touch = e.touches[0];
-    onMouseDown(touch);
-  });
+//   // Touch events
+//   hitbox.addEventListener('touchstart', (e) => {
+//     const touch = e.touches[0];
+//     onMouseDown(touch);
+//   });
 
-  document.addEventListener('touchmove', (e) => {
-    const touch = e.touches[0];
-    onMouseMove(touch);
-  });
+//   document.addEventListener('touchmove', (e) => {
+//     const touch = e.touches[0];
+//     onMouseMove(touch);
+//   });
 
-  document.addEventListener('touchend', onMouseUp);
-}
+//   document.addEventListener('touchend', onMouseUp);
+// }
 
 // Update the calibration start to position elements correctly
 startCalibration(animationName) {
@@ -1297,78 +1349,78 @@ startCalibration(animationName) {
   }
 }
   
-  _handleCalibrationClick(e) {
-    if (!this.calibration?.isCalibrating) return;
+  // _handleCalibrationClick(e) {
+  //   if (!this.calibration?.isCalibrating) return;
   
-    const dot = document.getElementById("debug-hitbox-dot");
-    if (!dot) return;
+  //   const dot = document.getElementById("debug-hitbox-dot");
+  //   if (!dot) return;
   
-    // Get click coordinates relative to the game container
-    const container = document.getElementById("game-container") || document.body;
-    const rect = container.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  //   // Get click coordinates relative to the game container
+  //   const container = document.getElementById("game-container") || document.body;
+  //   const rect = container.getBoundingClientRect();
+  //   const x = e.clientX - rect.left;
+  //   const y = e.clientY - rect.top;
   
-    // Update dot position
-    dot.style.left = `${x}px`;
-    dot.style.top = `${y}px`;
-    dot.style.display = "block";
+  //   // Update dot position
+  //   dot.style.left = `${x}px`;
+  //   dot.style.top = `${y}px`;
+  //   dot.style.display = "block";
   
-    // Update coordinates display
-    const coordsDisplay = document.getElementById("coords-display");
-    if (coordsDisplay) {
-      coordsDisplay.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
-    }
-  }
+  //   // Update coordinates display
+  //   const coordsDisplay = document.getElementById("coords-display");
+  //   if (coordsDisplay) {
+  //     coordsDisplay.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
+  //   }
+  // }
 
  
   
 
 
   
-  endCalibration(save = false) {
-    if (!this.calibration) return;
+  // endCalibration(save = false) {
+  //   if (!this.calibration) return;
   
-    // Remove calibration panel
-    const panel = document.getElementById("calibration-panel");
-    if (panel) panel.remove();
+  //   // Remove calibration panel
+  //   const panel = document.getElementById("calibration-panel");
+  //   if (panel) panel.remove();
   
-    // Remove placeholders
-    const hitboxPlaceholder = document.getElementById("calibration-hitbox");
-    if (hitboxPlaceholder) hitboxPlaceholder.remove();
+  //   // Remove placeholders
+  //   const hitboxPlaceholder = document.getElementById("calibration-hitbox");
+  //   if (hitboxPlaceholder) hitboxPlaceholder.remove();
   
-    const animPlaceholder = document.getElementById("calibration-placeholder");
-    if (animPlaceholder) animPlaceholder.remove();
+  //   const animPlaceholder = document.getElementById("calibration-placeholder");
+  //   if (animPlaceholder) animPlaceholder.remove();
   
-    // Restore game state
-    if (this.calibration.wasPlaying && !this.calibration.wasPaused) {
-      this.gameState.isPlaying = true;
-      this.gameState.isPaused = false;
-      this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
-      window.scheduleNextGrab?.();
+  //   // Restore game state
+  //   if (this.calibration.wasPlaying && !this.calibration.wasPaused) {
+  //     this.gameState.isPlaying = true;
+  //     this.gameState.isPaused = false;
+  //     this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
+  //     window.scheduleNextGrab?.();
   
-      // Restore animation state
-      if (this.animationManager && this.calibration.originalAnimState) {
-        this.animationManager.changeState(this.calibration.originalAnimState);
-      }
-    }
+  //     // Restore animation state
+  //     if (this.animationManager && this.calibration.originalAnimState) {
+  //       this.animationManager.changeState(this.calibration.originalAnimState);
+  //     }
+  //   }
   
-    // Update status
-    const status = document.getElementById("calibration-status");
-    if (status) {
-      status.textContent = save ? 
-        "Calibration saved!" : 
-        "Calibration cancelled";
-    }
+  //   // Update status
+  //   const status = document.getElementById("calibration-status");
+  //   if (status) {
+  //     status.textContent = save ? 
+  //       "Calibration saved!" : 
+  //       "Calibration cancelled";
+  //   }
   
-    // Clean up calibration state
-    this.calibration = null;
+  //   // Clean up calibration state
+  //   this.calibration = null;
   
-    // Remove body class if we're not in regular debug mode
-    if (!this.enabled) {
-      document.body.classList.remove("debug-mode");
-    }
-  }
+  //   // Remove body class if we're not in regular debug mode
+  //   if (!this.enabled) {
+  //     document.body.classList.remove("debug-mode");
+  //   }
+  // }
 
 
   /**
@@ -1690,366 +1742,120 @@ startCalibration(animationName) {
     }, 500);
   }
 
-  setupResistanceControlsSection() {
-    const { content } = this.createSection("resistance", "Resistance Controls");
-  
-    // Country flags controls
-    const flagControls = document.createElement("div");
-    flagControls.className = "dbg-group";
-  
-    const countrySelector = document.createElement("select");
-    countrySelector.className = "dbg-select";
-    countrySelector.style.marginRight = "5px";
-    ["canada", "mexico", "greenland"].forEach((country) => {
-      const option = document.createElement("option");
-      option.value = country;
-      option.textContent = country;
-      countrySelector.appendChild(option);
-    });
-  
-    // Flag opacity buttons
-    const opacityControls = document.createElement("div");
-    opacityControls.style.display = "flex";
-    opacityControls.style.flexWrap = "wrap";
-    opacityControls.style.gap = "5px";
-    opacityControls.style.marginTop = "5px";
-  
-    [0, 1, 2, 3].forEach((claims) => {
-      const btn = this.createButton(
-        `Set ${claims}/3`,
-        () => {
-          const country = countrySelector.value;
-  
-          // Try the freedom manager first
-          if (this.freedomManager && typeof this.freedomManager.setCountryClaims === "function") {
-            this.freedomManager.setCountryClaims(country, claims);
-          }
-          // Then try game state direct update
-          else if (this.gameState && this.gameState.countries && this.gameState.countries[country]) {
-            this.gameState.countries[country].claims = claims;
-  
-            // Also update UI overlay if possible
-            if (window.gameEngine && window.gameEngine.systems && window.gameEngine.systems.ui) {
-              window.gameEngine.systems.ui.updateFlagOverlay(country, claims);
-            }
-          }
-        },
-        { small: true }
-      );
-      opacityControls.appendChild(btn);
-    });
-  
-    flagControls.appendChild(document.createTextNode("Country: "));
-    flagControls.appendChild(countrySelector);
-    flagControls.appendChild(opacityControls);
-    content.appendChild(flagControls);
-  
-    // Resistance action buttons
-    const actionControls = document.createElement("div");
-    actionControls.className = "dbg-group";
-  
-    const annexBtn = this.createButton("Fully Annex Country", () => {
-      const country = countrySelector.value;
-      if (this.freedomManager && typeof this.freedomManager.annexCountry === "function") {
-        this.freedomManager.annexCountry(country);
-      }
-    });
-  
-    const resistanceReadyBtn = this.createButton("Make Resistance Ready", () => {
-      const country = countrySelector.value;
-      if (this.freedomManager && typeof this.freedomManager.makeResistanceReady === "function") {
-        this.freedomManager.makeResistanceReady(country);
-      }
-    });
-  
-    const triggerResistanceBtn = this.createButton("Trigger Resistance", () => {
-      const country = countrySelector.value;
-      if (this.freedomManager && typeof this.freedomManager.triggerCountryResistance === "function") {
-        this.freedomManager.triggerCountryResistance(country);
-      }
-    });
-  
-    const celebrationBtn = this.createButton("Create Celebration", () => {
-      const country = countrySelector.value;
-      if (this.freedomManager && typeof this.freedomManager.createFreedomCelebration === "function") {
-        this.freedomManager.createFreedomCelebration(country);
-      }
-    });
-  
-    // Add button for growing protestors
-    const growProtestorsBtn = this.createButton("Grow Protestors", () => {
-      const country = countrySelector.value;
-      if (this.freedomManager && typeof this.freedomManager.growProtestors === "function") {
-        this.freedomManager.growProtestors(country);
-      } else if (this.audioManager) {
-        // Fall back to just playing the sound
-        this.audioManager.play("ui", "growProtestors");
-      }
-    });
-  
-    actionControls.appendChild(annexBtn);
-    actionControls.appendChild(resistanceReadyBtn);
-    actionControls.appendChild(triggerResistanceBtn);
-    actionControls.appendChild(celebrationBtn);
-    actionControls.appendChild(growProtestorsBtn);
-    content.appendChild(actionControls);
-  
-    // Resistance status display
-    const resistanceStatus = this.createStatus("resistance-status", "Resistance status information");
-    content.appendChild(resistanceStatus);
-  }
-  
-  setupProtestorControlsSection() {
-    const { content } = this.createSection("protestors", "Protestor Controls");
-  
-    // Country selector
-    const countrySelector = document.createElement("select");
-    countrySelector.id = "debug-protestor-country";
-    countrySelector.className = "dbg-select";
-    ["canada", "mexico", "greenland"].forEach((country) => {
-      const option = document.createElement("option");
-      option.value = country;
-      option.textContent = country;
-      countrySelector.appendChild(option);
-    });
-  
-    const selectorWrapper = document.createElement("div");
-    selectorWrapper.className = "dbg-group";
-    selectorWrapper.appendChild(document.createTextNode("Country: "));
-    selectorWrapper.appendChild(countrySelector);
-    content.appendChild(selectorWrapper);
-  
-    // Protestor action buttons
-    const actionControls = document.createElement("div");
-    actionControls.className = "dbg-group";
-  
-    const showProtestorsBtn = this.createButton("Show Protestors", () => {
-      const country = document.getElementById("debug-protestor-country").value;
-      if (this.freedomManager && typeof this.freedomManager.showProtestors === "function") {
-        this.freedomManager.showProtestors(country);
-      }
-    });
-  
-    const hideProtestorsBtn = this.createButton("Hide Protestors", () => {
-      const country = document.getElementById("debug-protestor-country").value;
-      if (this.freedomManager && typeof this.freedomManager.hideProtestors === "function") {
-        this.freedomManager.hideProtestors(country);
-      }
-    });
-  
-    const simulateClickBtn = this.createButton("Simulate Click", () => {
-      const country = document.getElementById("debug-protestor-country").value;
-      if (this.freedomManager && typeof this.freedomManager.handleProtestorClick === "function") {
-        this.freedomManager.handleProtestorClick(country);
-      }
-    });
-  
-    const cleanupAllBtn = this.createButton("Clean Up All Protestors", () => {
-      if (this.freedomManager && typeof this.freedomManager.cleanupAllProtestors === "function") {
-        this.freedomManager.cleanupAllProtestors();
-      }
-    });
-  
-    actionControls.appendChild(showProtestorsBtn);
-    actionControls.appendChild(hideProtestorsBtn);
-    actionControls.appendChild(simulateClickBtn);
-    actionControls.appendChild(cleanupAllBtn);
-    content.appendChild(actionControls);
-  
-    // Protestor calibration controls
-    const calibrationControls = document.createElement("div");
-    calibrationControls.className = "dbg-group";
-  
-    const calibrateProtestorsBtn = this.createButton("Calibrate Protestors", () => {
-      // code goes here
-    });
-  
-    calibrationControls.appendChild(calibrateProtestorsBtn);
-    content.appendChild(calibrationControls);
-  
-    // Additional controls for updating protestors
-    const updateControls = document.createElement("div");
-    updateControls.className = "dbg-group";
-  
-    const scaleSizeBtn = this.createButton("Scale Size", () => {
-      const country = document.getElementById("debug-protestor-country").value;
-      const scaleFactor = 1.2; // 20% larger
-  
-      if (this.protestorHitboxManager && typeof this.protestorHitboxManager.updateSize === "function") {
-        this.protestorHitboxManager.updateSize(country, scaleFactor);
-      }
-    });
-  
-    const resetSizeBtn = this.createButton("Reset Size", () => {
-      const country = document.getElementById("debug-protestor-country").value;
-  
-      if (this.protestorHitboxManager) {
-        // Use 1.0 scale to reset
-        if (typeof this.protestorHitboxManager.updateSize === "function") {
-          this.protestorHitboxManager.updateSize(country, 1.0);
-        }
-        // Or try completely rebuilding
-        else if (typeof this.protestorHitboxManager.cleanupAll === "function") {
-          this.protestorHitboxManager.cleanupAll();
-        }
-      }
-    });
-  
-    const repositionBtn = this.createButton("Reposition All", () => {
-      if (this.protestorHitboxManager && typeof this.protestorHitboxManager.repositionAllHitboxes === "function") {
-        this.protestorHitboxManager.repositionAllHitboxes();
-      }
-    });
-  
-    updateControls.appendChild(scaleSizeBtn);
-    updateControls.appendChild(resetSizeBtn);
-    updateControls.appendChild(repositionBtn);
-    content.appendChild(updateControls);
-  }
-  /**
-   * Update resistance status display
-   */
-  updateResistanceStatus() {
-    if (!this.freedomManager) return;
 
-    const statusElement = document.getElementById("resistance-status");
-    if (!statusElement) return;
 
-    try {
-      let statusHTML = "";
 
-      // For each country, show resistance status
-      Object.keys(this.freedomManager.countries).forEach((country) => {
-        const countryData = this.freedomManager.countries[country];
-        const gameCountry = this.gameState && this.gameState.countries ? this.gameState.countries[country] : null;
-
-        statusHTML += `
-            <div style="margin-bottom: 5px;">
-              <strong>${country}:</strong> 
-              ${gameCountry ? `${gameCountry.claims}/${gameCountry.maxClaims} claims` : "Unknown"} |
-              Annexed: ${countryData.annexTime ? (countryData.annexTime / 1000).toFixed(1) + "s" : "No"} |
-              Ready: ${countryData.resistanceAvailable ? "Yes" : "No"} |
-              Protestors: ${countryData.protestorsShown ? "Shown" : "Hidden"}
-            </div>
-          `;
-      });
-
-      statusElement.innerHTML = statusHTML;
-    } catch (e) {
-      statusElement.textContent = "Error updating resistance status: " + e.message;
-    }
-  }
 
   /**
    * Protestor controls section
    */
-  setupProtestorControlsSection() {
-    const { content } = this.createSection("protestors", "Protestor Controls");
+  // setupProtestorControlsSection() {
+  //   const { content } = this.createSection("protestors", "Protestor Controls");
 
-    // Country selector
-    const countrySelector = document.createElement("select");
-    countrySelector.id = "debug-protestor-country";
-    countrySelector.className = "dbg-select";
-    ["canada", "mexico", "greenland"].forEach((country) => {
-      const option = document.createElement("option");
-      option.value = country;
-      option.textContent = country;
-      countrySelector.appendChild(option);
-    });
+  //   // Country selector
+  //   const countrySelector = document.createElement("select");
+  //   countrySelector.id = "debug-protestor-country";
+  //   countrySelector.className = "dbg-select";
+  //   ["canada", "mexico", "greenland"].forEach((country) => {
+  //     const option = document.createElement("option");
+  //     option.value = country;
+  //     option.textContent = country;
+  //     countrySelector.appendChild(option);
+  //   });
 
-    const selectorWrapper = document.createElement("div");
-    selectorWrapper.className = "dbg-group";
-    selectorWrapper.appendChild(document.createTextNode("Country: "));
-    selectorWrapper.appendChild(countrySelector);
-    content.appendChild(selectorWrapper);
+  //   const selectorWrapper = document.createElement("div");
+  //   selectorWrapper.className = "dbg-group";
+  //   selectorWrapper.appendChild(document.createTextNode("Country: "));
+  //   selectorWrapper.appendChild(countrySelector);
+  //   content.appendChild(selectorWrapper);
 
-    // Protestor action buttons
-    const actionControls = document.createElement("div");
-    actionControls.className = "dbg-group";
+  //   // Protestor action buttons
+  //   const actionControls = document.createElement("div");
+  //   actionControls.className = "dbg-group";
 
-    const showProtestorsBtn = this.createButton("Show Protestors", () => {
-      const country = document.getElementById("debug-protestor-country").value;
-      if (this.freedomManager && typeof this.freedomManager.showProtestors === "function") {
-        this.freedomManager.showProtestors(country);
-      }
-    });
+  //   const showProtestorsBtn = this.createButton("Show Protestors", () => {
+  //     const country = document.getElementById("debug-protestor-country").value;
+  //     if (this.freedomManager && typeof this.freedomManager.showProtestors === "function") {
+  //       this.freedomManager.showProtestors(country);
+  //     }
+  //   });
 
-    const hideProtestorsBtn = this.createButton("Hide Protestors", () => {
-      const country = document.getElementById("debug-protestor-country").value;
-      if (this.freedomManager && typeof this.freedomManager.hideProtestors === "function") {
-        this.freedomManager.hideProtestors(country);
-      }
-    });
+  //   const hideProtestorsBtn = this.createButton("Hide Protestors", () => {
+  //     const country = document.getElementById("debug-protestor-country").value;
+  //     if (this.freedomManager && typeof this.freedomManager.hideProtestors === "function") {
+  //       this.freedomManager.hideProtestors(country);
+  //     }
+  //   });
 
-    const simulateClickBtn = this.createButton("Simulate Click", () => {
-      const country = document.getElementById("debug-protestor-country").value;
-      if (this.freedomManager && typeof this.freedomManager.handleProtestorClick === "function") {
-        this.freedomManager.handleProtestorClick(country);
-      }
-    });
+  //   const simulateClickBtn = this.createButton("Simulate Click", () => {
+  //     const country = document.getElementById("debug-protestor-country").value;
+  //     if (this.freedomManager && typeof this.freedomManager.handleProtestorClick === "function") {
+  //       this.freedomManager.handleProtestorClick(country);
+  //     }
+  //   });
 
-    const cleanupAllBtn = this.createButton("Clean Up All Protestors", () => {
-      if (this.freedomManager && typeof this.freedomManager.cleanupAllProtestors === "function") {
-        this.freedomManager.cleanupAllProtestors();
-      }
-    });
+  //   const cleanupAllBtn = this.createButton("Clean Up All Protestors", () => {
+  //     if (this.freedomManager && typeof this.freedomManager.cleanupAllProtestors === "function") {
+  //       this.freedomManager.cleanupAllProtestors();
+  //     }
+  //   });
 
-    actionControls.appendChild(showProtestorsBtn);
-    actionControls.appendChild(hideProtestorsBtn);
-    actionControls.appendChild(simulateClickBtn);
-    actionControls.appendChild(cleanupAllBtn);
-    content.appendChild(actionControls);
+  //   actionControls.appendChild(showProtestorsBtn);
+  //   actionControls.appendChild(hideProtestorsBtn);
+  //   actionControls.appendChild(simulateClickBtn);
+  //   actionControls.appendChild(cleanupAllBtn);
+  //   content.appendChild(actionControls);
 
-    // Protestor calibration controls
-    const calibrationControls = document.createElement("div");
-    calibrationControls.className = "dbg-group";
+  //   // Protestor calibration controls
+  //   const calibrationControls = document.createElement("div");
+  //   calibrationControls.className = "dbg-group";
 
-    const calibrateProtestorsBtn = this.createButton("Calibrate Protestors", () => {
-      // protestor calibration goes here?
-    });
+  //   const calibrateProtestorsBtn = this.createButton("Calibrate Protestors", () => {
+  //     // protestor calibration goes here?
+  //   });
 
-    calibrationControls.appendChild(calibrateProtestorsBtn);
-    content.appendChild(calibrationControls);
+  //   calibrationControls.appendChild(calibrateProtestorsBtn);
+  //   content.appendChild(calibrationControls);
 
-    // Additional controls for updating protestors
-    const updateControls = document.createElement("div");
-    updateControls.className = "dbg-group";
+  //   // Additional controls for updating protestors
+  //   const updateControls = document.createElement("div");
+  //   updateControls.className = "dbg-group";
 
-    const scaleSizeBtn = this.createButton("Scale Size", () => {
-      const country = document.getElementById("debug-protestor-country").value;
-      const scaleFactor = 1.2; // 20% larger
+  //   const scaleSizeBtn = this.createButton("Scale Size", () => {
+  //     const country = document.getElementById("debug-protestor-country").value;
+  //     const scaleFactor = 1.2; // 20% larger
 
-      if (this.protestorHitboxManager && typeof this.protestorHitboxManager.updateSize === "function") {
-        this.protestorHitboxManager.updateSize(country, scaleFactor);
-      }
-    });
+  //     if (this.protestorHitboxManager && typeof this.protestorHitboxManager.updateSize === "function") {
+  //       this.protestorHitboxManager.updateSize(country, scaleFactor);
+  //     }
+  //   });
 
-    const resetSizeBtn = this.createButton("Reset Size", () => {
-      const country = document.getElementById("debug-protestor-country").value;
+  //   const resetSizeBtn = this.createButton("Reset Size", () => {
+  //     const country = document.getElementById("debug-protestor-country").value;
 
-      if (this.protestorHitboxManager) {
-        // Use 1.0 scale to reset
-        if (typeof this.protestorHitboxManager.updateSize === "function") {
-          this.protestorHitboxManager.updateSize(country, 1.0);
-        }
-        // Or try completely rebuilding
-        else if (typeof this.protestorHitboxManager.cleanupAll === "function") {
-          this.protestorHitboxManager.cleanupAll();
-        }
-      }
-    });
+  //     if (this.protestorHitboxManager) {
+  //       // Use 1.0 scale to reset
+  //       if (typeof this.protestorHitboxManager.updateSize === "function") {
+  //         this.protestorHitboxManager.updateSize(country, 1.0);
+  //       }
+  //       // Or try completely rebuilding
+  //       else if (typeof this.protestorHitboxManager.cleanupAll === "function") {
+  //         this.protestorHitboxManager.cleanupAll();
+  //       }
+  //     }
+  //   });
 
-    const repositionBtn = this.createButton("Reposition All", () => {
-      if (this.protestorHitboxManager && typeof this.protestorHitboxManager.repositionAllHitboxes === "function") {
-        this.protestorHitboxManager.repositionAllHitboxes();
-      }
-    });
+  //   const repositionBtn = this.createButton("Reposition All", () => {
+  //     if (this.protestorHitboxManager && typeof this.protestorHitboxManager.repositionAllHitboxes === "function") {
+  //       this.protestorHitboxManager.repositionAllHitboxes();
+  //     }
+  //   });
 
-    updateControls.appendChild(scaleSizeBtn);
-    updateControls.appendChild(resetSizeBtn);
-    updateControls.appendChild(repositionBtn);
-    content.appendChild(updateControls);
-  }
+  //   updateControls.appendChild(scaleSizeBtn);
+  //   updateControls.appendChild(resetSizeBtn);
+  //   updateControls.appendChild(repositionBtn);
+  //   content.appendChild(updateControls);
+  // }
 
   setupUfoControlsSection() {
     const { content } = this.createSection("ufo", "UFO & Easter Eggs");
@@ -2507,57 +2313,57 @@ startCalibration(animationName) {
   }
 
   // Start hitbox calibration process
-  startCalibration() {
-    const wasPlaying = this.gameState.isPlaying;
-    if (wasPlaying) {
-      this.gameState.isPlaying = false;
-      clearTimeout(this.gameState.grabTimer);
-      clearInterval(this.gameState.countdownTimer);
-    }
+  // startCalibration() {
+  //   const wasPlaying = this.gameState.isPlaying;
+  //   if (wasPlaying) {
+  //     this.gameState.isPlaying = false;
+  //     clearTimeout(this.gameState.grabTimer);
+  //     clearInterval(this.gameState.countdownTimer);
+  //   }
 
-    const dialog = document.createElement("div");
-    dialog.classList.add('calibration-dialog');
+  //   const dialog = document.createElement("div");
+  //   dialog.classList.add('calibration-dialog');
 
-    const title = document.createElement("h3");
-    title.textContent = "Hitbox Calibration";
-    dialog.appendChild(title);
+  //   const title = document.createElement("h3");
+  //   title.textContent = "Hitbox Calibration";
+  //   dialog.appendChild(title);
 
-    const animSelect = document.createElement("select");
-    const animationStates = ["grabEastCanada", "grabWestCanada", "grabMexico", "grabGreenland"];
+  //   const animSelect = document.createElement("select");
+  //   const animationStates = ["grabEastCanada", "grabWestCanada", "grabMexico", "grabGreenland"];
 
-    animationStates.forEach((state) => {
-      const option = document.createElement("option");
-      option.value = state;
-      option.textContent = state;
-      animSelect.appendChild(option);
-    });
+  //   animationStates.forEach((state) => {
+  //     const option = document.createElement("option");
+  //     option.value = state;
+  //     option.textContent = state;
+  //     animSelect.appendChild(option);
+  //   });
 
-    dialog.appendChild(animSelect);
+  //   dialog.appendChild(animSelect);
 
-    const startBtn = document.createElement("button");
-    startBtn.classList.add('calibration-dialog-button');
-    startBtn.textContent = "Start Calibration";
-    startBtn.addEventListener("click", () => {
-      this.beginCalibration(animSelect.value, wasPlaying);
-      dialog.remove();
-    });
+  //   const startBtn = document.createElement("button");
+  //   startBtn.classList.add('calibration-dialog-button');
+  //   startBtn.textContent = "Start Calibration";
+  //   startBtn.addEventListener("click", () => {
+  //     this.beginCalibration(animSelect.value, wasPlaying);
+  //     dialog.remove();
+  //   });
 
-    const cancelBtn = document.createElement("button");
-    cancelBtn.classList.add('calibration-dialog-button');
-    cancelBtn.textContent = "Cancel";
-    cancelBtn.addEventListener("click", () => {
-      dialog.remove();
-      if (wasPlaying) {
-        this.gameState.isPlaying = true;
-        this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
-        window.scheduleNextGrab();
-      }
-    });
+  //   const cancelBtn = document.createElement("button");
+  //   cancelBtn.classList.add('calibration-dialog-button');
+  //   cancelBtn.textContent = "Cancel";
+  //   cancelBtn.addEventListener("click", () => {
+  //     dialog.remove();
+  //     if (wasPlaying) {
+  //       this.gameState.isPlaying = true;
+  //       this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
+  //       window.scheduleNextGrab();
+  //     }
+  //   });
 
-    dialog.appendChild(startBtn);
-    dialog.appendChild(cancelBtn);
-    document.body.appendChild(dialog);
-  }
+  //   dialog.appendChild(startBtn);
+  //   dialog.appendChild(cancelBtn);
+  //   document.body.appendChild(dialog);
+  // }
 
   // Make the hitbox draggable for calibration
   makeHitboxDraggable() {
@@ -2862,47 +2668,47 @@ startCalibration(animationName) {
     this.endCalibration();
   }
 
-  endCalibration() {
-    const panel = document.getElementById("calibration-panel");
-    if (panel) panel.remove();
+  // endCalibration() {
+  //   const panel = document.getElementById("calibration-panel");
+  //   if (panel) panel.remove();
 
-    const handHitbox = document.getElementById("hand-hitbox");
-    if (handHitbox) {
-      handHitbox.onclick = this.calibration.originalHandlerClick;
-      handHitbox.ontouchstart = this.calibration.originalHandlerTouch;
-    }
+  //   const handHitbox = document.getElementById("hand-hitbox");
+  //   if (handHitbox) {
+  //     handHitbox.onclick = this.calibration.originalHandlerClick;
+  //     handHitbox.ontouchstart = this.calibration.originalHandlerTouch;
+  //   }
 
-    const trumpContainer = document.getElementById("trump-sprite-container");
-    if (trumpContainer && this.calibration.originalContainerClick) {
-      trumpContainer.onclick = this.calibration.originalContainerClick;
-    }
+  //   const trumpContainer = document.getElementById("trump-sprite-container");
+  //   if (trumpContainer && this.calibration.originalContainerClick) {
+  //     trumpContainer.onclick = this.calibration.originalContainerClick;
+  //   }
 
-    if (this.animationManager) {
-      this.animationManager.changeState("idle", () => {
-        if (this.calibration.originalAnimState && this.calibration.originalAnimState !== "idle") {
-          this.animationManager.changeState(this.calibration.originalAnimState);
-        }
-      });
-    } else if (typeof window.changeAnimationState === "function") {
-      window.changeAnimationState("idle", () => {
-        if (this.calibration.originalAnimState && this.calibration.originalAnimState !== "idle") {
-          window.changeAnimationState(this.calibration.originalAnimState);
-        }
-      });
-    }
+  //   if (this.animationManager) {
+  //     this.animationManager.changeState("idle", () => {
+  //       if (this.calibration.originalAnimState && this.calibration.originalAnimState !== "idle") {
+  //         this.animationManager.changeState(this.calibration.originalAnimState);
+  //       }
+  //     });
+  //   } else if (typeof window.changeAnimationState === "function") {
+  //     window.changeAnimationState("idle", () => {
+  //       if (this.calibration.originalAnimState && this.calibration.originalAnimState !== "idle") {
+  //         window.changeAnimationState(this.calibration.originalAnimState);
+  //       }
+  //     });
+  //   }
 
-    if (this.calibration.wasPlaying) {
-      this.gameState.isPlaying = true;
-      this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
-      window.scheduleNextGrab();
-    }
+  //   if (this.calibration.wasPlaying) {
+  //     this.gameState.isPlaying = true;
+  //     this.gameState.countdownTimer = setInterval(window.updateCountdown, 1000);
+  //     window.scheduleNextGrab();
+  //   }
 
-    this.calibration.isCalibrating = false;
+  //   this.calibration.isCalibrating = false;
 
-    if (!this.enabled) {
-      document.body.classList.remove("debug-mode");
-    }
-  }
+  //   if (!this.enabled) {
+  //     document.body.classList.remove("debug-mode");
+  //   }
+  // }
 }
 
 // Make the DebugManager globally available
