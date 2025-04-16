@@ -1,16 +1,16 @@
 class UFOManager {
   constructor(audioManager, options = {}) {
     this.audioManager = audioManager;
-    
+
     this.config = {
       timing: {
-        minTimePercentage: 0.65,
-        maxTimePercentage: 0.86,
+        minTimePercentage: 0.45,
+        maxTimePercentage: 0.66,
         intervalBetweenUFOs: {
-          min: 180000,  // 3 minute
-          max: 680000   
+          min: 90000, // 90 sec
+          max: 120000,
         },
-        elonToUFODelay: 14000 // 14 seconds
+        elonToUFODelay: 14000, // 14 seconds
       },
       ufoSize: {
         min: 30,
@@ -20,7 +20,7 @@ class UFOManager {
       animation: {
         duration: {
           min: 5000,
-          max: 10000,
+          max: 7000,
         },
         wobble: {
           frequency: { min: 5, max: 15 },
@@ -35,6 +35,7 @@ class UFOManager {
         frameDuration: 300,
         displayDuration: 1000,
         fadeOutDuration: 9000,
+        maxAppearances: 3,
       },
     };
 
@@ -49,7 +50,12 @@ class UFOManager {
       autoSpawnEnabled: true,
       debugMode: false,
       firstUFOAppearanceTime: null,
+      elonAppearanceCount: 0,
     };
+
+    this.scoreReductionInterval = null;
+    this.scoreReductionRate = 1; // Points to reduce per interval
+    this.scoreReductionDelay = 100; // Milliseconds between each reduction (twice per second)
 
     this.timers = {
       animation: null,
@@ -64,18 +70,18 @@ class UFOManager {
     if (!this.elements.ufo) {
       this.createUfoElement();
     }
-  
+
     this.gameEngine = gameEngine;
-  
+
     if (this.state.autoSpawnEnabled) {
       const totalGameTime = this.gameEngine.config.GAME_DURATION * 1000;
-      
+
       const minAppearanceTime = totalGameTime * this.config.timing.minTimePercentage;
       const maxAppearanceTime = totalGameTime * this.config.timing.maxTimePercentage;
 
       this.scheduleFirstUFO(minAppearanceTime, maxAppearanceTime);
     }
-  
+
     return this;
   }
 
@@ -92,8 +98,15 @@ class UFOManager {
   }
 
   scheduleNextUfo() {
-    if (!this.state.autoSpawnEnabled || this._isGameOver()) return;
-    
+    if (!this.state.autoSpawnEnabled || this._isGameOver()) {
+      // Clear any existing timer to be safe
+      if (this.timers.animation) {
+        clearTimeout(this.timers.animation);
+        this.timers.animation = null;
+      }
+      return;
+    }
+
     if (!this._isGamePlayable()) {
       this.timers.animation = setTimeout(() => this.scheduleNextUfo(), 5000);
       return;
@@ -110,17 +123,17 @@ class UFOManager {
   }
 
   _isGamePlayable() {
-    return this.gameEngine && 
-           this.gameEngine.systems.state.isPlaying && 
-           !this.gameEngine.systems.state.isPaused &&
-           !this._isGameOver();
+    return this.gameEngine && this.gameEngine.systems.state.isPlaying && !this.gameEngine.systems.state.isPaused && !this._isGameOver();
   }
 
   _isGameOver() {
-    return document.body.classList.contains("game-over") || 
-           (this.gameEngine && 
-            (this.gameEngine.systems.state.gameEnding || 
-             !this.gameEngine.systems.state.isPlaying));
+    return (
+      document.body.classList.contains("game-over") ||
+      (this.gameEngine &&
+        (this.gameEngine.systems.state.gameEnding ||
+          this.gameEngine.systems.state.gameOver || // Add this check
+          !this.gameEngine.systems.state.isPlaying))
+    );
   }
 
   // Existing methods from previous implementation...
@@ -157,87 +170,82 @@ class UFOManager {
       }
     }
   }
-  
-  
+
   createElonHitbox() {
     this.removeElonHitbox();
-  
+
     const elonSprite = this.elements.elon;
     const elonWrapper = this.elements.elonContainer;
     const mapBackground = document.getElementById("map-background");
     const gameContainer = document.getElementById("game-container");
-  
+
     if (!elonSprite || !elonWrapper || !mapBackground || !gameContainer) {
       console.error("Required elements not found for Elon hitbox");
       return;
     }
-  
+
     this.elonHitbox = document.createElement("div");
     this.elonHitbox.id = "elon-hitbox";
     this.elonHitbox.style.position = "absolute";
     this.elonHitbox.style.zIndex = "1000";
     this.elonHitbox.style.pointerEvents = "all";
     this.elonHitbox.style.cursor = "pointer";
-  
+
     const computedSprite = window.getComputedStyle(elonSprite);
     const computedWrapper = window.getComputedStyle(elonWrapper);
-  
+
     const spriteWidth = parseFloat(computedSprite.width);
     const spriteHeight = parseFloat(computedSprite.height);
     const wrapperLeft = parseFloat(computedWrapper.left);
     const wrapperTop = parseFloat(computedWrapper.top);
     const spriteLeft = parseFloat(computedSprite.left);
     const spriteTop = parseFloat(computedSprite.top);
-  
+
     this.elonHitbox.style.width = `${spriteWidth}px`;
     this.elonHitbox.style.height = `${spriteHeight}px`;
     this.elonHitbox.style.left = `${wrapperLeft + spriteLeft}px`;
     this.elonHitbox.style.top = `${wrapperTop + spriteTop}px`;
-  
+
     this.elonHitbox.addEventListener("click", (e) => {
       e.stopPropagation();
-  
+
       // Add 30 points for hitting Elon
       if (this.gameEngine && this.gameEngine.systems.state) {
-
-
         let scoreElement = document.getElementById("score");
-        scoreElement.classList.add('score-bounce');
+        scoreElement.classList.add("score-bounce");
         setTimeout(() => {
-          scoreElement.classList.remove('score-bounce');
+          scoreElement.classList.remove("score-bounce");
         }, 500);
-    
+
         // if (this.elements.hud.score) {
-    
+
         //   this.elements.hud.score.classList.add('score-bounce');
         //   setTimeout(() => {
         //     scoreElement.classList.remove('score-bounce');
         //   }, 500);
         // }
 
-
-
-        this.gameEngine.systems.state.score += 30;
+        this.gameEngine.systems.state.score += 1;
         // Update HUD
         this.gameEngine.systems.ui.updateHUD(this.gameEngine.systems.state);
         // Announce for screen readers
         this.gameEngine.systems.ui.announceForScreenReaders(`Elon blocked! +30 points. Total score: ${this.gameEngine.systems.state.score}`);
       }
-  
+
       // Play sound
       if (this.audioManager) {
-        if (typeof this.audioManager.resumeAudioContext === 'function') {
+        if (typeof this.audioManager.resumeAudioContext === "function") {
           // this.audioManager.resumeAudioContext().then(() => {
-            this.audioManager.playRandom("defense", "slap", null, 0.8);
+          this.audioManager.playRandom("defense", "slap", null, 0.8);
           // });
         } else {
           // this.audioManager.playRandom("defense", "slap", null, 0.8);
         }
       }
-  
+
       this.cleanupElonMusk();
     });
-  
+
     gameContainer.appendChild(this.elonHitbox);
   }
   removeElonHitbox() {
@@ -372,15 +380,13 @@ class UFOManager {
     return gameScreen && gameScreen.classList.contains("hidden");
   }
 
-
   setDebugMode(enabled) {
     this.state.debugMode = enabled;
   }
 
-
-
   cleanupElonMusk() {
     this.removeGrayscaleEffect();
+    this.stopScoreReduction();
 
     // Cleanup Elon elements with tumble
     this.cleanupElonElements({ withTumble: true });
@@ -392,7 +398,7 @@ class UFOManager {
   flyUfo() {
     if (this.state.isAnimating || this._isGameOver()) return;
     this.state.isAnimating = true;
-  
+
     if (this.isGameHidden()) {
       this.state.isAnimating = false;
       this.scheduleNextUfo();
@@ -402,30 +408,37 @@ class UFOManager {
     if (!this.state.firstUFOAppearanceTime) {
       this.state.firstUFOAppearanceTime = Date.now();
     }
-  
+
     // Add short delay between Elon and scheduling UFO
     const scheduleUFO = () => {
       setTimeout(() => {
         this.startUfoAnimation();
       }, this.config.elon.displayDuration);
     };
-  
+
     // Show Elon first
     this.showElonMusk();
-  
+
     // Wait a short moment before even scheduling the UFO
     setTimeout(() => {
       scheduleUFO();
     }, 10000); // Small delay to ensure clear separation
-  }  
-  
+  }
 
   startUfoAnimation() {
+    if (this._isGameOver()) {
+      this.state.isAnimating = false;
+      this.scheduleNextUfo();
+      return;
+    }
+
     if (this.audioManager) {
+      this.audioManager.play("ui", "aliens", 0.8);
+
       // Resume audio context first for mobile Safari
-      if (typeof this.audioManager.resumeAudioContext === 'function') {
+      if (typeof this.audioManager.resumeAudioContext === "function") {
         // this.audioManager.resumeAudioContext().then(() => {
-          this.audioManager.play("ui", "aliens", 0.8);
+        // this.audioManager.play("ui", "aliens", 0.8);
         // });
       } else {
         // Fallback if resumeAudioContext doesn't exist
@@ -520,35 +533,34 @@ class UFOManager {
     }
   }
 
-
   startGrayscaleEffect() {
     const mapBackground = document.getElementById("map-background");
     if (!mapBackground) return;
-  
+
     // Reset any existing animation
     mapBackground.style.transition = "none";
     mapBackground.style.filter = "grayscale(0%)";
-  
+
     // Force reflow
     void mapBackground.offsetWidth;
-  
+
     // Add smooth transition
     mapBackground.style.transition = "filter 3s ease-in";
-    
+
     // Start increasing grayscale
     requestAnimationFrame(() => {
       mapBackground.style.filter = "grayscale(100%)";
     });
   }
-  
+
   removeGrayscaleEffect() {
     const mapBackground = document.getElementById("map-background");
     if (!mapBackground) return;
-  
+
     // Quick transition back to normal
     mapBackground.style.transition = "filter 0.5s ease-out";
     mapBackground.style.filter = "grayscale(0%)";
-  
+
     // Clean up after transition
     setTimeout(() => {
       mapBackground.style.transition = "";
@@ -556,13 +568,54 @@ class UFOManager {
     }, 300);
   }
 
+  startScoreReduction() {
+    // Clear any existing interval first
+    if (this.scoreReductionInterval) {
+      clearInterval(this.scoreReductionInterval);
+    }
+
+    // Start a new score reduction interval
+    this.scoreReductionInterval = setInterval(() => {
+      // Only reduce score if the game is active and Elon is visible
+      if (
+        this.gameEngine &&
+        this.gameEngine.systems.state.isPlaying &&
+        !this.gameEngine.systems.state.isPaused &&
+        !this.gameEngine.systems.state.gameEnding &&
+        this.elements.elon
+      ) {
+        // Reduce the score
+        this.gameEngine.systems.state.score = Math.max(0, this.gameEngine.systems.state.score - this.scoreReductionRate);
+
+        // Update the HUD to show the new score
+        this.gameEngine.systems.ui.updateHUD(this.gameEngine.systems.state);
+      }
+    }, this.scoreReductionDelay);
+  }
+
+  // Add this method to stop the score reduction
+  stopScoreReduction() {
+    if (this.scoreReductionInterval) {
+      clearInterval(this.scoreReductionInterval);
+      this.scoreReductionInterval = null;
+    }
+  }
+
   showElonMusk(autoCleanup = false) {
     // console.log("showElonMusk called - attempting to show Elon Musk");
+
+    // Check if we've reached the maximum number of appearances or game is over
+
+    if (this.state.elonAppearanceCount >= this.config.elon.maxAppearances || this._isGameOver()) {
+      return;
+    }
 
     if (this.isGameHidden()) {
       // console.log("Game screen is hidden, not showing Elon");
       return;
     }
+
+    this.state.elonAppearanceCount++;
 
     // Clean up any existing Elon elements and hitboxes
     if (document.getElementById("elon-wrapper")) {
@@ -579,6 +632,8 @@ class UFOManager {
       return;
     }
 
+    this.startScoreReduction();
+
     // Play appearance sound
     // if (window.audioManager) {
     //   window.audioManager.play("ui", "musk");
@@ -586,9 +641,9 @@ class UFOManager {
 
     if (this.audioManager) {
       // Resume audio context first for mobile Safari
-      if (typeof this.audioManager.resumeAudioContext === 'function') {
+      if (typeof this.audioManager.resumeAudioContext === "function") {
         // this.audioManager.resumeAudioContext().then(() => {
-          this.audioManager.playIfContextReady("ui", "musk", 0.8);
+        this.audioManager.playIfContextReady("ui", "musk", 0.8);
         // });
       } else {
         // Fallback if resumeAudioContext doesn't exist
@@ -603,14 +658,12 @@ class UFOManager {
 
     this.startGrayscaleEffect();
 
-
     // Add auto cleanup option for standalone test
     if (autoCleanup) {
       setTimeout(() => {
         this.cleanupElonMusk();
       }, this.config.elon.displayDuration + 5000); // Add 5 seconds to display duration
     }
-  
 
     // console.log("Started Elon animation with pop-up effect and continuous looping");
   }
@@ -703,33 +756,32 @@ class UFOManager {
     return true;
   }
 
-
   startElonSpriteAnimation() {
     if (!this.elements.elon) {
       return;
     }
-    
+
     // Create animation for Elon with frame toggling
-    const frameDuration = window.DeviceUtils && window.DeviceUtils.isMobileDevice ? 
-      this.config.elon.frameDuration * 1.5 : this.config.elon.frameDuration;
-    
+    const frameDuration =
+      window.DeviceUtils && window.DeviceUtils.isMobileDevice ? this.config.elon.frameDuration * 1.5 : this.config.elon.frameDuration;
+
     // Use a custom function with animation manager
     let currentFrame = 0;
     const animationId = window.animationManager.createSpriteAnimation({
-      element: {style: {}}, // Dummy element - we're handling our own animation
+      element: { style: {} }, // Dummy element - we're handling our own animation
       frameCount: 2,
       frameDuration: frameDuration,
       loop: true,
-      id: 'elon-animation',
+      id: "elon-animation",
       customUpdater: () => {
         if (!this.elements.elon) {
           window.animationManager.stopSpriteAnimation(animationId);
           return;
         }
-        
+
         // Toggle frame
         currentFrame = currentFrame === 0 ? 1 : 0;
-        
+
         // Show current frame, hide the other
         if (currentFrame === 0) {
           this.elements.elonFrame0.style.display = "block";
@@ -738,13 +790,12 @@ class UFOManager {
           this.elements.elonFrame0.style.display = "none";
           this.elements.elonFrame1.style.display = "block";
         }
-      }
+      },
     });
-    
+
     // Store animation ID for cleanup
     this.elonAnimationId = animationId;
   }
-
 
   stopElonAnimation() {
     if (this.elonAnimationId) {
@@ -836,11 +887,10 @@ class UFOManager {
     }, removeDelay);
   }
 
-
   pause() {
     this.state.autoSpawnEnabled = false;
   }
-  
+
   resume() {
     this.state.autoSpawnEnabled = true;
   }
@@ -850,6 +900,8 @@ class UFOManager {
       clearTimeout(this.timers.animation);
       this.timers.animation = null;
     }
+
+    this.stopScoreReduction();
 
     if (this.timers.elonAnimation) {
       clearInterval(this.timers.elonAnimation);
@@ -861,6 +913,7 @@ class UFOManager {
       autoSpawnEnabled: true,
       debugMode: false,
       firstUFOAppearanceTime: null,
+      elonAppearanceCount: 0, // Reset the counter
     };
 
     this.cleanupElonElements({ immediate: true });
@@ -881,6 +934,7 @@ class UFOManager {
   destroy() {
     this.state.autoSpawnEnabled = false;
     this.removeGrayscaleEffect();
+    this.stopScoreReduction();
 
     if (this.timers.animation) {
       clearTimeout(this.timers.animation);

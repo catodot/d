@@ -2,11 +2,12 @@
 /* Improve hitbox interaction */
 #trump-hand-hitbox {
   position: absolute;
-  background: transparent;
+  /* background: transparent; */
   cursor: pointer;
   border-radius: 50%;
   transition: all 0.2s ease;
-  border: none;
+  /* border: none; */
+  border: 10px solid red;
   z-index: 10000 !important; /* Dramatically increase z-index to ensure it's always on top */
   pointer-events: all !important; /* Force pointer events to be enabled */
 }

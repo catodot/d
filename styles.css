@@ -501,6 +501,8 @@ button:hover {
   margin: 3.8rem auto 2rem auto;
 }
 
+
+
 .score {
   color: rgba(113, 111, 185, 0.9); /* Almost opaque */
   text-shadow: 2px 2px 0px #ff1493; /* Sharp hot pink drop shadow */
@@ -1024,9 +1026,18 @@ button:hover {
   background-position: center;
   opacity: 0;
   pointer-events: none;
-  z-index: 1;
+  z-index: -1;
   transition: opacity 0.5s ease;
 }
+
+.positioned-flag-overlay {
+  position: absolute;
+  top: var(--map-top);
+  left: var(--map-left);
+  width: var(--map-width);
+  height: var(--map-height);
+}
+
 
 /* Flag opacity classes */
 .opacity-33 {
@@ -1507,17 +1518,6 @@ button:hover {
 
 /*  */
 
-.positioned-flag-overlay {
-  position: absolute;
-  top: var(--map-top);
-  left: var(--map-left);
-  width: var(--map-width);
-  height: var(--map-height);
-  background-size: 100% 100%;
-  background-position: center;
-  pointer-events: none;
-  z-index: 1;
-}
 
 #trump-sprite-container {
   position: absolute;

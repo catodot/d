@@ -156,6 +156,9 @@ class AudioManager {
             "protestEastCan15.mp3",
             "protestEastCan16.mp3",
             "protestEastCan17.mp3",
+            "protestEastCan18.mp3",
+            "protestEastCan19.mp3",
+
           ],
           westCanadaSaysNo: [
             "protestWestCan1.mp3",
