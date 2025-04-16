@@ -3699,7 +3699,7 @@ class TrumpHandEffectsController {
           transform: "scale(1)",
           position: "absolute",
           visibility: "visible",
-          zIndex: "1", // Higher z-index for first block
+          zIndex: "0", // Higher z-index for first block
           transition: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out, background-color 0.3s ease-out, border 0.3s ease-out",
         },
         // First block hover state
@@ -3812,10 +3812,8 @@ class TrumpHandEffectsController {
       // Ensure the hitbox remains interactive
       if (this.elements.hitbox) {
         this.elements.hitbox.style.pointerEvents = "all";
-        this.elements.hitbox.style.backgroundColor = "red !important";
-
         this.elements.hitbox.style.cursor = "pointer";
-        this.elements.hitbox.style.zIndex = "300"; // Match the value from HandHitboxManager
+        this.elements.hitbox.style.zIndex = "2000";
       }
 
       logger.debug("effects", "Updated visual styles", {
@@ -3922,9 +3920,7 @@ class TrumpHandEffectsController {
     // Explicitly ensure hitbox is interactive
     this.elements.hitbox.style.pointerEvents = "all";
     this.elements.hitbox.style.cursor = "pointer";
-    this.elements.hitbox.style.zIndex = "1000";
-    this.elements.hitbox.style.backgroundColor = "red !important";
-
+    this.elements.hitbox.style.zIndex = "1";
 
     // Ensure visual element doesn't capture clicks
     this.elements.visual.style.pointerEvents = "none";
@@ -4754,12 +4750,8 @@ class HandHitboxManager {
     this.trumpHandHitBox.style.display = "block";
     this.trumpHandHitBox.style.pointerEvents = "all";
     this.trumpHandHitBox.style.cursor = "pointer"; // Add cursor pointer
-    this.trumpHandHitBox.style.zIndex = "10000"; // Use the same high z-index from your CSS
+    this.trumpHandHitBox.style.zIndex = "300"; // Ensure it's above visual elements
     this.isVisible = true;
-
-    this.trumpHandHitBox.style.border = "30px solid yellow";
-    this.trumpHandHitBox.style.backgroundColor = "rgba(255, 0, 0, 1.2)";
-  
 
     // Position the visual element directly, adjusting for the different coordinate space
     if (this.trumpHandHitBoxVisual) {
@@ -7450,7 +7442,7 @@ class FreedomManager {
     this.createShrinkEffect(effectContainer, isFinalShrink);
 
     // Add the shrink text message
-    const shrinkMessages = ["SHRINK-A-DINK?", "TRUMBELLINA?!", "WE SHRUNK HIM TO NOTHING"];
+    const shrinkMessages = ["SHRINK-A-DINK?", "TRUMBELLINA?!", "KEEP FIGHTING, WE'RE ALMOST FREE!"];
     const currentMessage = shrinkMessages[this.trumpShrinkLevel - 1] || shrinkMessages[2];
 
     const trumpPosition = this._getTrumpPosition();
