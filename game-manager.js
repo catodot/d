@@ -3001,8 +3001,8 @@ class GameSpeedManager {
     this.speedLevels = [
       { multiplier: 0.9, name: "Tutorial", sound: "tutorial" },
       { multiplier: 2.5, name: "Faster?", sound: "faster" },
-      { multiplier: 3.7, name: "oopsie trade war", sound: "oopsieTradeWar" },
-      { multiplier: 4.6, name: "Faster", sound: "faster" },
+      { multiplier: 3.3, name: "oopsie trade war", sound: "oopsieTradeWar" },
+      { multiplier: 4.3, name: "Faster", sound: "faster" },
       { multiplier: 5.1, name: "no one is coming", sound: "noOneIsComingToSaveUs" }, // Reduced from 3.5
       { multiplier: 5.7, name: "get up and fight", sound: "getUpAndFight" },
     ];
@@ -3813,7 +3813,7 @@ class TrumpHandEffectsController {
       if (this.elements.hitbox) {
         this.elements.hitbox.style.pointerEvents = "all";
         this.elements.hitbox.style.cursor = "pointer";
-        this.elements.hitbox.style.zIndex = "2000";
+        this.elements.hitbox.style.zIndex = "1";
       }
 
       logger.debug("effects", "Updated visual styles", {
