@@ -687,7 +687,7 @@ class UFOManager {
     wrapper.style.top = `${mapRect.top - containerRect.top}px`;
     wrapper.style.width = `${mapRect.width}px`;
     wrapper.style.height = `${mapRect.height}px`;
-    wrapper.style.zIndex = "999";
+    wrapper.style.zIndex = "8";
     wrapper.style.pointerEvents = "none";
 
     gameContainer.appendChild(wrapper);

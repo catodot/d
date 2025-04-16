@@ -26,7 +26,7 @@ class GameEngine {
       DEBUG_MODE: config.debug || false,
       GAME_DURATION: 168, // 2min 48sec in seconds
       AUTO_RESTART_DELAY: 10000,
-      INITIAL_GRAB_DELAY: 8000,
+      INITIAL_GRAB_DELAY: 4000,
       COUNTRIES: ["canada", "mexico", "greenland"],
     };
 
@@ -40,7 +40,7 @@ class GameEngine {
       trump_victory: {
         trumpAnimation: "victory",
         audioSequence: ["beenVeryNiceToYou", "lose"],
-        message: "GAME OVER! oh nooooo!",
+        message: "YOU LOSE!",
         playerWon: false,
       },
       resistance_win: {
@@ -52,7 +52,7 @@ class GameEngine {
       trump_destroyed: {
         trumpAnimation: "slapped",
         audioSequence: ["beenVeryNiceToYou", "win"],
-        message: "VICTORY! The resistance wins",
+        message: "VICTORY! YOU SHRUNK HIM!",
         playerWon: true,
       },
     };
@@ -1327,9 +1327,7 @@ _proceedWithGameProgression() {
     // Check if this is the first block
     const isBeforeFirstBlock = this.systems.state.stats.successfulBlocks === 0;
 
-    // Try multiple methods to handle the hitbox preparation
     if (window.trumpHandEffects) {
-      // Preferred approach - use the effects controller
       window.trumpHandEffects.makeHittable(isBeforeFirstBlock);
       window.trumpHandEffects.highlightTargetCountry(targetCountry, true);
       window.trumpHandEffects.setGrabbingState();
@@ -1337,24 +1335,7 @@ _proceedWithGameProgression() {
       // Explicitly check for prompt
       window.trumpHandEffects.updatePromptVisibility();
     } else {
-      // Fallback - direct DOM manipulation
-      // const visual = document.getElementById("trump-hand-visual");
-      // const hitbox = document.getElementById("trump-hand-hitbox");
-      // if (hitbox) {
-      //   hitbox.style.visibility = "visible";
-      //   hitbox.style.pointerEvents = "auto";
-      //   hitbox.style.display = "block";
-      //   hitbox.style.cursor = "pointer";
-      //   hitbox.style.zIndex = "300";
-      //   hitbox.classList.add("hittable");
-      // }
-      // if (visual) {
-      //   visual.style.visibility = "visible";
-      //   visual.style.display = "block";
-      //   visual.style.opacity = "0.5";
-      //   visual.style.border = "2px dashed black";
-      //   visual.classList.add("hittable");
-      // }
+      
     }
   }
 
@@ -1370,22 +1351,7 @@ _proceedWithGameProgression() {
     // Start the animation with completion callback
     this.systems.animation.changeState(animationName, () => {
       try {
-        // FIRST: Stop the grab sound regardless of outcome
-        // if (this.systems.audio) {
-        //   this.systems.audio
-        //     .resumeAudioContext()
-        //     .then(() => {
-        //       try {
-        //         this.systems.audio.stopGrabSound();
-        //       } catch (e) {
-        //         console.warn("[Engine] Error stopping grab sound:", e);
-        //       }
-        //     })
-        //     .catch((e) => {
-        //       console.warn("[Engine] Error resuming audio context:", e);
-        //     });
-        // }
-
+      
         // This runs when grab completes without being blocked
         if (this.systems.state.currentTarget === targetCountry && this.systems.state.isPlaying && !this.systems.state.isPaused) {
           // Handle successful grab
@@ -1408,35 +1374,6 @@ _proceedWithGameProgression() {
     });
   }
 
-  /**
-   * Apply a basic hit effect as fallback
-   * @private
-   */
-  // _applyBasicHitEffect() {
-  //   const gameContainer = document.getElementById("game-container") || document.body;
-  //   gameContainer.classList.add("screen-shake");
-
-  //   // Remove class after animation completes
-  //   setTimeout(() => {
-  //     gameContainer.classList.remove("screen-shake");
-  //   }, 700);
-
-  //   // Add simple visual effect to trump-hand-visual
-  //   const visual = document.getElementById("trump-hand-visual");
-  //   if (visual) {
-  //     visual.classList.remove("hittable");
-  //     visual.style.opacity = "0";
-  //     visual.style.border = "none";
-  //     visual.style.outline = "none";
-  //     visual.classList.add("hit");
-  //   }
-
-  //   // Add non-interactable to hitbox
-  //   const hitbox = document.getElementById("trump-hand-hitbox");
-  //   if (hitbox) {
-  //     hitbox.classList.remove("hittable");
-  //   }
-  // }
 
   /**
    * Determine the specific region being smacked
@@ -3500,7 +3437,7 @@ class GlowOutline {
     size = { width: 100, height: 100 },
     color = "#FFD700",
     borderWidth = 4,
-    zIndex = 10210,
+    zIndex = "10210",
     borderRadius = "50%",
   }) {
     const wrapper = document.createElement("div");
@@ -3653,7 +3590,7 @@ class TrumpHandEffectsController {
       // Make sure the visual element isn't inheriting unwanted visibility
       this.elements.visual.style.visibility = "visible";
       // Set initial styles, including z-index 0
-      this.elements.visual.style.zIndex = "0";
+      this.elements.visual.style.zIndex = "2";
       this.resetVisual();
     }
 
@@ -3664,92 +3601,15 @@ class TrumpHandEffectsController {
     return {
       animationDuration: 650,
       promptDelay: 1500, // Delay before showing the prompt
-      defaultStyles: {
-        display: "none",
-        opacity: "0",
-        border: "none",
-        transform: "scale(1.0)",
-        backgroundColor: "transparent",
-        position: "absolute",
-        visibility: "visible",
-        zIndex: "1",
-        transition: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out, background-color 0.3s ease-out, border 0.3s ease-out",
-      },
-      hittableStyles: {
-        // Regular state (non-first block, not hovering)
-        regular: {
-          display: "block",
-          border: "none",
-          opacity: "0.01",
-          outline: "none",
-          transform: "scale(1)",
-          backgroundColor: "transparent",
-          position: "absolute",
-          visibility: "visible",
-          zIndex: "-1000", // Use normal z-index here - will be overridden when needed
-          transition: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out, background-color 0.3s ease-out, border 0.3s ease-out",
-        },
-        // getting ready for First block state
-        firstBlock: {
-          display: "block",
-          opacity: "0.8",
-          border: "2px dashed black",
-          backgroundColor: "rgba(128, 0, 128, .5)", // Semi-transparent purple
-          borderRadius: "50%",
-          transform: "scale(1)",
-          position: "absolute",
-          visibility: "visible",
-          zIndex: "0", // Higher z-index for first block
-          transition: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out, background-color 0.3s ease-out, border 0.3s ease-out",
-        },
-        // First block hover state
-        firstBlockHover: {
-          transform: "scale(1.3)", // Grow slightly on hover for first block
-          opacity: "0.9",
-          backgroundColor: "rgba(0, 233, 4, 0.5)", // Darker purple on hover
-        },
-        // Grabbing state (not first block)
-        grabbing: {
-          display: "block",
-          opacity: "0.9",
-          border: "2px solid black",
-          borderRadius: "50%",
-          transform: "scale(1)",
-          backgroundColor: "transparent",
-          position: "absolute",
-          visibility: "visible",
-          backgroundColor: "rgba(255, 0, 0, 0.3",
-          zIndex: "1",
-          transition: "transform 0.2s ease-out, opacity 0.2s ease-out, border 0.2s ease-out",
-          outline: "4px dashed yellow",
-        },
-        // Regular hover state
-        hover: {
-          transform: "scale(1.3)",
-          opacity: "0.6",
-          backgroundColor: "rgba(0, 233, 4, 0.5)", // Darker purple on hover
-          // backgroundColor: "red",
-        },
-        // Grabbing hover state
-        grabbingHover: {
-          transform: "scale(1.3)",
-          opacity: "0.6",
-          border: "4px solid black",
-          borderRadius: "50%",
-          zIndex: "1",
-          backgroundColor: "rgba(0, 233, 4, 0.5)", // Darker purple on hover
-        },
-      },
-      effectStyles: {
-        display: "block",
-        opacity: "1",
-        border: "none",
-        outline: "none",
-        zIndex: "1",
-        visibility: "visible",
-        position: "absolute",
-        backgroundColor: "transparent", // Explicitly ensure transparency
-      },
+      // CSS class names for state management
+      defaultStateClass: 'state-idle',
+      hitStateClass: 'hit', // Match existing CSS class
+      hittableStateClass: 'hittable', // Match existing CSS class
+      grabSuccessStateClass: 'grab-success', // Match existing CSS class
+      firstBlockModifier: 'first-block',
+      grabbingModifier: 'grabbing',
+      hoverModifier: 'hover-active',
+      animationCompletedModifier: 'animation-completed'
     };
   }
 
@@ -3761,67 +3621,59 @@ class TrumpHandEffectsController {
 
   updateVisualStyles() {
     if (!this.elements.visual) return;
-
+  
     // Add throttling to prevent multiple updates in rapid succession
     if (this._styleUpdatePending) return;
-
+  
     this._styleUpdatePending = true;
+    
     requestAnimationFrame(() => {
       // Remember current z-index to preserve it
       const currentZIndex = this.elements.visual.style.zIndex;
-
-      // Get the appropriate style set based on current state
-      let styleSet;
-      const isFirstBlock = this.isFirstBlock();
-
-      if (isFirstBlock) {
-        // First block with or without hover
-        if (this.state.isHovering) {
-          styleSet = {
-            ...this.config.hittableStyles.firstBlock,
-            ...this.config.hittableStyles.firstBlockHover,
-          };
-        } else {
-          styleSet = this.config.hittableStyles.firstBlock;
-        }
-      } else if (this.state.isGrabbing) {
-        // Grabbing state
-        styleSet = this.state.isHovering ? this.config.hittableStyles.grabbingHover : this.config.hittableStyles.grabbing;
-      } else {
-        // Regular state (not grabbing)
-        styleSet = this.state.isHovering
-          ? { ...this.config.hittableStyles.regular, ...this.config.hittableStyles.hover }
-          : this.config.hittableStyles.regular;
+      
+      // Clear all state classes first
+      this.elements.visual.classList.remove(
+        'state-idle', 'state-hittable', 'hittable', 'hit', 'grab-success',
+        'first-block', 'grabbing', 'hover-active', 'animation-completed'
+      );
+      
+      // Add the appropriate class for the current state
+      if (this.state.current === this.STATES.IDLE) {
+        // Don't add any classes for idle
+      } else if (this.state.current === this.STATES.HITTABLE) {
+        this.elements.visual.classList.add('hittable');
+      } else if (this.state.current === this.STATES.HIT) {
+        this.elements.visual.classList.add('hit');
+      } else if (this.state.current === this.STATES.GRAB_SUCCESS) {
+        this.elements.visual.classList.add('grab-success');
       }
-
-      // Apply the selected style set with critical properties
-      const mergedStyles = { ...styleSet };
-
-      // Always ensure these critical properties
-      mergedStyles.pointerEvents = "none";
-      mergedStyles.overflow = "visible";
-
-      // Delete z-index from mergedStyles to prevent overriding the current value
-      delete mergedStyles.zIndex;
-
-      this.setStyles(this.elements.visual, mergedStyles);
-
+      
+      // Add modifiers based on state
+      if (this.isFirstBlock() && this.state.current === this.STATES.HITTABLE) {
+        this.elements.visual.classList.add('first-block');
+      }
+      
+      if (this.state.isGrabbing && this.state.current === this.STATES.HITTABLE) {
+        this.elements.visual.classList.add('grabbing');
+      }
+      
+      if (this.state.isHovering) {
+        this.elements.visual.classList.add('hover-active');
+      }
+      
+      // Ensure the visual doesn't interfere with clicks
+      this.elements.visual.style.pointerEvents = "none";
+      
       // Restore the z-index we saved earlier
       this.elements.visual.style.zIndex = currentZIndex;
-
+      
       // Ensure the hitbox remains interactive
       if (this.elements.hitbox) {
         this.elements.hitbox.style.pointerEvents = "all";
         this.elements.hitbox.style.cursor = "pointer";
         this.elements.hitbox.style.zIndex = "1";
       }
-
-      logger.debug("effects", "Updated visual styles", {
-        isFirstBlock,
-        isGrabbing: this.state.isGrabbing,
-        isHovering: this.state.isHovering,
-      });
-
+      
       // Reset flag after update
       this._styleUpdatePending = false;
     });
@@ -3837,27 +3689,28 @@ class TrumpHandEffectsController {
 
   resetVisual() {
     if (!this.elements.visual) return;
-
-    // Remove all effect classes
-    this.elements.visual.classList.remove(...Object.values(this.STATES), "animation-completed");
-
-    // Reset all styles to default
-    this.setStyles(this.elements.visual, {
-      ...this.config.defaultStyles,
-      backgroundColor: "transparent", // Explicitly ensure transparency
-      zIndex: "0", // Always start with z-index 0
-    });
-
+  
+    // Remove all state and effect classes
+    this.elements.visual.classList.remove(
+      'state-idle', 'state-hittable', 'hittable', 'hit', 'grab-success',
+      'first-block', 'grabbing', 'hover-active', 'animation-completed'
+    );
+    
+    // Don't hide the visual element completely; instead, make it transparent
+    // Remove: this.elements.visual.style.display = "none";
+    this.elements.visual.style.opacity = "0";
+    this.elements.visual.style.zIndex = "0";
+  
     // Remove any dynamic shard elements
     this.removeShards();
-
+  
     // Reset state
     this.state.isAnimating = false;
     this.state.isHovering = false;
     this.state.isGrabbing = false;
     this.state.targetCountry = null;
     this.state.current = this.STATES.IDLE;
-
+  
     logger.debug("effects", "Visual reset to default state");
   }
 
@@ -3869,11 +3722,10 @@ class TrumpHandEffectsController {
     setTimeout(() => {
       // Remove screen shake
       this.elements.gameContainer.classList.remove("screen-shake");
-
-      // Update classes
-      this.elements.visual.classList.remove(this.STATES.HIT);
-      this.elements.visual.classList.add("animation-completed");
-
+  
+      // Add animation completed class
+      this.elements.visual.classList.add(this.config.animationCompletedModifier);
+  
       // Complete reset after a short delay
       setTimeout(() => {
         this.resetVisual();
@@ -3882,24 +3734,13 @@ class TrumpHandEffectsController {
   }
 
   _scheduleGrabEffectCleanup() {
-    // Immediately ensure background is transparent
-    if (this.elements.visual) {
-      this.elements.visual.style.backgroundColor = "transparent";
-    }
-
     setTimeout(() => {
       // Remove screen shake
       this.elements.gameContainer.classList.remove("grab-screen-shake");
-
-      // Update classes
-      if (this.elements.visual) {
-        this.elements.visual.classList.remove(this.STATES.GRAB_SUCCESS);
-        this.elements.visual.classList.add("animation-completed");
-
-        // Explicitly ensure background is transparent again
-        this.elements.visual.style.backgroundColor = "transparent";
-      }
-
+  
+      // Add animation completed class
+      this.elements.visual.classList.add(this.config.animationCompletedModifier);
+  
       // Complete reset after a short delay
       setTimeout(() => {
         this.resetVisual();
@@ -3912,104 +3753,119 @@ class TrumpHandEffectsController {
       console.error("Cannot make hittable: visual or hitbox element is missing");
       return;
     }
+  
+    // Update classes on the hitbox
+    this.elements.hitbox.classList.add("hittable");
+    
+    // Clear all state classes on the visual
+    this.elements.visual.classList.remove('state-idle', 'hit', 'grab-success', 'animation-completed');
+    
+    // IMPORTANT: Always make the visual visible for all grabs 
+    this.elements.visual.style.display = "block"; 
+    
+    // Add hittable class to visual
+    this.elements.visual.classList.add("hittable");
+    
+    // Set appropriate opacity based on first block status
+    if (isFirstBlock) {
+      this.elements.visual.style.opacity = "0.8";
+      this.elements.visual.classList.add("first-block");
+    } else if (this.state.isGrabbing) {
+      // don't think we ever make it in here
+      this.elements.visual.classList.add("grabbing");
+    } else {
+      // supposed to be but not actually Standard non-first hittable state < -this is where we acutally end up in grabs
+      this.elements.visual.style.opacity = "0.9";
+      // this.elements.visual.style.zIndex = "2";
 
-    // Update class and state
-    // this.elements.visual.classList.add(this.STATES.HITTABLE);
-    this.elements.hitbox.classList.add(this.STATES.HITTABLE);
+      this.elements.visual.classList.add("grabbing");
 
-    // Explicitly ensure hitbox is interactive
+    }
+  
+    // Make hitbox interactive
     this.elements.hitbox.style.pointerEvents = "all";
     this.elements.hitbox.style.cursor = "pointer";
-    this.elements.hitbox.style.zIndex = "1";
-
-    // Ensure visual element doesn't capture clicks
+    // this.elements.hitbox.style.zIndex = "1";
+  
+    // Make visual non-interactive
     this.elements.visual.style.pointerEvents = "none";
-
+  
+    // Update state
     this.state.isAnimating = false;
     this.state.current = this.STATES.HITTABLE;
-
-    // Apply appropriate styles based on first block state, grabbing state, and hover state
-    this.updateVisualStyles();
-
+  
     // Check if we need to show the prompt
     this.updatePromptVisibility();
   }
 
-  /**
-   * Apply visual effect when player successfully blocks
-   */
   applyHitEffect() {
     if (!this.elements.visual) return;
-
+  
     // Stop if already animating this effect
     if (this.state.isAnimating && this.state.current === this.STATES.HIT) return;
-
+  
     // Update state
     this.state.isAnimating = true;
     this.state.current = this.STATES.HIT;
     this.state.isHovering = false;
     this.state.isGrabbing = false; // Not grabbing anymore after being hit
-
-    // Apply styles for animation but ensure visual doesn't block clicks
-    const effectStyles = { ...this.config.effectStyles, pointerEvents: "none" };
-    this.setStyles(this.elements.visual, effectStyles);
-
-    // Update classes
-    this.elements.visual.classList.remove(this.STATES.HITTABLE, this.STATES.GRAB_SUCCESS);
-    this.elements.visual.classList.add(this.STATES.HIT);
-
+  
+    // First ensure the visual element is visible
+    this.elements.visual.style.display = "block";
+    this.elements.visual.style.opacity = "1";
+    
+    // Remove existing classes and add hit class
+    this.elements.visual.classList.remove('state-hittable', 'hittable', 'grab-success', 'first-block', 'grabbing', 'hover-active');
+    this.elements.visual.classList.add('hit');
+  
+    // Ensure pointer events are disabled
+    this.elements.visual.style.pointerEvents = "none";
+  
     // Apply screen shake
     this.elements.gameContainer.classList.add("screen-shake");
-
+  
     // Force reflow for animation
     void this.elements.visual.offsetWidth;
-
+  
     // Clean up after animation
     this._scheduleHitEffectCleanup();
   }
 
   applyGrabSuccessEffect() {
     if (!this.elements.visual) return;
-
+  
     // Stop if already animating this effect
     if (this.state.isAnimating && this.state.current === this.STATES.GRAB_SUCCESS) return;
-
+  
     // Update state
     this.state.isAnimating = true;
     this.state.current = this.STATES.GRAB_SUCCESS;
     this.state.isHovering = false;
     this.state.isGrabbing = false; // Grab is complete, not grabbing anymore
-
-    // Apply styles for animation ensuring it doesn't block clicks
-    const effectStyles = {
-      ...this.config.effectStyles,
-      pointerEvents: "none",
-      overflow: "visible",
-      backgroundColor: "transparent", // Explicitly set transparent background
-    };
-    this.setStyles(this.elements.visual, effectStyles);
-
-    // Update classes
-    this.elements.visual.classList.remove(this.STATES.HITTABLE, this.STATES.HIT);
-    this.elements.visual.classList.add(this.STATES.GRAB_SUCCESS);
-
+  
+    // Remove existing classes and add grab-success class
+    this.elements.visual.classList.remove('state-hittable', 'hittable', 'hit', 'first-block', 'grabbing', 'hover-active');
+    this.elements.visual.classList.add('grab-success');
+  
+    // Ensure pointer events are disabled
+    this.elements.visual.style.pointerEvents = "none";
+  
     // Create shard elements
     this.createShards();
-
+  
     // Apply screen shake
     this.elements.gameContainer.classList.add("grab-screen-shake");
-
+  
     // Force reflow for animation
     void this.elements.visual.offsetWidth;
-
+  
     // Clean up after animation
     this._scheduleGrabEffectCleanup();
-
+  
     if (window.handHitboxManager) {
       window.handHitboxManager.hideHandHitbox();
     }
   }
-
   /**
    * Create shard elements for grab success effect
    */
@@ -4029,7 +3885,7 @@ class TrumpHandEffectsController {
       this.setStyles(shard, {
         position: "absolute",
         opacity: "1",
-        zIndex: "2", // Higher z-index than the parent
+        // zIndex: "2", // Higher z-index than the parent
         top: "50%",
         left: "50%",
         visibility: "visible",
@@ -4217,7 +4073,7 @@ class TrumpHandEffectsController {
     );
 
     // Styling
-    this.clickPromptElement.style.zIndex = "2";
+    // this.clickPromptElement.style.zIndex = "2";
     this.clickPromptElement.style.pointerEvents = "none";
 
     // Add prompt styles if not already present
@@ -4289,7 +4145,7 @@ class TrumpHandEffectsController {
     const currentGameTime = this.gameState.config ? this.gameState.config.GAME_DURATION - this.gameState.timeRemaining : 0;
 
     // Only show prompt after 10 seconds of game time has passed
-    const shouldShowPrompt = isBeforeFirstBlock && this.state.current === this.STATES.HITTABLE && currentGameTime >= 5;
+    const shouldShowPrompt = isBeforeFirstBlock && this.state.current === this.STATES.HITTABLE && currentGameTime >= 3;
 
     if (shouldShowPrompt) {
       // Set higher z-index when showing the prompt
@@ -4297,7 +4153,7 @@ class TrumpHandEffectsController {
       this.addClickHerePrompt();
     } else {
       // Reset to normal z-index when not showing prompt
-      this.setVisualZIndex("0");
+      this.setVisualZIndex("1");
       this.removeClickHerePrompt();
     }
   }
@@ -4308,7 +4164,7 @@ class TrumpHandEffectsController {
     this.removeClickHerePrompt();
 
     // Explicitly set z-index back to 0 after first hit
-    this.setVisualZIndex("0");
+    // this.setVisualZIndex("1");
 
     this.updateVisualStyles();
   }
@@ -4429,11 +4285,7 @@ class HandHitboxManager {
         this.setupHoverEffects();
       }
     } else {
-      // Try to get the element if it wasn't found initially
-      // this.trumpHandHitBox = document.getElementById("trump-hand-hitbox");
-      // this.elements.hitbox = this.trumpHandHitBox;
-      // this.trumpHandHitBoxVisual = document.getElementById("trump-hand-visual");
-      // this.elements.visual = this.trumpHandHitBoxVisual;
+  
     }
 
     // Clear any existing tracking interval
@@ -4447,22 +4299,6 @@ class HandHitboxManager {
    * Hide the hitbox
    */
   hideHandHitbox() {
-    // if (this.trumpHandHitBox) {
-    //   this.trumpHandHitBox.style.display = "none";
-    //   this.trumpHandHitBox.style.pointerEvents = "none";
-    //   this.isVisible = false;
-
-    //   // Also hide the visual element
-    //   if (this.trumpHandHitBoxVisual) {
-    //     this.trumpHandHitBoxVisual.style.opacity = "0";
-    //   }
-
-    //   // Remove event listeners when hiding the hitbox
-    //   this.removeHoverEffects();
-
-    //   // Remove the prompt
-    //   // this.removeClickHerePrompt(); <-- this is handled elsewhere
-    // }
     if (this.trumpHandHitBox) {
       this.trumpHandHitBox.style.display = "none";
       this.trumpHandHitBox.style.pointerEvents = "none";
@@ -4473,7 +4309,7 @@ class HandHitboxManager {
         window.trumpHandEffects.removeClickHerePrompt();
       } else {
         // Fallback removal if no effects controller
-        this.removeClickHerePrompt();
+        // this.removeClickHerePrompt();
       }
     }
   }
@@ -4681,8 +4517,14 @@ class HandHitboxManager {
 
     // No hitbox for idle or after being smacked
     if (this.currentState === "idle" || smackedAnimations.includes(this.currentState)) {
-      this.hideHandHitbox();
-      return;
+      if (!window.trumpHandEffects?.state.isAnimating) {
+        this.hideHandHitbox();
+        
+        // Also ensure the visual is hidden if not animating
+        if (this.trumpHandHitBoxVisual) {
+          this.trumpHandHitBoxVisual.style.opacity = "0";
+        }
+      }      return;
     }
 
     // Only continue for grab animations
@@ -4701,8 +4543,8 @@ class HandHitboxManager {
 
     // If prediction is enabled and we're not on the last frame, look ahead
     let frameToUse = this.currentFrame;
-    if (predictFrame && frameToUse < animation.handCoordinates.length - 1) {
-      frameToUse += 1; // Look ahead one frame to account for rendering delay
+    if (predictFrame && frameToUse < animation.handCoordinates.length - 2) {
+      frameToUse += 2; // Look ahead one frame to account for rendering delay
     }
 
     // Get the coordinates for the specified frame
@@ -4782,12 +4624,7 @@ class HandHitboxManager {
         // After positioning, try to restore styling with effects controller
         if (window.trumpHandEffects && this.trumpHandHitBox.classList.contains("hittable")) {
           try {
-            // First try the specific method
-            if (typeof window.trumpHandEffects.restoreVisualState === "function") {
-              window.trumpHandEffects.restoreVisualState();
-            }
-            // Fall back to updateVisualStyles if restoreVisualState doesn't exist
-            else if (typeof window.trumpHandEffects.updateVisualStyles === "function") {
+        if (typeof window.trumpHandEffects.updateVisualStyles === "function") {
               window.trumpHandEffects.updateVisualStyles();
             }
           } catch (e) {
@@ -4911,7 +4748,7 @@ class HandHitboxManager {
   }
 }
 
-window.HandHitboxManager = HandHitboxManager;
+// window.HandHitboxManager = HandHitboxManager;
 
 /**
  * Shared utility functions for hitbox management
@@ -5022,7 +4859,7 @@ const HitboxUtils = {
 };
 
 // Make utilities globally available
-window.HitboxUtils = HitboxUtils;
+// window.HitboxUtils = HitboxUtils;
 
 /**
  * Manages hitboxes for protestors in the game
@@ -5625,7 +5462,7 @@ class ProtestorHitboxManager {
       container.style.width = "100%";
       container.style.height = "100%";
       container.style.pointerEvents = "none";
-      container.style.zIndex = "3005"; // Should match FreedomManager.Z_INDEXES.PROTESTORS
+      container.style.zIndex = "4"; // Should match FreedomManager.Z_INDEXES.PROTESTORS
 
       // Add to game container
       const gameContainer = document.getElementById("game-container");
@@ -6072,7 +5909,7 @@ class FreedomManager {
     REGENERATION_DELAY: 8000, // After protestors disappear (fade or liberate), wait 60 seconds before next group appears
 
     // USA protestors
-    USA_INITIAL_APPEARANCE_THRESHOLD: 0.45, // USA protestors first appear when 10% of total game time has elapsed
+    USA_INITIAL_APPEARANCE_THRESHOLD: 0.5, // USA protestors first appear when 10% of total game time has elapsed
     USA_REAPPEAR_MIN_TIME: 15000, // After USA protestors disappear, wait at least 20 seconds before next group
     USA_REAPPEAR_MAX_TIME: 20000, // After USA protestors disappear, wait at most 1 second before next group
   };
@@ -7431,7 +7268,7 @@ class FreedomManager {
       effectContainer.style.width = "100%";
       effectContainer.style.height = "100%";
       effectContainer.style.pointerEvents = "none";
-      effectContainer.style.zIndex = "0";
+      effectContainer.style.zIndex = "4";
       document.getElementById("game-container").appendChild(effectContainer);
     }
 
@@ -7442,7 +7279,7 @@ class FreedomManager {
     this.createShrinkEffect(effectContainer, isFinalShrink);
 
     // Add the shrink text message
-    const shrinkMessages = ["SHRINK-A-DINK?", "TRUMBELLINA?!", "KEEP FIGHTING, WE'RE ALMOST FREE!"];
+    const shrinkMessages = ["SHRINKY!", "TRUMBELLINA?!", "SHRINKY-DINK!"];
     const currentMessage = shrinkMessages[this.trumpShrinkLevel - 1] || shrinkMessages[2];
 
     const trumpPosition = this._getTrumpPosition();

@@ -522,7 +522,7 @@ class AnimationManager {
     overlay.style.height = "100%";
     overlay.style.backgroundRepeat = "no-repeat";
     overlay.style.backgroundSize = "auto 100%";
-    overlay.style.zIndex = "5"; // Above trump but below hand
+    overlay.style.zIndex = "3"; // Above trump but below hand
     overlay.style.display = "none";
 
     trumpContainer.appendChild(overlay);
