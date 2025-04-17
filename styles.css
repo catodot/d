@@ -1619,11 +1619,30 @@ button:hover {
   }
 
 
-  .enlarged-trump-sprite {
+  .enlarged-trump-sprite-mobile {
     width: 180% !important;
     height: 180% !important;
     position: absolute !important;
-    top: 30% !important;
+    top: 25% !important;
     left: 60% !important;
     transform: translate(-50%, -50%) !important;
+  }
+
+
+  .enlarged-trump-sprite {
+    width: 130% !important;
+    height: 130% !important;
+    position: absolute !important;
+    top: 40% !important;
+    left: 55% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+
+  .shrink-text {
+    font-size: 2rem;
+    font-weight: 500;
+    -webkit-text-stroke: 2px #ea1487;
+    stroke: 2px #ea1487;
+    color: white;
   }

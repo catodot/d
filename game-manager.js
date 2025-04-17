@@ -7594,11 +7594,7 @@ class FreedomManager {
     text.textContent = currentMessage;
     text.style.position = "absolute";
     text.style.zIndex = FreedomManager.Z_INDEXES.TEXT;
-    text.style.fontSize = "2rem";
-    text.style.fontWeight = "500";
-    text.style.webkitTextStroke = "2px #ea1487";
-    text.style.textStroke = "2px #ea1487";
-    text.style.color = "white";
+    
 
     // Calculate position (centered above Trump)
     const textWidth = 300;
@@ -8214,15 +8210,15 @@ class FreedomManager {
     }
 
     // Reduced effects for mobile
-    if (this.config.effectsEnabled.screenShake) {
-      gameContainer.classList.add(isMobile ? "light-screen-shake" : "screen-shake");
-      setTimeout(
-        () => {
-          gameContainer.classList.remove("light-screen-shake", "screen-shake");
-        },
-        isMobile ? 400 : 800
-      );
-    }
+    // if (this.config.effectsEnabled.screenShake) {
+    //   gameContainer.classList.add(isMobile ? "light-screen-shake" : "screen-shake");
+    //   setTimeout(
+    //     () => {
+    //       gameContainer.classList.remove("light-screen-shake", "screen-shake");
+    //     },
+    //     isMobile ? 400 : 800
+    //   );
+    // }
 
     // Create optimized flash effect
     const flash = document.createElement("div");
