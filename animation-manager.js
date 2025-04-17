@@ -370,6 +370,94 @@ class AnimationManager {
         priority: 3,
       },
 
+
+
+
+
+
+        // Tiniest size variants
+        idleTiniest: {
+          spriteSheet: "images/trump-idle-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: Infinity,
+          handVisible: false,
+          priority: 3,
+        },
+        grabEastCanadaTiniest: {
+          spriteSheet: "images/trump-grab-east-canada-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 1608, y: 1439, width: 737, height: 737 },
+            { x: 1469, y: 1344, width: 737, height: 737 },
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackEastCanada",
+          priority: 3,
+        },
+        grabWestCanadaTiniest: {
+          spriteSheet: "images/trump-grab-west-canada-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 286, y: 1248, width: 737, height: 737 },
+            { x: 282, y: 1140, width: 737, height: 737 },
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackWestCanada",
+          priority: 3,
+        },
+        grabGreenlandTiniest: {
+          spriteSheet: "images/trump-grab-greenland-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 2163, y: 754, width: 737, height: 737 },
+            { x: 2072, y: 789, width: 737, height: 737 },
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackGreenland",
+          priority: 3,
+        },
+        grabMexicoTiniest: {
+          spriteSheet: "images/trump-grab-mexico-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: true,
+          handCoordinates: [
+            { x: 1118, y: 2319, width: 737, height: 737 },
+            { x: 906, y: 2445, width: 737, height: 737 },
+          ],
+          calibrationScale: 0.23,
+          smackAnimation: "smackMexico",
+          priority: 3,
+        },
+        slappedTiniest: {
+          spriteSheet: "images/trump-slapped-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: false,
+          priority: 3,
+        },
+        victoryTiniest: {
+          spriteSheet: "images/trump-happy-sprite-smallest.png",
+          frameCount: 2,
+          loopCount: 4,
+          handVisible: false,
+          priority: 3,
+        },
+
+
+
+
+
+
+
+
+
       shrinkDefeat: {
         spriteSheet: "images/trump-happy-sprite-smallest.png",
         frameCount: 2,
@@ -668,13 +756,13 @@ class AnimationManager {
     // Set background position in percentage
     this.trumpSprite.style.backgroundPosition = `${percentPosition}% 0%`;
 
-// Temporarily enlarge sprite for slapped and victory animations
-if (window.DeviceUtils.isMobileDevice && this.currentState.includes('slapped') || window.DeviceUtils.isMobileDevice && this.currentState.includes('victory')) {
-  this.trumpSprite.classList.add('enlarged-trump-sprite');
-} else {
-  this.trumpSprite.classList.remove('enlarged-trump-sprite');
-}
-
+    const shouldEnlargeMobile = window.DeviceUtils.isMobileDevice && 
+    (this.currentState.includes('slapped') || this.currentState.includes('victory'));
+  const shouldEnlargeDesktop = !window.DeviceUtils.isMobileDevice && 
+    (this.currentState.includes('slapped') || this.currentState.includes('victory'));
+  
+  this.trumpSprite.classList.toggle('enlarged-trump-sprite-mobile', shouldEnlargeMobile);
+  this.trumpSprite.classList.toggle('enlarged-trump-sprite', shouldEnlargeDesktop);
 
     // Update hand position if needed
     if (animation.handVisible) {

@@ -46,13 +46,13 @@ class GameEngine {
       resistance_win: {
         trumpAnimation: "slapped",
         audioSequence: ["beenVeryNiceToYou", "win"],
-        message: "VICTORY! you survived 4 years",
+        message: "YOU LOSE! It was never going to be just 4 years",
         playerWon: true,
       },
       trump_destroyed: {
         trumpAnimation: "slapped",
         audioSequence: ["beenVeryNiceToYou", "win"],
-        message: "VICTORY! YOU SHRUNK HIM!",
+        message: "VICTORY! TRUMP IS PEA-SIZED!",
         playerWon: true,
       },
     };
@@ -6164,7 +6164,7 @@ class FreedomManager {
     REGENERATION_DELAY: 8000, // After protestors disappear (fade or liberate), wait 60 seconds before next group appears
 
     // USA protestors
-    USA_INITIAL_APPEARANCE_THRESHOLD: 0.5, // USA protestors first appear when 10% of total game time has elapsed
+    USA_INITIAL_APPEARANCE_THRESHOLD: 0.55, // USA protestors first appear when 10% of total game time has elapsed
     USA_REAPPEAR_MIN_TIME: 15000, // After USA protestors disappear, wait at least 20 seconds before next group
     USA_REAPPEAR_MAX_TIME: 20000, // After USA protestors disappear, wait at most 1 second before next group
   };
@@ -7578,13 +7578,15 @@ class FreedomManager {
     }
 
     this.trumpShrinkLevel++;
-    const isFinalShrink = this.trumpShrinkLevel >= 3;
+    const isFinalShrink = this.trumpShrinkLevel >= 4;
 
     // Create shrink effect centered on Trump
     this.createShrinkEffect(effectContainer, isFinalShrink);
 
     // Add the shrink text message
-    const shrinkMessages = ["SHRINKY!", "TRUMBELLINA?!", "SHRINKY-DINK!"];
+    const shrinkMessages = ["SHRINKY!", "SHRUNK!", "SHRINKY DINK!", "BYEEEE!"];
+
+    // const shrinkMessages = ["SHRINKY!", "TRUMBELLINA?!", "SHRINKY-DINK!"];
     const currentMessage = shrinkMessages[this.trumpShrinkLevel - 1] || shrinkMessages[2];
 
     const trumpPosition = this._getTrumpPosition();
@@ -7653,7 +7655,7 @@ class FreedomManager {
     }
 
     // Update Trump size state
-    const sizes = ["normal", "small", "smaller", "smallest"];
+    const sizes = ["normal", "small", "smaller", "smallest", "tiniest"];
     this.trumpSizeState = {
       currentSize: sizes[this.trumpShrinkLevel] || "smallest",
       sizeIndex: this.trumpShrinkLevel,
@@ -7688,6 +7690,7 @@ class FreedomManager {
 
         // Then play the appropriate sound
         if (isFinalShrink) {
+
           this.audioManager.playRandom("trump", "finalShrink", null, 0.9);
         } else {
           this.audioManager
@@ -7704,7 +7707,20 @@ class FreedomManager {
 
     // Handle final shrink
     if (isFinalShrink) {
-      this.gameEngine.triggerGameEnd(this.gameEngine.END_STATES.TRUMP_DESTROYED, "trump_destroyed");
+      // Force Trump to an angry or defeated state before ending
+      if (this.animationManager?.trumpSprite) {
+        const endStateAnimation = "angryIdle"; // Or whatever your specific end state animation is called
+        
+        // Check if the animation exists before changing
+        if (this.animationManager.animations?.[endStateAnimation]) {
+          this.animationManager.changeState(endStateAnimation);
+        }
+      }
+      
+      // Short delay to let the animation start before ending the game
+      setTimeout(() => {
+        this.gameEngine.triggerGameEnd(this.gameEngine.END_STATES.TRUMP_DESTROYED, "trump_destroyed");
+      }, 200);
     }
   }
 

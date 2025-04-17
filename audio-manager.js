@@ -125,7 +125,7 @@ class AudioManager {
         trumpSob: ["trumpSob1.mp3", "trumpSob2.mp3"],
         trumpYa: ["ya.mp3", "great.mp3", "mmhmn.mp3"],
         beenVeryNiceToYou: "been-very-nice-to-you.mp3",
-        shrink: "no.mp3",
+        shrink: ["no.mp3"],
         finalShrink: "ouchie.mp3",
         trumpSmash: ["smash.mp3", "smash1.mp3", "smash.mp3"],
       },
