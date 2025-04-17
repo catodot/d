@@ -8278,7 +8278,7 @@ class FreedomManager {
   _createResistanceText(x, y, width, height, container) {
     const text = document.createElement("div");
     text.className = "freedom-text";
-    text.textContent = "!!!";
+    text.textContent = "o";
     text.style.position = "absolute";
     text.style.zIndex = FreedomManager.Z_INDEXES.TEXT;
 
