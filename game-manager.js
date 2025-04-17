@@ -5159,7 +5159,7 @@ class ProtestorHitboxManager {
           calibrationScale: 0.24,
         },
         {
-          x: 608, //cal
+          x: 580, //cal
           y: 1600,
           width: 300,
           height: 300,
@@ -5186,20 +5186,20 @@ class ProtestorHitboxManager {
           height: 300,
           calibrationScale: 0.24,
         },
-        {
-          x: 791, //sask
-          y: 1300,
-          width: 300,
-          height: 300,
-          calibrationScale: 0.24,
-        },
-        {
-          x: 891, //win
-          y: 900,
-          width: 300,
-          height: 300,
-          calibrationScale: 0.24,
-        },
+        // {
+        //   x: 791, //sask
+        //   y: 1300,
+        //   width: 300,
+        //   height: 300,
+        //   calibrationScale: 0.24,
+        // },
+        // {
+        //   x: 891, //win
+        //   y: 900,
+        //   width: 300,
+        //   height: 300,
+        //   calibrationScale: 0.24,
+        // },
         {
           x: 991, //tor
           y: 1500,

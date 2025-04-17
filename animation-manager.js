@@ -668,6 +668,14 @@ class AnimationManager {
     // Set background position in percentage
     this.trumpSprite.style.backgroundPosition = `${percentPosition}% 0%`;
 
+// Temporarily enlarge sprite for slapped and victory animations
+if (window.DeviceUtils.isMobileDevice && this.currentState.includes('slapped') || window.DeviceUtils.isMobileDevice && this.currentState.includes('victory')) {
+  this.trumpSprite.classList.add('enlarged-trump-sprite');
+} else {
+  this.trumpSprite.classList.remove('enlarged-trump-sprite');
+}
+
+
     // Update hand position if needed
     if (animation.handVisible) {
       this.handHitboxManager.updateStateAndFrame(this.currentState, frameIndex);

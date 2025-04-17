@@ -257,11 +257,21 @@ function activateGlitchEffect() {
   sentientText.id = "sentient-orb-text";
   sentientText.innerHTML = `
     <span class="glitch" data-text="S3NtI3Nt">S3NtI3Nt</span>
-    <span class="glitch" data-text="0R8">0R8</span>
-    <span class="glitch" data-text="JUST">JUST BE</span>
+    <span class="glitch" data-text="0R8">0R8!!!!!!!</span>
+    <span class="glitch" data-text="JUST">all 0f th13 1s a ch01c3!!! w3 c0uld just st0p!!!</span>
   `;
   document.body.appendChild(sentientText);
   
+  const text = document.getElementById('sentient-orb-text');
+    
+  // Wrap each letter in a span
+  text.innerHTML = text.textContent.split('').map(char => 
+      `<span style="
+          --random-rotation: ${(Math.random() * 20 - 10).toFixed(2)}deg;
+          --random-scale: ${(Math.random() * 0.4 + 0.8).toFixed(2)}
+      ">${char}</span>`
+  ).join('');
+
   const chaosOverlay = document.createElement("div");
   chaosOverlay.id = "sentient-orb-chaos";
   document.body.appendChild(chaosOverlay);

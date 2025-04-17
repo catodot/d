@@ -1045,10 +1045,10 @@ button:hover {
 
 /* Flag opacity classes */
 .opacity-33 {
-  opacity: 0.23 !important;
+  opacity: 0.13 !important;
 }
 .opacity-66 {
-  opacity: 0.36 !important;
+  opacity: 0.23 !important;
 }
 .opacity-100 {
   opacity: 0.96 !important;
@@ -1616,4 +1616,14 @@ button:hover {
     0% { transform: scale(0) translateY(-20px); }
     60% { transform: scale(1.2) translateY(0); }
     100% { transform: scale(1) translateY(0); }
+  }
+
+
+  .enlarged-trump-sprite {
+    width: 180% !important;
+    height: 180% !important;
+    position: absolute !important;
+    top: 30% !important;
+    left: 60% !important;
+    transform: translate(-50%, -50%) !important;
   }
