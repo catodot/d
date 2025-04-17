@@ -1,181 +1,519 @@
+class GlitchEngine {
+  static defaultOptions = {
+    interval: 1,
+    squashIntensity: 0.4,
+    rotationRange: 120,
+    colorShiftIntensity: 2,
+    pixelDistortionRange: 10,
+    duplicateOffset: 50,
+    scanlineFrequency: 5,
+    pixelationLevel: 20,
+    useRainbowColors: true,
+    glitchModes: ['duplicate', 'invert', 'rgbshift', 'fragment']
+  };
 
-// Only initialize basic star field on load, not the glitch effects
-document.addEventListener('DOMContentLoaded', function() {
-  console.log("Initializing basic star field");
-  
-  const screen = document.getElementById("stars");
-  if (!screen) return;
-  
-  const numStars = 200;
-  let sentientOrbCreated = false;
-
-  // Create stars with better distribution
-  for (let i = 0; i < numStars; i++) {
-    const star = createStar(screen);
+  constructor(container, options = {}) {
+    this.container = container;
+    this.options = { ...GlitchEngine.defaultOptions, ...options };
+    this.glitchElements = [];
+    this.glitchInterval = null;
+    this.cleanupFunctions = new Map();
+    this.originalStyles = new Map();
     
-    // Placement logic for sentient orb (improved to use percentages)
-    const x = parseFloat(star.style.left);
-    const y = parseFloat(star.style.top);
-    
-    // Create sentient orb in a more visible location but not dead center
-    if (!sentientOrbCreated && 
-        ((x > 20 && x < 30) || (x > 70 && x < 80)) && 
-        (y > 30 && y < 70)) {
-      console.log("Created sentient orb at", { x, y });
-      createBasicSentientOrb(star);
-      sentientOrbCreated = true;
-      
-      // Make it stand out more
-      star.style.width = '8px';
-      star.style.height = '8px';
-      star.style.backgroundColor = '#ff00ff';
-      star.style.boxShadow = '0 0 15px 5px rgba(255, 0, 255, 0.7)';
-    }
-  }
-});
-
-// Create a basic star
-function createStar(container) {
-  const star = document.createElement("div");
-  star.className = "star";
-  
-  // Improved spatial distribution to avoid clustering in corners
-  const distribution = Math.random();
-  let x, y;
-  
-  if (distribution < 0.7) {
-    // 70% chance of using uniform distribution across the entire screen
-    x = Math.random() * 100;
-    y = Math.random() * 100;
-  } else if (distribution < 0.85) {
-    // 15% chance of placing star in a central area
-    x = 30 + Math.random() * 40;
-    y = 30 + Math.random() * 40;
-  } else {
-    // 15% chance of placing along the edges (but not corners)
-    if (Math.random() < 0.5) {
-      // Horizontal edge
-      x = Math.random() * 100;
-      y = Math.random() < 0.5 ? Math.random() * 15 : 85 + Math.random() * 15;
-    } else {
-      // Vertical edge
-      x = Math.random() < 0.5 ? Math.random() * 15 : 85 + Math.random() * 15;
-      y = Math.random() * 100;
-    }
-  }
-  
-  // Improved size variation
-  let sizeCategory = Math.random();
-  let size;
-  
-  if (sizeCategory < 0.7) {
-    // Small stars (70%)
-    size = Math.random() * 2 + 1;
-  } else if (sizeCategory < 0.9) {
-    // Medium stars (20%)
-    size = Math.random() * 3 + 2;
-  } else {
-    // Large stars (10%)
-    size = Math.random() * 4 + 3;
-  }
-  
-  // Duration, delay and brightness
-  const duration = 3 + Math.random() * 7 + "s";
-  const delay = Math.random() * 10 + "s";
-  const brightness = 0.6 + Math.random() * 0.4; // Brighter stars
-  
-  // Apply star properties
-  star.style.left = `${x}%`;
-  star.style.top = `${y}%`;
-  star.style.width = `${size}px`;
-  star.style.height = `${size}px`;
-  star.style.setProperty("--duration", duration);
-  star.style.setProperty("--delay", delay);
-  star.style.setProperty("--brightness", brightness);
-  star.style.pointerEvents = 'auto';
-  
-  // star.style.pointerEvents = 'all';
-
-
-  // Small chance of colored stars with vibrant colors
-  if (Math.random() < 0.2) {
-    const hue = Math.random() * 360;
-    star.style.backgroundColor = `hsl(${hue}, 100%, 80%)`;
-    star.style.boxShadow = `0 0 ${size * 1.5}px hsl(${hue}, 100%, 70%)`;
+    this.setupGlitchElements();
   }
 
-  container.appendChild(star);
-  return star;
-}
+  setupGlitchElements() {
+    this.glitchElements = Array.from(
+      this.container.querySelectorAll('.glitch-element')
+    );
 
-// Create basic sentient orb without all the glitch effects - just the appearance and click handler
-function createBasicSentientOrb(star) {
-  console.log("Creating basic sentient orb");
-  
-  star.classList.add('sentient-orb');
-  star.style.zIndex = '1000';
-  star.style.pointerEvents = 'auto';
-  star.style.cursor = 'pointer';
-  
-  // Make the sentient orb more noticeable with vibrant colors
-  star.style.width = '10px';
-  star.style.height = '10px';
-  star.style.background = 'radial-gradient(circle, rgb(237, 237, 237), rgba(0,255,255,1) 100%)';
-  star.style.boxShadow = '0 0 15px 5px rgba(255, 0, 255, 0.8)';
-  star.style.pointerEvents = 'all';
-
-  // Pulse animation
-  star.style.animation = 'pulse 2s infinite alternate';
-  
-  // Add pulse keyframes if they don't exist
-  if (!document.querySelector('#sentient-orb-pulse')) {
-    const style = document.createElement('style');
-    style.id = 'sentient-orb-pulse';
-    style.textContent = `
-      @keyframes pulse {
-        0% { transform: scale(1); box-shadow: 0 0 10px 2px rgba(255, 0, 255, 0.7); }
-        100% { transform: scale(1.5); box-shadow: 0 0 15px 5px rgba(0, 255, 255, 0.9); }
+    this.glitchElements.forEach(element => {
+      if (!element.dataset.originalPosition && getComputedStyle(element).position === 'static') {
+        element.style.position = 'relative';
       }
-    `;
-    document.head.appendChild(style);
-  }
-  
-  // When clicked, dynamically load the full glitch code
-  star.addEventListener('click', function(event) {
-    event.stopPropagation();
-    loadGlitchEffects().then(() => {
-      // After loading, call the activate function from the newly loaded code
-      activateSentientOrbGlitch();
-    }).catch(error => {
-      console.error("Failed to load glitch effects:", error);
+
+      this.originalStyles.set(element, {
+        transform: element.style.transform || '',
+        filter: element.style.filter || '',
+        clipPath: element.style.clipPath || '',
+        position: element.style.position || '',
+        zIndex: element.style.zIndex || '',
+        mixBlendMode: element.style.mixBlendMode || '',
+        backgroundColor: element.style.backgroundColor || '',
+        opacity: element.style.opacity || ''
+      });
     });
-  });
-  
-  return star;
+  }
+
+  startGlitching(customOptions = {}) {
+    const activeOptions = { ...this.options, ...customOptions };
+    this.stopGlitching();
+    
+    this.glitchInterval = setInterval(() => {
+      this.glitchElements.forEach(element => 
+        this.applyRandomGlitch(element, activeOptions)
+      );
+    }, activeOptions.interval);
+  }
+
+  stopGlitching() {
+    if (this.glitchInterval) {
+      clearInterval(this.glitchInterval);
+      this.glitchInterval = null;
+    }
+    
+    this.glitchElements.forEach(element => {
+      const cleanup = this.cleanupFunctions.get(element);
+      if (cleanup) cleanup();
+      
+      const overlays = element.querySelectorAll('.glitch-overlay, .glitch-duplicate, .glitch-scanline, .glitch-noise, .glitch-fragment');
+      overlays.forEach(overlay => overlay.remove());
+      
+      const originalStyle = this.originalStyles.get(element);
+      if (originalStyle) {
+        Object.entries(originalStyle).forEach(([prop, value]) => {
+          element.style[prop] = value;
+        });
+      }
+    });
+    
+    this.cleanupFunctions.clear();
+  }
+
+  applyRandomGlitch(element, options) {
+    const cleanup = this.cleanupFunctions.get(element);
+    if (cleanup) cleanup();
+    
+    const elementOptions = this.getElementOptions(element, options);
+    const cleanupFunctions = [];
+    
+    // Apply base transformations
+    const squashStretch = this.generateSquashStretch(elementOptions.squashIntensity);
+    const rotation = this.generateRotation(elementOptions.rotationRange);
+    
+    element.style.transform = `
+      scale(${squashStretch.scaleX}, ${squashStretch.scaleY}) 
+      rotate(${rotation}deg)
+      translate(${(Math.random() - 0.5) * 10}px, ${(Math.random() - 0.5) * 10}px)
+    `;
+
+    // Randomly select and apply effects
+    const selectedModes = this.shuffleArray([...elementOptions.glitchModes])
+      .slice(0, Math.floor(Math.random() * 3) + 1);
+
+    selectedModes.forEach(mode => {
+      switch(mode) {
+        case 'duplicate':
+          cleanupFunctions.push(this.applyDuplication(element, elementOptions));
+          break;
+        case 'invert':
+          cleanupFunctions.push(this.applyInvertedDuplicate(element, elementOptions));
+          break;
+        case 'rgbshift':
+          cleanupFunctions.push(this.applyRGBShift(element, elementOptions));
+          break;
+        case 'fragment':
+          cleanupFunctions.push(this.applyFragmentation(element, elementOptions));
+          break;
+      }
+    });
+
+    this.cleanupFunctions.set(element, () => {
+      cleanupFunctions.forEach(fn => fn());
+    });
+  }
+
+  generateVibrantColor() {
+    const hue = Math.floor(Math.random() * 360);
+    return `hsla(${hue}, 70%, 75%, 0.3)`;
+  }
+
+  generateRainbowColor(index = null) {
+    const hue = index !== null ? index * 40 % 360 : Math.floor(Math.random() * 360);
+    return `hsla(${hue}, 70%, 75%, 0.3)`;
+  }
+
+  applyDuplication(element, options) {
+    const duplicates = Math.floor(Math.random() * 3) + 1;
+    const cleanupFns = [];
+    
+    for (let i = 0; i < duplicates; i++) {
+      const duplicate = document.createElement('div');
+      duplicate.className = 'glitch-duplicate';
+      
+      duplicate.style.transform = `translate(${(Math.random() - 0.5) * options.duplicateOffset * 2}px, ${(Math.random() - 0.5) * options.duplicateOffset * 2}px)`;
+      duplicate.style.zIndex = '50';
+      
+      const color = options.useRainbowColors ? this.generateRainbowColor(i) : this.generateVibrantColor();
+      duplicate.style.backgroundColor = color;
+      duplicate.style.opacity = '0.1';
+      duplicate.style.mixBlendMode = 'screen';
+      
+      element.appendChild(duplicate);
+      cleanupFns.push(() => duplicate.remove());
+    }
+    
+    return () => cleanupFns.forEach(fn => fn());
+  }
+
+  applyInvertedDuplicate(element, options) {
+    const duplicate = document.createElement('div');
+    duplicate.className = 'glitch-duplicate';
+    
+    duplicate.style.transform = `translate(${(Math.random() - 0.5) * 10}px, ${(Math.random() - 0.5) * 10}px)`;
+    duplicate.style.filter = 'invert(1) contrast(1.5)';
+    duplicate.style.mixBlendMode = 'difference';
+    duplicate.style.opacity = '0.8';
+    
+    element.appendChild(duplicate);
+    return () => duplicate.remove();
+  }
+
+  applyRGBShift(element, options) {
+    const rgbShiftAmount = Math.random() * 3 + 1;
+    const originalFilter = element.style.filter;
+    
+    element.style.filter = `
+      drop-shadow(${rgbShiftAmount}px 0 0 rgba(255,0,0,0.7))
+      drop-shadow(-${rgbShiftAmount}px 0 0 rgba(0,255,255,0.7))
+    `;
+    
+    return () => {
+      element.style.filter = originalFilter;
+    };
+  }
+
+  applyFragmentation(element, options) {
+    const fragmentCount = Math.floor(Math.random() * 5) + 2;
+    const container = document.createElement('div');
+    container.className = 'glitch-fragment-container';
+    
+    for (let i = 0; i < fragmentCount; i++) {
+      const fragment = document.createElement('div');
+      fragment.className = 'glitch-fragment';
+      
+      const height = 100 / fragmentCount;
+      fragment.style.position = 'absolute';
+      fragment.style.top = `${i * height}%`;
+      fragment.style.left = '0';
+      fragment.style.width = '100%';
+      fragment.style.height = `${height}%`;
+      fragment.style.overflow = 'hidden';
+      
+      const xOffset = (Math.random() - 0.5) * 20;
+      fragment.style.transform = `translateX(${xOffset}px)`;
+      
+      if (Math.random() > 0.5) {
+        const color = options.useRainbowColors ? this.generateRainbowColor(i) : this.generateVibrantColor();
+        fragment.style.backgroundColor = color;
+        fragment.style.mixBlendMode = 'screen';
+        fragment.style.opacity = '0.1';
+      }
+      
+      container.appendChild(fragment);
+    }
+    
+    element.appendChild(container);
+    return () => container.remove();
+  }
+
+  getElementOptions(element, baseOptions) {
+    const elementOptions = { ...baseOptions };
+    
+    if (element.dataset.squashIntensity) elementOptions.squashIntensity = parseFloat(element.dataset.squashIntensity);
+    if (element.dataset.rotationRange) elementOptions.rotationRange = parseFloat(element.dataset.rotationRange);
+    if (element.dataset.colorShiftIntensity) elementOptions.colorShiftIntensity = parseFloat(element.dataset.colorShiftIntensity);
+    
+    return elementOptions;
+  }
+
+  generateSquashStretch(intensity) {
+    return {
+      scaleX: 1 + (Math.random() - 0.5) * intensity,
+      scaleY: 1 + (Math.random() - 0.5) * intensity
+    };
+  }
+
+  generateRotation(range) {
+    return (Math.random() - 0.5) * range;
+  }
+
+  shuffleArray(array) {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  }
 }
 
-// Function to dynamically load the glitch effects code
-function loadGlitchEffects() {
-  if (window.glitchEffectsLoaded) {
-    return Promise.resolve();
+// Main activation functions
+function activateGlitchEffect() {
+  document.body.classList.add('sentient-orb-activated');
+  
+  const sentientText = document.createElement("div");
+  sentientText.id = "sentient-orb-text";
+  sentientText.innerHTML = `
+    <span class="glitch" data-text="S3NtI3Nt">S3NtI3Nt</span>
+    <span class="glitch" data-text="0R8">0R8</span>
+    <span class="glitch" data-text="JUST">JUST BE</span>
+  `;
+  document.body.appendChild(sentientText);
+  
+  const chaosOverlay = document.createElement("div");
+  chaosOverlay.id = "sentient-orb-chaos";
+  document.body.appendChild(chaosOverlay);
+  
+  createChaosFragments(chaosOverlay);
+  
+  const glitchEngine = new GlitchEngine(document.body, {
+    interval: 1,
+    squashIntensity: 10.4,
+    rotationRange: 45,
+    colorShiftIntensity: 50,
+    pixelDistortionRange: 10,
+    useTransitions: true
+  });
+  
+  glitchEngine.startGlitching();
+  window.currentGlitchEngine = glitchEngine;
+  
+  return { glitchEngine, sentientText, chaosOverlay };
+}
+
+function createChaosFragments(container) {
+  const fragmentCount = 45;
+  const pastelColors = [
+    'rgba(255,182,193,0.7)',
+    'rgba(173,216,230,0.7)',
+    'rgba(221,160,221,0.7)',
+    'rgba(152,251,152,0.7)',
+    'rgba(255,228,181,0.7)',
+    'rgba(176,224,230,0.7)',
+    'rgba(255,218,185,0.7)',
+    'rgba(216,191,216,0.7)'
+  ];
+  
+  for (let i = 0; i < fragmentCount; i++) {
+    const fragment = document.createElement('div');
+    fragment.className = 'chaos-fragment';
+    
+    const size = 40 + Math.random() * 120;
+    fragment.style.width = `${size}px`;
+    fragment.style.height = `${size}px`;
+    
+    fragment.style.position = 'fixed';
+    fragment.style.left = `${Math.random() * 100}%`;
+    fragment.style.top = `${Math.random() * 100}%`;
+    
+    fragment.style.transform = `rotate(${Math.random() * 360}deg) scale(${0.5 + Math.random()})`;
+    
+    const colorIndex = Math.floor(Math.random() * pastelColors.length);
+    fragment.style.backgroundColor = pastelColors[colorIndex];
+    
+    const blendModes = ['screen', 'overlay', 'hard-light', 'soft-light'];
+    fragment.style.mixBlendMode = blendModes[Math.floor(Math.random() * blendModes.length)];
+    
+    container.appendChild(fragment);
+  }
+}
+
+
+
+
+function cleanupGlitchEffect(elements) {
+  document.body.classList.remove('sentient-orb-activated');
+  
+  if (elements?.glitchEngine) {
+    elements.glitchEngine.stopGlitching();
+  } else if (window.currentGlitchEngine) {
+    window.currentGlitchEngine.stopGlitching();
+    window.currentGlitchEngine = null;
   }
   
-  return new Promise((resolve, reject) => {
-    // Create script element for the full glitch code
-    const script = document.createElement('script');
-    script.src = 'sentient-orb-effects.js'; // Create this file with the GlitchEngine class and effects
-    script.onload = () => {
-      window.glitchEffectsLoaded = true;
-      console.log("Glitch effects code loaded successfully");
-      resolve();
-    };
-    script.onerror = (error) => {
-      console.error("Error loading glitch effects:", error);
-      reject(error);
-    };
-    
-    // Add script to document
-    document.head.appendChild(script);
+  if (elements?.sentientText?.parentNode) {
+    elements.sentientText.parentNode.removeChild(elements.sentientText);
+  }
+  
+  if (elements?.chaosOverlay?.parentNode) {
+    elements.chaosOverlay.parentNode.removeChild(elements.chaosOverlay);
+  }
+  
+  document.querySelectorAll('.glitch-element').forEach(el => {
+    if (el.id !== 'sentient-orb') {
+      el.classList.remove('glitch-element');
+    }
   });
 }
 
+// Initialization functions
+function initializeStarfield() {
+  const starScreen = document.getElementById("starScreen");
+  const orbScreen = document.getElementById("orbScreen");
+
+  if (!starScreen) {
+    console.error("Stars container not found!");
+    return;
+  }
+  
+  createBasicStars(starScreen);
+  createSentientOrb(orbScreen);
+}
+
+function createBasicStars(container) {
+  const numStars = 80;
+  const fragment = document.createDocumentFragment();
+  
+  for (let i = 0; i < numStars; i++) {
+    const star = document.createElement("div");
+    star.className = "star";
+    
+    star.style.left = `${Math.random() * 100}%`;
+    star.style.top = `${Math.random() * 100}%`;
+    
+    const size = Math.random() < 0.7 ? 
+      Math.random() * 2 + 1 : 
+      Math.random() * 3 + 2;
+    
+    star.style.width = `${size}px`;
+    star.style.height = `${size}px`;
+    
+    star.style.setProperty("--duration", `${3 + Math.random() * 4}s`);
+    star.style.setProperty("--delay", `${Math.random() * 5}s`);
+    star.style.setProperty("--brightness", `${0.6 + Math.random() * 0.4}`);
+    
+    fragment.appendChild(star);
+  }
+  
+  container.appendChild(fragment);
+}
+
+function calculateSafePosition() {
+  const isMobile = window.innerWidth <= 768;
+  
+  const desktopPositions = {
+    topEdge: [
+      { x: 2.7, y: 2.4 }, { x: 9.3, y: 3.9 }, { x: 14.9, y: 4.5 }, 
+      { x: 23.8, y: 3.1 }, { x: 31, y: 3.1 }, { x: 37.3, y: 3.1 },
+      { x: 69.6, y: 6.5 }
+    ],
+    rightEdge: [
+      { x: 97.3, y: 42.3 }, { x: 96, y: 59 }, { x: 93.4, y: 66.8 },
+      { x: 92.9, y: 77.8 }, { x: 96, y: 82.4 }, { x: 96, y: 93.4 },
+      { x: 97, y: 29.4 }, { x: 96, y: 12.1 }
+    ],
+    bottomEdge: [
+      { x: 12.9, y: 91.5 }, { x: 26.3, y: 92.2 }, { x: 73.3, y: 94 },
+      { x: 85.8, y: 94 }
+    ],
+    leftEdge: [
+      { x: 2.4, y: 10.4 }, { x: 2.5, y: 17.9 }, { x: 3.2, y: 32.2 },
+      { x: 2.3, y: 53.5 }, { x: 3.7, y: 71.9 }, { x: 3.3, y: 91.5 }
+    ],
+    topRight: [
+      { x: 83.6, y: 15.2 }, { x: 88.1, y: 17.2 }, { x: 91.7, y: 17 },
+      { x: 89.3, y: 21.7 }, { x: 86.4, y: 29.5 }
+    ],
+    bottomRight: [
+      { x: 84.2, y: 86.7 }, { x: 91.8, y: 71.9 }, { x: 93.3, y: 75.6 }
+    ]
+  };
+  
+  const mobilePositions = {
+    topEdge: [
+      { x: 6.4, y: 3.4 }, { x: 17.6, y: 3.7 }, { x: 28.5, y: 3.9 },
+      { x: 45.6, y: 3.9 }, { x: 62.7, y: 3.9 }, { x: 79.7, y: 3.1 },
+      { x: 92.8, y: 3.7 }, { x: 92.8, y: 7.8 }
+    ],
+    rightEdge: [
+      { x: 94.4, y: 36.1 }, { x: 94.4, y: 67.8 }, { x: 94.1, y: 80.5 },
+      { x: 95.5, y: 88 }, { x: 95.2, y: 63.9 }, { x: 95.2, y: 29.1 }
+    ],
+    bottomEdge: [
+      { x: 81.6, y: 90.4 }, { x: 51.7, y: 90 }, { x: 41.9, y: 80.2 },
+      { x: 65.3, y: 80.8 }
+    ],
+    leftEdge: [
+      { x: 6.4, y: 85.5 }, { x: 6.4, y: 78 }, { x: 2.9, y: 67 },
+      { x: 10.1, y: 16.5 }, { x: 7.7, y: 24 }
+    ],
+    topRight: [
+      { x: 90.7, y: 22.6 }, { x: 89.6, y: 29.8 }
+    ],
+    bottomRight: [
+      { x: 93.1, y: 71.7 }, { x: 80.3, y: 77.4 }, { x: 80.5, y: 77.1 }
+    ]
+  };
+  
+  const positions = isMobile ? mobilePositions : desktopPositions;
+  let allPositions = [];
+  
+  allPositions = allPositions.concat(
+    positions.topRight, positions.topRight,
+    positions.bottomRight, positions.bottomRight,
+    positions.rightEdge, positions.rightEdge
+  );
+  
+  allPositions = allPositions.concat(
+    positions.topEdge,
+    positions.bottomEdge,
+    positions.leftEdge
+  );
+  
+  const randomIndex = Math.floor(Math.random() * allPositions.length);
+  const basePosition = allPositions[randomIndex];
+  
+  return {
+    x: basePosition.x + (Math.random() * 4 - 2),
+    y: basePosition.y + (Math.random() * 4 - 2)
+  };
+}
+
+function createSentientOrb(container) {
+  const orb = document.createElement('div');
+  orb.className = 'sentient-orb';
+  orb.id = 'sentient-orb';
+  
+  orb.style.position = 'absolute';
+  orb.style.left = '-20px';
+  orb.style.top = '-20px';
+  orb.style.width = '3.5px';
+  orb.style.height = '3.5px';
+  orb.style.backgroundColor = '#fff';
+  orb.style.borderRadius = '50%';
+  // orb.style.boxShadow = '0 0 10px 2px rgba(255, 255, 255, 0.7)';
+  orb.style.cursor = 'pointer';
+  orb.style.zIndex = '10000';
+  orb.style.pointerEvents = 'auto';
+  // orb.style.transition = 'left 0.5s ease-in-out, top 0.5s ease-in-out';
+  
+  container.appendChild(orb);
+  
+  const updatePosition = () => {
+    const pos = calculateSafePosition();
+    orb.style.left = `${pos.x}%`;
+    orb.style.top = `${pos.y}%`;
+  };
+  
+  orb.addEventListener('click', function() {
+    if (!orb.dataset.glitching) {
+      orb.dataset.glitching = 'true';
+      const glitchElements = activateGlitchEffect();
+      
+      setTimeout(() => {
+        cleanupGlitchEffect(glitchElements);
+        orb.dataset.glitching = '';
+        updatePosition();
+      }, 3000);
+    }
+  });
+  
+  setTimeout(updatePosition, 500);
+  window.addEventListener('resize', updatePosition);
+  
+  return orb;
+}
+
+document.addEventListener('DOMContentLoaded', initializeStarfield);
