@@ -45,7 +45,7 @@ class GameEngine {
       },
       resistance_win: {
         trumpAnimation: "slapped",
-        audioSequence: ["beenVeryNiceToYou", "win"],
+        audioSequence: ["fourYears", "win"],
         message: "YOU LOSE! It was never going to be just 4 years",
         playerWon: true,
       },
@@ -5165,13 +5165,13 @@ class ProtestorHitboxManager {
           height: 300,
           calibrationScale: 0.24,
         },
-        {
-          x: 608, //ed
-          y: 1300,
-          width: 300,
-          height: 300,
-          calibrationScale: 0.24,
-        },
+        // {
+        //   x: 608, //ed
+        //   y: 1300,
+        //   width: 300,
+        //   height: 300,
+        //   calibrationScale: 0.24,
+        // },
         {
           x: 508, //wh
           y: 1100,
@@ -5200,13 +5200,13 @@ class ProtestorHitboxManager {
         //   height: 300,
         //   calibrationScale: 0.24,
         // },
-        {
-          x: 991, //tor
-          y: 1500,
-          width: 300,
-          height: 300,
-          calibrationScale: 0.24,
-        },
+        // {
+        //   x: 991, //tor
+        //   y: 1500,
+        //   width: 300,
+        //   height: 300,
+        //   calibrationScale: 0.24,
+        // },
         {
           x: 1091, //ott
           y: 1400,

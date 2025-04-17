@@ -757,7 +757,7 @@ class AnimationManager {
     this.trumpSprite.style.backgroundPosition = `${percentPosition}% 0%`;
 
     const shouldEnlargeMobile = window.DeviceUtils.isMobileDevice && 
-    (this.currentState.includes('slapped') || this.currentState.includes('victory'));
+    (this.currentState.includes('slapped') || this.currentState.includes('victory') || this.currentState.includes('idle'));
   const shouldEnlargeDesktop = !window.DeviceUtils.isMobileDevice && 
     (this.currentState.includes('slapped') || this.currentState.includes('victory'));
   
