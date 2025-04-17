@@ -1580,3 +1580,40 @@ button:hover {
   30%, 70% { transform: translate3d(-1px, 0, 0); }
   40%, 60% { transform: translate3d(1px, 0, 0); }
 }
+
+
+
+ .trump-flag-animation {
+    position: absolute;
+    z-index: 25;
+    transition: transform 0.3s ease-out;
+  }
+  
+  .trump-flag-animation:hover {
+    transform: scale(1.1) rotate(0deg) !important;
+  }
+  
+  /* Flag "planting" animation */
+  @keyframes flagPlant {
+    0% { transform: scale(0) translateY(-50px); }
+    60% { transform: scale(1.2) translateY(0); }
+    100% { transform: scale(1) translateY(0); }
+  }
+  
+  .trump-flag-animation {
+    animation: flagPlant 0.5s ease-out forwards;
+  }
+
+
+  .trump-flag-animation {
+    position: absolute;
+    z-index: 25; /* Ensure it's above the country overlays */
+    animation: flagPlant 0.5s ease-out forwards;
+    pointer-events: none;
+  }
+  
+  @keyframes flagPlant {
+    0% { transform: scale(0) translateY(-20px); }
+    60% { transform: scale(1.2) translateY(0); }
+    100% { transform: scale(1) translateY(0); }
+  }

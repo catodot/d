@@ -101,7 +101,7 @@ class GameEngine {
     if (!this.systems.audio && typeof AudioManager === "function") {
       // Use existing instance if available, otherwise create new one
       this.systems.audio = window.audioManager || new AudioManager();
-  
+
       // Update global reference (for backward compatibility)
       window.audioManager = this.systems.audio;
     }
@@ -337,6 +337,8 @@ class GameEngine {
       return false;
     }
 
+    this._cleanupAllFlags();
+
     // Set flags to prevent multiple calls
     this.systems.state.gameEnding = true;
     this.systems.state.endReason = endReason;
@@ -487,6 +489,8 @@ class GameEngine {
       gameOverScreen.classList.add("hidden");
       gameOverScreen.style.display = "none"; // Keep this to ensure it's hidden
     }
+
+    this._cleanupAllFlags();
 
     const gameContainer = document.getElementById("game-container");
     if (gameContainer) {
@@ -678,138 +682,199 @@ class GameEngine {
 
     // Accessibility and UI cleanup
     this._handlePostBlockUIUpdates(targetCountry);
-}
+  }
 
-// Play block sound with error handling
-_playBlockSound(smackRegion) {
+  // Play block sound with error handling
+  _playBlockSound(smackRegion) {
     if (!this.systems.audio) return;
 
     try {
-        this.systems.audio.resumeAudioContext()
-            .then(() => {
-                try {
-                    this.systems.audio.playSuccessfulBlock(smackRegion);
-                } catch (error) {
-                    console.warn("[Engine] Error playing block sound:", error);
-                    // Fall back to direct slap sound if needed
-                    this.systems.audio.playDirect("slap1.mp3", 0.8);
-                }
-            })
-            .catch(error => {
-                console.warn("[Engine] Failed to resume audio context:", error);
-            });
+      this.systems.audio
+        .resumeAudioContext()
+        .then(() => {
+          try {
+            this.systems.audio.playSuccessfulBlock(smackRegion);
+          } catch (error) {
+            console.warn("[Engine] Error playing block sound:", error);
+            // Fall back to direct slap sound if needed
+            this.systems.audio.playDirect("slap1.mp3", 0.8);
+          }
+        })
+        .catch((error) => {
+          console.warn("[Engine] Failed to resume audio context:", error);
+        });
     } catch (error) {
-        console.warn("[Engine] Audio system error:", error);
+      console.warn("[Engine] Audio system error:", error);
     }
-}
+  }
 
-// Handle animation stopping
-_handleAnimationStop() {
+  // Handle animation stopping
+  _handleAnimationStop() {
     if (!this.systems.animation) return;
 
     try {
-        this.systems.animation.stop();
-        this.systems.animation.changeState("idle");
+      this.systems.animation.stop();
+      this.systems.animation.changeState("idle");
     } catch (e) {
-        console.warn("[Engine] Error stopping animation:", e);
+      console.warn("[Engine] Error stopping animation:", e);
     }
-}
+  }
 
-// Apply visual block effects
-_applyBlockVisualEffects(targetCountry) {
+  // Apply visual block effects
+  _applyBlockVisualEffects(targetCountry) {
     // Prioritize systems reference
     if (this.systems.effects) {
-        this.systems.effects.applyHitEffect();
-        this.systems.effects.highlightTargetCountry(targetCountry, false);
-        this.systems.effects.setNotGrabbingState();
-        return;
+      this.systems.effects.applyHitEffect();
+      this.systems.effects.highlightTargetCountry(targetCountry, false);
+      this.systems.effects.setNotGrabbingState();
+      return;
     }
 
     // Fall back to global reference
     if (window.trumpHandEffects) {
-        console.warn("Falling back to global trumpHandEffects");
-        window.trumpHandEffects.applyHitEffect();
-        window.trumpHandEffects.highlightTargetCountry(targetCountry, false);
-        return;
+      console.warn("Falling back to global trumpHandEffects");
+      window.trumpHandEffects.applyHitEffect();
+      window.trumpHandEffects.highlightTargetCountry(targetCountry, false);
+      return;
     }
 
-    // Absolute last resort 
+    // Absolute last resort
     console.warn("No visual effects system available");
-}
+  }
 
-// Handle post-block UI updates
-_handlePostBlockUIUpdates(targetCountry) {
+  // Handle post-block UI updates
+  _handlePostBlockUIUpdates(targetCountry) {
     // Screen reader announcement
     if (this.systems.ui?.announceForScreenReaders) {
-        this.systems.ui.announceForScreenReaders(
-            `Great job! You blocked Trump's grab on ${targetCountry}!`
-        );
+      this.systems.ui.announceForScreenReaders(`Great job! You blocked Trump's grab on ${targetCountry}!`);
     }
 
     // Hide hand hitbox if manager exists
     if (window.handHitboxManager) {
-        window.handHitboxManager.hideHandHitbox();
+      window.handHitboxManager.hideHandHitbox();
     }
-}
+  }
 
+  // grabSuccess(country) {
+  //   console.log("iii grabsucess!");
+    
+  //   // Reset consecutive hits
+  //   this.systems.state.consecutiveHits = 0;
+  //   window.trumpHandEffects.applyGrabSuccessEffect(country);
+
+  //   // Check if this is the game-winning grab
+  //   const isGameOver = this._checkGameOverCondition();
+
+  //   if (isGameOver) {
+  //     console.log("game is over grabSuccess");
+  //     this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY, "all_countries_claimed");
+  //     return; // Important! Don't continue execution
+  //   }
+
+  //   // Handle country grab (visual updates)
+  //   this._updateCountryClaims(country);
+
+  //   // Handle game progression
+  //   this._proceedWithGameProgression();
+  // }
+
+  // // Helper method to update country claims
+  // _updateCountryClaims(country) {
+  //   console.log("iii updating country claims!");
+
+  //   const state = this.systems.state;
+  //   const isCanada = country === "eastCanada" || country === "westCanada";
+  //   const targetCountry = isCanada ? "canada" : country;
+
+  //   state.countries[targetCountry].claims = Math.min(state.countries[targetCountry].claims + 1, state.countries[targetCountry].maxClaims);
+  //   console.log(`iii ${state.countries[targetCountry].claims}`);
+
+  //   this.systems.ui.updateFlagOverlay(isCanada ? "canada" : country, state.countries[targetCountry].claims);
+
+  //   // Optional: Handle audio if needed
+  //   try {
+  //     if (country === "eastCanada" || country === "westCanada") {
+  //       this._handleCanadaGrab();
+  //     } else {
+  //       this._handleStandardCountryGrab(country);
+  //     }
+  //   } catch (error) {
+  //     console.warn("[Engine] Error handling grab success:", error);
+  //   }
+  // }
+
+  // Helper method to proceed with game progression
+  
+  
+  
   grabSuccess(country) {
+    console.log("iii grabsucess!");
+    console.log(`iii FULL COUNTRY STATE BEFORE GRAB:`, JSON.stringify(this.systems.state.countries, null, 2));
+    console.log(`iii country being grabbed: ${country}`);
+    
     // Reset consecutive hits
     this.systems.state.consecutiveHits = 0;
     window.trumpHandEffects.applyGrabSuccessEffect(country);
-
+  
     // Check if this is the game-winning grab
     const isGameOver = this._checkGameOverCondition();
-
+  
     if (isGameOver) {
-        console.log("game is over grabSuccess");
-        this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY, "all_countries_claimed");
-        return; // Important! Don't continue execution
+      console.log("game is over grabSuccess");
+      this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY, "all_countries_claimed");
+      return; // Important! Don't continue execution
     }
-
+  
     // Handle country grab (visual updates)
     this._updateCountryClaims(country);
-
+  
+    console.log(`iii FULL COUNTRY STATE AFTER GRAB:`, JSON.stringify(this.systems.state.countries, null, 2));
+  
     // Handle game progression
     this._proceedWithGameProgression();
-}
-
-// Helper method to update country claims
-_updateCountryClaims(country) {
+  }
+  
+  _updateCountryClaims(country) {
+    console.log("iii updating country claims!");
+  
     const state = this.systems.state;
     const isCanada = country === "eastCanada" || country === "westCanada";
     const targetCountry = isCanada ? "canada" : country;
-
+  
+    console.log(`iii target country: ${targetCountry}`);
+    console.log(`iii current claims: ${state.countries[targetCountry].claims}`);
+    console.log(`iii max claims: ${state.countries[targetCountry].maxClaims}`);
+  
     state.countries[targetCountry].claims = Math.min(
-        state.countries[targetCountry].claims + 1, 
-        state.countries[targetCountry].maxClaims
+      state.countries[targetCountry].claims + 1, 
+      state.countries[targetCountry].maxClaims
     );
-
+  
+    console.log(`iii claims after increment: ${state.countries[targetCountry].claims}`);
+  
     this.systems.ui.updateFlagOverlay(isCanada ? "canada" : country, state.countries[targetCountry].claims);
-
-    // Optional: Handle audio if needed
+  
     try {
-        if (country === "eastCanada" || country === "westCanada") {
-            this._handleCanadaGrab();
-        } else {
-            this._handleStandardCountryGrab(country);
-        }
+      if (country === "eastCanada" || country === "westCanada") {
+        this._handleCanadaGrab();
+      } else {
+        this._handleStandardCountryGrab(country);
+      }
     } catch (error) {
-        console.warn("[Engine] Error handling grab success:", error);
+      console.warn("[Engine] Error handling grab success:", error);
     }
-}
-
-// Helper method to proceed with game progression
-_proceedWithGameProgression() {
+  }
+  _proceedWithGameProgression() {
     if (this.systems.animation) {
-        this.systems.animation.changeState("victory", () => {
-            // Continue game loop
-            this.initiateGrab();
-        });
+      this.systems.animation.changeState("victory", () => {
+        // Continue game loop
+        this.initiateGrab();
+      });
     } else {
-        // Fallback if no animation manager
-        this.createTrackedTimeout(() => this.initiateGrab(), 1000);
+      // Fallback if no animation manager
+      this.createTrackedTimeout(() => this.initiateGrab(), 1000);
     }
-}
+  }
 
   /**
    * Toggle game pause state
@@ -964,6 +1029,9 @@ _proceedWithGameProgression() {
 
     // Connect input to game elements
     this.systems.input.connectUI(this.systems.ui);
+
+    this.systems.state.setGameEngine(this);
+
   }
 
   /**
@@ -1112,7 +1180,6 @@ _proceedWithGameProgression() {
    * @private
    */
   _updateGameFrame(timestamp) {
-    
     // Check if game is currently playing
     // if (!this.systems.state.isPlaying) {
     //   // Ensure grab sounds stop when game isn't playing
@@ -1335,7 +1402,6 @@ _proceedWithGameProgression() {
       // Explicitly check for prompt
       window.trumpHandEffects.updatePromptVisibility();
     } else {
-      
     }
   }
 
@@ -1351,7 +1417,6 @@ _proceedWithGameProgression() {
     // Start the animation with completion callback
     this.systems.animation.changeState(animationName, () => {
       try {
-      
         // This runs when grab completes without being blocked
         if (this.systems.state.currentTarget === targetCountry && this.systems.state.isPlaying && !this.systems.state.isPaused) {
           // Handle successful grab
@@ -1373,7 +1438,6 @@ _proceedWithGameProgression() {
       }
     });
   }
-
 
   /**
    * Determine the specific region being smacked
@@ -1482,11 +1546,15 @@ _proceedWithGameProgression() {
     if (this.systems.audio) {
       // this.systems.audio.resumeAudioContext().then(() => {
       //   try {
-          if (claimCount < state.countries.canada.maxClaims) {
-            this.systems.audio.playSuccessfulGrab("canada");
-          } else {
-            this.systems.audio.playCountryFullyAnnexedCry("canada");
-          }
+      if (claimCount < state.countries.canada.maxClaims) {
+        console.log("iii grabbed canada");
+        
+        this.systems.audio.playSuccessfulGrab("canada");
+      } else {
+        console.log("iii fully annexed canada");
+
+        this.systems.audio.playCountryFullyAnnexedCry("canada");
+      }
       //   } catch (error) {
       //     console.warn("[Engine] Error playing grab success sound:", error);
       //     // Fall back to direct sound
@@ -1502,28 +1570,25 @@ _proceedWithGameProgression() {
     this.systems.ui.announceForScreenReaders(`Trump has claimed part of Canada! ${claimCount} out of 3 parts taken.`);
   }
   _handleStandardCountryGrab(country) {
-    console.log("nnn handling a standard country grab");
-    
+    console.log("iii handling a standard country grab");
+  
     const state = this.systems.state;
-    state.countries[country].claims = Math.min(state.countries[country].claims + 1, state.countries[country].maxClaims);
     const claimCount = state.countries[country].claims;
     const isFullAnnexation = claimCount >= state.countries[country].maxClaims;
   
-    if (this.systems.audio) {
-      // this.systems.audio.resumeAudioContext().then(() => {
-        if (isFullAnnexation) {
-          this.systems.audio.playCountryFullyAnnexedCry(country);
-        } else {
-          this.systems.audio.playSuccessfulGrab(country);
-        }
-      // }).catch(error => {
-        // console.warn("[Engine] Error playing grab success sound:", error);
-      // });
+    console.log("iii claimcount is", claimCount);
+  
+    if (isFullAnnexation) {
+      console.log("iii fully annexed");
+      this.systems.audio.playCountryFullyAnnexedCry(country);
+    } else {
+      console.log("iii partially annexed");
+      this.systems.audio.playSuccessfulGrab(country);
     }
-
+  
     // Update flag overlay
     this.systems.ui.updateFlagOverlay(country, claimCount);
-
+  
     // Announce for screen readers
     this.systems.ui.announceForScreenReaders(`Trump has claimed part of ${country}! ${claimCount} out of 3 parts taken.`);
   }
@@ -1571,6 +1636,31 @@ _proceedWithGameProgression() {
       }
     }, this.config.AUTO_RESTART_DELAY);
   }
+
+  _cleanupAllFlags() {
+    // Remove flag elements from DOM
+    document.querySelectorAll(".trump-flag-animation").forEach((flag) => {
+      if (flag.parentNode) {
+        flag.parentNode.removeChild(flag);
+      }
+    });
+
+    // Clear flag references in state
+    if (this.systems.state && this.systems.state.countries) {
+      Object.keys(this.systems.state.countries).forEach((countryId) => {
+        if (this.systems.state.countries[countryId]) {
+          this.systems.state.countries[countryId].flags = [];
+        }
+      });
+    }
+
+    // Call animator's cleanup if it exists
+    if (window.animationManager && typeof window.animationManager.removeAllFlags === "function") {
+      window.animationManager.removeAllFlags();
+    }
+  }
+
+
 }
 
 // window.GameEngine = GameEngine;
@@ -1581,9 +1671,15 @@ _proceedWithGameProgression() {
 class GameState {
   constructor(config) {
     this.config = config;
+    this.gameEngine = null; // Initialize as null
+
     this.reset();
   }
 
+
+  setGameEngine(gameEngine) {
+    this.gameEngine = gameEngine;
+  }
   /**
    * Reset state to initial values
    */
@@ -1644,11 +1740,48 @@ class GameState {
         countries[country] = {
           claims: 0,
           maxClaims: 3, // Default max claims
+          flagPositions: this._getFlagPositionsForCountry(country), // Get flag positions
+          flags: [] // Initialize the flags array
+
         };
       });
     }
 
     return countries;
+  }
+
+  _getFlagPositionsForCountry(country) {
+    // Define flag positions for each country
+    // These should be tuned for your map
+    const positions = {
+      canada: [
+        { x: 650, y: 1100, scale: 0.7 }, // Western Canada
+        { x: 950, y: 1300, scale: 0.7 }, // Central Canada
+        { x: 1300, y: 1400, scale: 0.7 }, // Eastern Canada
+      ],
+      westCanada: [
+        { x: 650, y: 1100, scale: 0.7 }, // Western Canada
+        { x: 680, y: 1200, scale: 0.7 }, // Western Canada
+        { x: 690, y: 1250, scale: 0.7 }, // Western Canada
+      ],
+      eastCanada: [
+        { x: 1400, y: 1300, scale: 0.7 }, // Eastern Canada
+        { x: 950, y: 1300, scale: 0.7 }, // Central Canada
+        { x: 1300, y: 1400, scale: 0.7 }, // Eastern Canada
+      ],
+      mexico: [
+        { x: 1350, y: 2670, scale: 0.7 },
+        { x: 1110, y: 2590, scale: 0.7 },
+        { x: 1400, y: 2650, scale: 0.7 },
+      ],
+      greenland: [
+        { x: 2000, y: 400, scale: 0.7 },
+        { x: 2200, y: 600, scale: 0.7 },
+        { x: 2400, y: 800, scale: 0.7 },
+      ],
+    };
+
+    return positions[country] || [];
   }
 }
 
@@ -1904,11 +2037,10 @@ class UIManager {
         e.preventDefault();
 
         const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has('record')) {
-    // If we're in recording mode, just reload the main page
-    window.location.href = window.location.pathname;
-
-  }
+        if (urlParams.has("record")) {
+          // If we're in recording mode, just reload the main page
+          window.location.href = window.location.pathname;
+        }
         // console.log("Restart button clicked directly from game over screen");
         if (window.gameEngine) {
           window.gameEngine.restartGame();
@@ -1932,6 +2064,8 @@ class UIManager {
     this.state.mapOffsetX = mapRect.left;
     this.state.mapOffsetY = mapRect.top;
 
+    this.positionCountryFlags();
+
     // Set CSS custom properties on :root for consistent positioning
     document.documentElement.style.setProperty("--map-width", `${mapRect.width}px`);
     document.documentElement.style.setProperty("--map-height", `${mapRect.height}px`);
@@ -1941,6 +2075,41 @@ class UIManager {
     // Position child elements using CSS variables instead of direct JS calculations
     this.positionCountryFlagOverlays();
     this.positionTrumpCharacter();
+  }
+
+  positionCountryFlags() {
+    if (!this.state || !window.animationManager) return;
+
+    // For each country, reposition its flags
+    Object.keys(this.state.countries).forEach((countryId) => {
+      const country = this.state.countries[countryId];
+
+      if (country.flags && country.flags.length > 0) {
+        const mapElement = document.getElementById("map-background");
+        if (!mapElement) return;
+
+        const mapScale = mapElement.clientWidth / mapElement.naturalWidth;
+        const mapRect = mapElement.getBoundingClientRect();
+        const gameContainer = document.getElementById("game-container");
+        if (!gameContainer) return;
+
+        const containerRect = gameContainer.getBoundingClientRect();
+
+        // Update each flag position
+        country.flags.forEach((flagInfo, index) => {
+          if (flagInfo && flagInfo.element && country.flagPositions[index]) {
+            const position = country.flagPositions[index];
+            const scaledX = position.x * mapScale + (mapRect.left - containerRect.left);
+            const scaledY = position.y * mapScale + (mapRect.top - containerRect.top);
+
+            flagInfo.element.style.left = `${scaledX}px`;
+            flagInfo.element.style.top = `${scaledY}px`;
+            flagInfo.element.style.width = `${60 * position.scale * mapScale}px`;
+            flagInfo.element.style.height = `${40 * position.scale * mapScale}px`;
+          }
+        });
+      }
+    });
   }
 
   showWorldShrinkAnimation(onCompleteCallback, duration = 3000) {
@@ -2199,6 +2368,8 @@ class UIManager {
         flag.style.transition = "";
       }
     });
+
+    this._cleanupFlags();
 
     const existingIntroWrapper = document.querySelector(".world-intro-animation");
     if (existingIntroWrapper && existingIntroWrapper.parentNode) {
@@ -2688,6 +2859,29 @@ class UIManager {
       trumpHandHitbox.style.pointerEvents = pointerEvents;
     }
   }
+
+  _cleanupFlags() {
+    // Remove flag elements from DOM
+    document.querySelectorAll(".trump-flag-animation").forEach((flag) => {
+      if (flag.parentNode) {
+        flag.parentNode.removeChild(flag);
+      }
+    });
+
+    // Clear flag references in state
+    if (this.state && this.state.countries) {
+      Object.keys(this.state.countries).forEach((countryId) => {
+        if (this.state.countries[countryId]) {
+          this.state.countries[countryId].flags = [];
+        }
+      });
+    }
+
+    // Call animator's cleanup if it exists
+    if (window.animationManager && typeof window.animationManager.removeAllFlags === "function") {
+      window.animationManager.removeAllFlags();
+    }
+  }
 }
 
 window.UIManager = UIManager;
@@ -2791,29 +2985,29 @@ class InputManager {
     if (startButton && this.handlers.onStartKey) {
       startButton.addEventListener("click", (e) => {
         e.preventDefault();
-  
+
         if (window.audioManager) {
-          window.audioManager.resumeAudioContext()
+          window.audioManager
+            .resumeAudioContext()
             .then(() => {
               // Initialize audio system
               if (typeof window.audioManager.init === "function") {
                 window.audioManager.init();
                 window.audioManager.startDiagnosticAuditing();
               }
-  
+
               // Check pool health - only call primeAudioPool once
               try {
                 window.audioManager.primeAudioPool({ skipClickSound: true });
               } catch (e) {
                 console.warn("[Input] Error priming audio pool:", e);
               }
-  
+
               // Play click sound
-              window.audioManager.play("ui", "click", 0.5)
-                .catch(error => {
-                  console.warn("[Input] Click sound play error:", error);
-                  window.audioManager.playDirect("click.mp3", 0.5);
-                });
+              window.audioManager.play("ui", "click", 0.5).catch((error) => {
+                console.warn("[Input] Click sound play error:", error);
+                window.audioManager.playDirect("click.mp3", 0.5);
+              });
             })
             .catch((e) => {
               console.warn("[Input] Failed to resume audio context:", e);
@@ -2825,7 +3019,7 @@ class InputManager {
               }
             });
         }
-  
+
         // Start game after a short delay
         setTimeout(() => {
           this.handlers.onStartKey();
@@ -2976,7 +3170,6 @@ class GameSpeedManager {
     // Nothing needed here for initialization
   }
 
-
   showNotification(message) {
     // Create notification element
     const notification = this._createNotificationElement(message);
@@ -3024,7 +3217,6 @@ class GameSpeedManager {
     }
   }
 
-
   _initializeTutorial() {
     // Capture initial block count to detect when player has blocked
     this.state.initialBlockCount = this.gameState.stats.successfulBlocks;
@@ -3034,7 +3226,6 @@ class GameSpeedManager {
     this.state.currentSpeedIndex = 0;
     this.setSpeed(this.speedLevels[0].multiplier);
   }
-
 
   checkTutorialCompletion() {
     // Tutorial is complete if player has made a successful block
@@ -3053,7 +3244,6 @@ class GameSpeedManager {
     }
     return false;
   }
-
 
   _cleanupTutorialTimers() {
     // Clear instruction timeout
@@ -3220,12 +3410,12 @@ class GameSpeedManager {
       clearInterval(this.timers.speedIncreaseInterval);
       this.timers.speedIncreaseInterval = null;
     }
-  
+
     if (this.timers.instructionTimeout !== null) {
       clearTimeout(this.timers.instructionTimeout);
       this.timers.instructionTimeout = null;
     }
-  
+
     if (this.timers.tutorialFailsafeTimeout !== null) {
       clearTimeout(this.timers.tutorialFailsafeTimeout);
       this.timers.tutorialFailsafeTimeout = null;
@@ -3473,37 +3663,30 @@ class GlowOutline {
     });
 
     // Store references to event listeners for later removal
-  const onMouseMove = (e) => {
-    const rect = wrapper.getBoundingClientRect();
-    if (
-      e.clientX >= rect.left && 
-      e.clientX <= rect.right && 
-      e.clientY >= rect.top && 
-      e.clientY <= rect.bottom
-    ) {
-      outlineContainer.style.boxShadow = `0 0 20px 10px #ff8800`;
-    }
-  };
+    const onMouseMove = (e) => {
+      const rect = wrapper.getBoundingClientRect();
+      if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        outlineContainer.style.boxShadow = `0 0 20px 10px #ff8800`;
+      }
+    };
 
+    const onMouseOut = () => {
+      outlineContainer.style.boxShadow = `0 0 15px 5px ${this.getRGBAFromColor(color, 0.7)}`;
+    };
 
-  const onMouseOut = () => {
-    outlineContainer.style.boxShadow = `0 0 15px 5px ${this.getRGBAFromColor(color, 0.7)}`;
-  };
+    // Attach the listeners to the wrapper instead of document
+    wrapper.addEventListener("mousemove", onMouseMove);
+    wrapper.addEventListener("mouseleave", onMouseOut);
 
-  // Attach the listeners to the wrapper instead of document
-  wrapper.addEventListener("mousemove", onMouseMove);
-  wrapper.addEventListener("mouseleave", onMouseOut);
-  
-  // Store the listener references for cleanup
-  wrapper._glowListeners = {
-    mousemove: onMouseMove,
-    mouseleave: onMouseOut
-  };
+    // Store the listener references for cleanup
+    wrapper._glowListeners = {
+      mousemove: onMouseMove,
+      mouseleave: onMouseOut,
+    };
 
-  wrapper.appendChild(outlineContainer);
-  return wrapper;
-}
-
+    wrapper.appendChild(outlineContainer);
+    return wrapper;
+  }
 
   // New method specifically for adding glow to record button
   addToRecordButton(buttonElement) {
@@ -3602,15 +3785,70 @@ class TrumpHandEffectsController {
       animationDuration: 650,
       promptDelay: 1500, // Delay before showing the prompt
       // CSS class names for state management
-      defaultStateClass: 'state-idle',
-      hitStateClass: 'hit', // Match existing CSS class
-      hittableStateClass: 'hittable', // Match existing CSS class
-      grabSuccessStateClass: 'grab-success', // Match existing CSS class
-      firstBlockModifier: 'first-block',
-      grabbingModifier: 'grabbing',
-      hoverModifier: 'hover-active',
-      animationCompletedModifier: 'animation-completed'
+      defaultStateClass: "state-idle",
+      hitStateClass: "hit", // Match existing CSS class
+      hittableStateClass: "hittable", // Match existing CSS class
+      grabSuccessStateClass: "grab-success", // Match existing CSS class
+      firstBlockModifier: "first-block",
+      grabbingModifier: "grabbing",
+      hoverModifier: "hover-active",
+      animationCompletedModifier: "animation-completed",
     };
+  }
+
+  _addFlagToCountry(country) {
+    console.log("yyy in add flagAdding flag");
+
+    // For Canada, handle east/west special case
+    const targetCountry = country === "eastCanada" || country === "westCanada" ? "canada" : country;
+
+    // Get current claim count to determine which flag position to use
+    const countryState = this.gameState.countries[targetCountry];
+    const claimIndex = Math.min(countryState.claims, countryState.maxClaims);
+    if (claimIndex >= 0) {
+    }
+
+    if (countryState.flagPositions.length) {
+      console.log("countryState.flagPositions.length");
+    }
+    // Only proceed if there's a valid position and we haven't exceeded max claims
+    if (claimIndex >= 0 && claimIndex < countryState.flagPositions.length) {
+      const position = countryState.flagPositions[claimIndex];
+
+      // Scale position based on current map scale
+      const mapElement = document.getElementById("map-background");
+      if (mapElement) {
+        const mapScale = mapElement.clientWidth / mapElement.naturalWidth;
+        const scaledPosition = {
+          x: position.x * mapScale,
+          y: position.y * mapScale,
+          scale: position.scale * mapScale,
+        };
+
+        // Add map offset
+        const mapRect = mapElement.getBoundingClientRect();
+        const gameContainer = document.getElementById("game-container");
+        if (gameContainer) {
+          const containerRect = gameContainer.getBoundingClientRect();
+          scaledPosition.x += mapRect.left - containerRect.left;
+          scaledPosition.y += mapRect.top - containerRect.top;
+        }
+
+        // Create the flag animation
+        const flagInfo = window.animationManager.createFlagAnimation(`${targetCountry}-${claimIndex}`, scaledPosition, scaledPosition.scale);
+
+        // Store reference to the flag
+        if (flagInfo) {
+          // Initialize flags array if it doesn't exist yet (defensive programming)
+          if (!countryState.flags) {
+            countryState.flags = [];
+          }
+          
+          countryState.flags.push(flagInfo);
+          console.log(`Flag added to ${targetCountry}, total flags: ${countryState.flags.length}`);
+        }
+      }
+    }
   }
 
   setVisualZIndex(zIndex) {
@@ -3621,59 +3859,66 @@ class TrumpHandEffectsController {
 
   updateVisualStyles() {
     if (!this.elements.visual) return;
-  
+
     // Add throttling to prevent multiple updates in rapid succession
     if (this._styleUpdatePending) return;
-  
+
     this._styleUpdatePending = true;
-    
+
     requestAnimationFrame(() => {
       // Remember current z-index to preserve it
       const currentZIndex = this.elements.visual.style.zIndex;
-      
+
       // Clear all state classes first
       this.elements.visual.classList.remove(
-        'state-idle', 'state-hittable', 'hittable', 'hit', 'grab-success',
-        'first-block', 'grabbing', 'hover-active', 'animation-completed'
+        "state-idle",
+        "state-hittable",
+        "hittable",
+        "hit",
+        "grab-success",
+        "first-block",
+        "grabbing",
+        "hover-active",
+        "animation-completed"
       );
-      
+
       // Add the appropriate class for the current state
       if (this.state.current === this.STATES.IDLE) {
         // Don't add any classes for idle
       } else if (this.state.current === this.STATES.HITTABLE) {
-        this.elements.visual.classList.add('hittable');
+        this.elements.visual.classList.add("hittable");
       } else if (this.state.current === this.STATES.HIT) {
-        this.elements.visual.classList.add('hit');
+        this.elements.visual.classList.add("hit");
       } else if (this.state.current === this.STATES.GRAB_SUCCESS) {
-        this.elements.visual.classList.add('grab-success');
+        this.elements.visual.classList.add("grab-success");
       }
-      
+
       // Add modifiers based on state
       if (this.isFirstBlock() && this.state.current === this.STATES.HITTABLE) {
-        this.elements.visual.classList.add('first-block');
+        this.elements.visual.classList.add("first-block");
       }
-      
+
       if (this.state.isGrabbing && this.state.current === this.STATES.HITTABLE) {
-        this.elements.visual.classList.add('grabbing');
+        this.elements.visual.classList.add("grabbing");
       }
-      
+
       if (this.state.isHovering) {
-        this.elements.visual.classList.add('hover-active');
+        this.elements.visual.classList.add("hover-active");
       }
-      
+
       // Ensure the visual doesn't interfere with clicks
       this.elements.visual.style.pointerEvents = "none";
-      
+
       // Restore the z-index we saved earlier
       this.elements.visual.style.zIndex = currentZIndex;
-      
+
       // Ensure the hitbox remains interactive
       if (this.elements.hitbox) {
         this.elements.hitbox.style.pointerEvents = "all";
         this.elements.hitbox.style.cursor = "pointer";
         this.elements.hitbox.style.zIndex = "1";
       }
-      
+
       // Reset flag after update
       this._styleUpdatePending = false;
     });
@@ -3689,28 +3934,35 @@ class TrumpHandEffectsController {
 
   resetVisual() {
     if (!this.elements.visual) return;
-  
+
     // Remove all state and effect classes
     this.elements.visual.classList.remove(
-      'state-idle', 'state-hittable', 'hittable', 'hit', 'grab-success',
-      'first-block', 'grabbing', 'hover-active', 'animation-completed'
+      "state-idle",
+      "state-hittable",
+      "hittable",
+      "hit",
+      "grab-success",
+      "first-block",
+      "grabbing",
+      "hover-active",
+      "animation-completed"
     );
-    
+
     // Don't hide the visual element completely; instead, make it transparent
     // Remove: this.elements.visual.style.display = "none";
     this.elements.visual.style.opacity = "0";
     this.elements.visual.style.zIndex = "0";
-  
+
     // Remove any dynamic shard elements
     this.removeShards();
-  
+
     // Reset state
     this.state.isAnimating = false;
     this.state.isHovering = false;
     this.state.isGrabbing = false;
     this.state.targetCountry = null;
     this.state.current = this.STATES.IDLE;
-  
+
     logger.debug("effects", "Visual reset to default state");
   }
 
@@ -3722,10 +3974,10 @@ class TrumpHandEffectsController {
     setTimeout(() => {
       // Remove screen shake
       this.elements.gameContainer.classList.remove("screen-shake");
-  
+
       // Add animation completed class
       this.elements.visual.classList.add(this.config.animationCompletedModifier);
-  
+
       // Complete reset after a short delay
       setTimeout(() => {
         this.resetVisual();
@@ -3737,10 +3989,10 @@ class TrumpHandEffectsController {
     setTimeout(() => {
       // Remove screen shake
       this.elements.gameContainer.classList.remove("grab-screen-shake");
-  
+
       // Add animation completed class
       this.elements.visual.classList.add(this.config.animationCompletedModifier);
-  
+
       // Complete reset after a short delay
       setTimeout(() => {
         this.resetVisual();
@@ -3753,19 +4005,19 @@ class TrumpHandEffectsController {
       console.error("Cannot make hittable: visual or hitbox element is missing");
       return;
     }
-  
+
     // Update classes on the hitbox
     this.elements.hitbox.classList.add("hittable");
-    
+
     // Clear all state classes on the visual
-    this.elements.visual.classList.remove('state-idle', 'hit', 'grab-success', 'animation-completed');
-    
-    // IMPORTANT: Always make the visual visible for all grabs 
-    this.elements.visual.style.display = "block"; 
-    
+    this.elements.visual.classList.remove("state-idle", "hit", "grab-success", "animation-completed");
+
+    // IMPORTANT: Always make the visual visible for all grabs
+    this.elements.visual.style.display = "block";
+
     // Add hittable class to visual
     this.elements.visual.classList.add("hittable");
-    
+
     // Set appropriate opacity based on first block status
     if (isFirstBlock) {
       this.elements.visual.style.opacity = "0.8";
@@ -3779,89 +4031,97 @@ class TrumpHandEffectsController {
       // this.elements.visual.style.zIndex = "2";
 
       this.elements.visual.classList.add("grabbing");
-
     }
-  
+
     // Make hitbox interactive
     this.elements.hitbox.style.pointerEvents = "all";
     this.elements.hitbox.style.cursor = "pointer";
     // this.elements.hitbox.style.zIndex = "1";
-  
+
     // Make visual non-interactive
     this.elements.visual.style.pointerEvents = "none";
-  
+
     // Update state
     this.state.isAnimating = false;
     this.state.current = this.STATES.HITTABLE;
-  
+
     // Check if we need to show the prompt
     this.updatePromptVisibility();
   }
 
   applyHitEffect() {
     if (!this.elements.visual) return;
-  
+
     // Stop if already animating this effect
     if (this.state.isAnimating && this.state.current === this.STATES.HIT) return;
-  
+
     // Update state
     this.state.isAnimating = true;
     this.state.current = this.STATES.HIT;
     this.state.isHovering = false;
     this.state.isGrabbing = false; // Not grabbing anymore after being hit
-  
+
     // First ensure the visual element is visible
     this.elements.visual.style.display = "block";
     this.elements.visual.style.opacity = "1";
-    
+
     // Remove existing classes and add hit class
-    this.elements.visual.classList.remove('state-hittable', 'hittable', 'grab-success', 'first-block', 'grabbing', 'hover-active');
-    this.elements.visual.classList.add('hit');
-  
+    this.elements.visual.classList.remove("state-hittable", "hittable", "grab-success", "first-block", "grabbing", "hover-active");
+    this.elements.visual.classList.add("hit");
+
     // Ensure pointer events are disabled
     this.elements.visual.style.pointerEvents = "none";
-  
+
     // Apply screen shake
     this.elements.gameContainer.classList.add("screen-shake");
-  
+
     // Force reflow for animation
     void this.elements.visual.offsetWidth;
-  
+
     // Clean up after animation
     this._scheduleHitEffectCleanup();
   }
 
-  applyGrabSuccessEffect() {
+  applyGrabSuccessEffect(targetCountry) {
     if (!this.elements.visual) return;
-  
+
     // Stop if already animating this effect
     if (this.state.isAnimating && this.state.current === this.STATES.GRAB_SUCCESS) return;
-  
+
     // Update state
     this.state.isAnimating = true;
     this.state.current = this.STATES.GRAB_SUCCESS;
     this.state.isHovering = false;
     this.state.isGrabbing = false; // Grab is complete, not grabbing anymore
-  
+
     // Remove existing classes and add grab-success class
-    this.elements.visual.classList.remove('state-hittable', 'hittable', 'hit', 'first-block', 'grabbing', 'hover-active');
-    this.elements.visual.classList.add('grab-success');
-  
+    this.elements.visual.classList.remove("state-hittable", "hittable", "hit", "first-block", "grabbing", "hover-active");
+    this.elements.visual.classList.add("grab-success");
+
     // Ensure pointer events are disabled
     this.elements.visual.style.pointerEvents = "none";
-  
+
     // Create shard elements
     this.createShards();
-  
+
     // Apply screen shake
     this.elements.gameContainer.classList.add("grab-screen-shake");
-  
+
     // Force reflow for animation
     void this.elements.visual.offsetWidth;
-  
+
+    // Add Trump flag to the country
+    // Add Trump flag to the country - using targetCountry if provided, otherwise from game state
+    if (targetCountry) {
+      this._addFlagToCountry(targetCountry);
+    }  else {
+        console.log("yyy no target country");
+        
+      }
+    
     // Clean up after animation
     this._scheduleGrabEffectCleanup();
-  
+
     if (window.handHitboxManager) {
       window.handHitboxManager.hideHandHitbox();
     }
@@ -4285,7 +4545,6 @@ class HandHitboxManager {
         this.setupHoverEffects();
       }
     } else {
-  
     }
 
     // Clear any existing tracking interval
@@ -4519,12 +4778,13 @@ class HandHitboxManager {
     if (this.currentState === "idle" || smackedAnimations.includes(this.currentState)) {
       if (!window.trumpHandEffects?.state.isAnimating) {
         this.hideHandHitbox();
-        
+
         // Also ensure the visual is hidden if not animating
         if (this.trumpHandHitBoxVisual) {
           this.trumpHandHitBoxVisual.style.opacity = "0";
         }
-      }      return;
+      }
+      return;
     }
 
     // Only continue for grab animations
@@ -4624,7 +4884,7 @@ class HandHitboxManager {
         // After positioning, try to restore styling with effects controller
         if (window.trumpHandEffects && this.trumpHandHitBox.classList.contains("hittable")) {
           try {
-        if (typeof window.trumpHandEffects.updateVisualStyles === "function") {
+            if (typeof window.trumpHandEffects.updateVisualStyles === "function") {
               window.trumpHandEffects.updateVisualStyles();
             }
           } catch (e) {
@@ -5564,16 +5824,13 @@ class ProtestorHitboxManager {
     // Add click handler that calls the freedomManager's handleProtestorClick
     this.setClickHandler(countryId, hitbox, freedomManager);
 
-  
     const wrapper = document.getElementById(`${countryId}-protestors-wrapper`);
     if (wrapper) {
       console.log(`777 Hitbox shown for ${countryId}, wrapper exists`);
     } else {
       console.log(`777 Hitbox shown for ${countryId}, but wrapper doesn't exist yet`);
-      
     }
     return hitbox;
-
   }
 
   /**
@@ -5870,11 +6127,9 @@ class ProtestorHitboxManager {
 // Make available to window
 window.ProtestorHitboxManager = ProtestorHitboxManager;
 
-
-
 class FreedomManager {
   // ===== CONSTANTS =====
-  
+
   static Z_INDEXES = {
     BASE: 500,
     CONFETTI: 505,
@@ -5915,7 +6170,7 @@ class FreedomManager {
   };
 
   // ===== CONSTRUCTOR & INITIALIZATION =====
-  
+
   /**
    * @param {Object} gameState - The game state object
    * @param {Object} elements - DOM elements
@@ -6048,6 +6303,70 @@ class FreedomManager {
     this.logger.info("freedom", "Protestor Hitbox Manager initialized");
   }
 
+  _removeCountryFlags(countryId) {
+    console.log(`Removing flags for country: ${countryId}`);
+    
+    if (!countryId || !this.gameState || !this.gameState.countries[countryId]) {
+      console.log(`Invalid parameters for flag removal`);
+      return;
+    }
+    
+    const country = this.gameState.countries[countryId];
+    
+    // Initialize flags array if it doesn't exist
+    if (!country.flags) {
+      country.flags = [];
+      console.log(`Initialized flags array for ${countryId}`);
+      return; // No flags to remove, so we can return early
+    }
+    
+    // Check if there are any flags to remove
+    if (country.flags.length === 0) {
+      console.log(`No flags to remove for ${countryId}`);
+      return;
+    }
+    
+    console.log(`Removing ${country.flags.length} flags for ${countryId}`);
+    
+    // Remove each flag (single loop)
+    country.flags.forEach((flagInfo, index) => {
+      console.log(`[removeCountryFlags] Processing flag ${index}:`, flagInfo);
+      
+      // Stop the animation
+      if (flagInfo.animationId && window.animationManager) {
+        console.log(`[removeCountryFlags] Stopping animation ${flagInfo.animationId}`);
+        window.animationManager.stopSpriteAnimation(flagInfo.animationId);
+      } else if (!window.animationManager) {
+        console.warn(`[removeCountryFlags] window.animationManager is not available!`);
+      }
+  
+      // Remove the element with animation
+      if (flagInfo.element) {
+        console.log(`[removeCountryFlags] Adding fade-out animation to flag element`);
+        flagInfo.element.style.transition = "opacity 0.5s ease-out, transform 0.5s ease-out";
+        flagInfo.element.style.opacity = "0";
+        flagInfo.element.style.transform = "scale(0.5) rotate(45deg)";
+  
+        // Remove after animation
+        setTimeout(() => {
+          if (flagInfo.element && flagInfo.element.parentNode) {
+            console.log(`[removeCountryFlags] Removing flag element from DOM`);
+            flagInfo.element.parentNode.removeChild(flagInfo.element);
+          } else {
+            console.warn(`[removeCountryFlags] Could not remove flag element - missing element or parent`);
+          }
+        }, 500);
+      } else {
+        console.warn(`[removeCountryFlags] Flag ${index} has no element!`);
+      }
+    });
+    
+    // Clear the flags array
+    country.flags = [];
+    console.log(`All flags removed for ${countryId}`);
+  }
+
+
   /**
    * Create particle containers for visual effects
    * @private
@@ -6167,9 +6486,10 @@ class FreedomManager {
 
     this._checkUSAInitialAppearance();
     this._updateCountries(deltaTime);
-  
+
     const processingTime = performance.now() - startTime;
-    if (processingTime > 16) { // More than one frame
+    if (processingTime > 16) {
+      // More than one frame
       console.warn("Performance warning: Update took too long", processingTime);
     }
   }
@@ -6180,7 +6500,7 @@ class FreedomManager {
    */
   _checkUSAInitialAppearance() {
     if (this.usaTimingCheckDone) return;
-    
+
     const totalGameTime = this.gameState.config.GAME_DURATION;
     const currentGameTime = totalGameTime - this.gameState.timeRemaining;
     const usaThreshold = totalGameTime * FreedomManager.PROTESTOR_TIMING.USA_INITIAL_APPEARANCE_THRESHOLD;
@@ -6255,10 +6575,7 @@ class FreedomManager {
     // Calculate delay based on country type
     let delay;
     if (isUSA) {
-      delay = this._getRandomBetween(
-        FreedomManager.PROTESTOR_TIMING.USA_REAPPEAR_MIN_TIME, 
-        FreedomManager.PROTESTOR_TIMING.USA_REAPPEAR_MAX_TIME
-      );
+      delay = this._getRandomBetween(FreedomManager.PROTESTOR_TIMING.USA_REAPPEAR_MIN_TIME, FreedomManager.PROTESTOR_TIMING.USA_REAPPEAR_MAX_TIME);
     } else {
       if (!this.countries[countryId].initialDelaySet) {
         delay = this._getRandomBetween(
@@ -6297,7 +6614,7 @@ class FreedomManager {
 
     this.protestorTimers.set(countryId, timerId);
   }
-  
+
   /**
    * Update flag opacity based on country claims
    * @param {string} countryId - Country identifier
@@ -6340,27 +6657,27 @@ class FreedomManager {
    * @returns {HTMLElement|null} - Protestor wrapper element or null if creation failed
    */
   showProtestors(countryId) {
-    this._logProtestorEvent(countryId, 'SHOW_PROTESTORS', 'Starting protestor creation', {
+    this._logProtestorEvent(countryId, "SHOW_PROTESTORS", "Starting protestor creation", {
       existingSound: !!this._soundState.active.get(countryId),
-      inCleanup: this._soundState.cleanup.has(countryId)
+      inCleanup: this._soundState.cleanup.has(countryId),
     });
-  
+
     if (this._soundState.cleanup.has(countryId)) {
-      this._logProtestorEvent(countryId, 'SHOW_SKIPPED', 'Country is being cleaned up');
+      this._logProtestorEvent(countryId, "SHOW_SKIPPED", "Country is being cleaned up");
       return null;
     }
-  
+
     const hitbox = this.protestorHitboxManager.showHitbox(countryId, this);
     if (!hitbox) return null;
-  
+
     if (this.countries[countryId].protestorWrapper) {
-      this._logProtestorEvent(countryId, 'CLEANUP', 'Removing existing before new');
+      this._logProtestorEvent(countryId, "CLEANUP", "Removing existing before new");
       this._cleanupProtestorElements(countryId);
     }
-  
+
     const wrapper = this._createProtestorElements(countryId, hitbox);
     if (!wrapper) {
-      this._logProtestorEvent(countryId, 'CREATION_FAILED', 'Failed to create protestor elements');
+      this._logProtestorEvent(countryId, "CREATION_FAILED", "Failed to create protestor elements");
       return null;
     }
 
@@ -6370,17 +6687,17 @@ class FreedomManager {
     this.countries[countryId].protestorsShown = true;
     this.countries[countryId].clickCounter = 0;
     this.countries[countryId].currentScale = 1.0;
-  
+
     // Set up animations and outline
     this._setupProtestorAnimations(countryId, wrapper);
-  
+
     this.countries[countryId].disappearTimeout = setTimeout(() => {
       if (this.countries[countryId].protestorsShown) {
-        this._logProtestorEvent(countryId, 'AUTO_CLEANUP', 'Fade timeout reached');
+        this._logProtestorEvent(countryId, "AUTO_CLEANUP", "Fade timeout reached");
         this._shrinkAndHideProtestors(countryId);
       }
     }, FreedomManager.PROTESTOR_TIMING.FADE_AWAY_TIME);
-  
+
     return wrapper;
   }
 
@@ -6446,16 +6763,16 @@ class FreedomManager {
    */
   _setupProtestorAnimations(countryId, wrapper) {
     const isMobile = this._isMobile();
-  
+
     const protestors = this._getElement(`${countryId}-protestors`, "animation setup");
     if (!protestors) {
       this.logger.error("freedom", `Protestor sprite for ${countryId} not found for animation setup`);
       return;
     }
-  
+
     // Get the outline element
     const outline = this._getElement(`${countryId}-protestors-outline`, "outline setup");
-  
+
     // Track sprite transition separately
     protestors.addEventListener(
       "transitionend",
@@ -6464,29 +6781,29 @@ class FreedomManager {
       },
       { once: true }
     );
-  
+
     // Use animation manager for sprite animation
     const animationId = window.animationManager.createSpriteAnimation({
       element: protestors,
       frameCount: 4,
       frameDuration: isMobile ? 450 : 300, // Slower on mobile
       loop: true,
-      id: `protestor-${countryId}`
+      id: `protestor-${countryId}`,
     });
-    
+
     // Store the animation ID for cleanup
     this.activeAnimations.protestors[countryId] = animationId;
-  
+
     // Add grow-from-ground animation
     wrapper.style.transform = "scale(1, 0.2) translateY(10px)"; // Start small from ground
-  
+
     // Fade in protestors after a short delay
     setTimeout(() => {
       // Now grow up with transition
       wrapper.style.transition = "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out";
       wrapper.style.transform = "scale(1, 1)"; // Grow to full size
       protestors.style.opacity = "1"; // Fade in the sprite
-  
+
       // Fade in the outline
       if (outline) {
         outline.style.transition = "opacity 0.5s ease-out";
@@ -6501,26 +6818,26 @@ class FreedomManager {
    * @param {string} countryId - Country identifier
    */
   _shrinkAndHideProtestors(countryId) {
-    this._logProtestorEvent(countryId, 'SHRINK_START', 'Starting shrink animation');
+    this._logProtestorEvent(countryId, "SHRINK_START", "Starting shrink animation");
 
     const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "shrinking");
     if (!protestorWrapper) return;
-  
+
     // Set up shrink animation
     protestorWrapper.style.transformOrigin = "bottom center";
     protestorWrapper.style.transition = "transform 0.5s ease-out, opacity 0.5s ease-out";
     protestorWrapper.style.opacity = "0";
     protestorWrapper.style.transform = "scale(1, 0.2) translateY(10px)";
-  
+
     // After animation, call hideProtestors
     if (this.countries[countryId]) {
       if (this.countries[countryId].shrinkTimeout) {
         clearTimeout(this.countries[countryId].shrinkTimeout);
       }
-  
+
       this.countries[countryId].shrinkTimeout = setTimeout(() => {
         if (this.countries[countryId]?.protestorsShown) {
-          this._logProtestorEvent(countryId, 'SHRINK_COMPLETE', 'Animation finished');
+          this._logProtestorEvent(countryId, "SHRINK_COMPLETE", "Animation finished");
           this.hideProtestors(countryId);
         }
       }, 500);
@@ -6534,32 +6851,32 @@ class FreedomManager {
   hideProtestors(countryId) {
     console.log(`[AUDIO DEBUG] DESTROYING ALL PROTESTORS FOR ${countryId}`);
 
-    this._logProtestorEvent(countryId, 'HIDE', 'Starting immediate hide (liberation)');
-    
+    this._logProtestorEvent(countryId, "HIDE", "Starting immediate hide (liberation)");
+
     // Use our sound stopping method
     this._stopProtestorSound(countryId);
-    
+
     // Clear any pending timeouts
     if (this.countries[countryId]?.disappearTimeout) {
       clearTimeout(this.countries[countryId].disappearTimeout);
       this.countries[countryId].disappearTimeout = null;
     }
-    
+
     // Clean up DOM elements
     this._cleanupProtestorElements(countryId);
-    
+
     // Hide hitbox
     if (this.protestorHitboxManager) {
       this.protestorHitboxManager.hideProtestorHitbox(countryId);
     }
-    
+
     // Reset country state
     if (this.countries[countryId]) {
       this.countries[countryId].protestorWrapper = null;
       this.countries[countryId].protestorsShown = false;
       this.countries[countryId].clickCounter = 0;
     }
-    
+
     // Schedule next appearance
     setTimeout(() => {
       if (!this._soundState.cleanup.has(countryId)) {
@@ -6574,27 +6891,27 @@ class FreedomManager {
    * @param {string} countryId - Country identifier
    */
   _cleanupProtestorElements(countryId) {
-    this._logProtestorEvent(countryId, 'CLEANUP_START', `Removing elements for ${countryId}`);
-    
+    this._logProtestorEvent(countryId, "CLEANUP_START", `Removing elements for ${countryId}`);
+
     // Stop sounds first
     this._stopProtestorSound(countryId);
-    
+
     // Stop animations using animation manager
     if (this.activeAnimations.protestors[countryId]) {
       window.animationManager.stopSpriteAnimation(this.activeAnimations.protestors[countryId]);
       delete this.activeAnimations.protestors[countryId];
     }
-    
+
     // Stop additional protestor animations
     if (this.activeAnimations.extraProtestors) {
-      Object.keys(this.activeAnimations.extraProtestors).forEach(key => {
+      Object.keys(this.activeAnimations.extraProtestors).forEach((key) => {
         if (key.startsWith(`${countryId}-`)) {
           window.animationManager.stopSpriteAnimation(this.activeAnimations.extraProtestors[key]);
           delete this.activeAnimations.extraProtestors[key];
         }
       });
     }
-    
+
     // Clear any timeouts specific to this country
     if (this.countries[countryId]) {
       if (this.countries[countryId].disappearTimeout) {
@@ -6606,26 +6923,24 @@ class FreedomManager {
         this.countries[countryId].shrinkTimeout = null;
       }
     }
-  
+
     // Get all related DOM elements that need to be removed
     const elementsToClean = [
       // Main protestor elements
       `${countryId}-protestors-wrapper`,
       `${countryId}-protestors`,
       `${countryId}-protestors-outline`,
-      
+
       // Additional elements (will be null if they don't exist)
       ...Array.from(document.querySelectorAll(`.${countryId}-additional-protestor`)),
-      
+
       // Catch any other elements with this country ID pattern
-      ...Array.from(document.querySelectorAll(`[id^="${countryId}-additional-protestor-"]`))
+      ...Array.from(document.querySelectorAll(`[id^="${countryId}-additional-protestor-"]`)),
     ];
-    
-    elementsToClean.forEach(elementId => {
-      const element = typeof elementId === 'string' 
-        ? this._getElement(elementId, 'protestor cleanup') 
-        : elementId;
-      
+
+    elementsToClean.forEach((elementId) => {
+      const element = typeof elementId === "string" ? this._getElement(elementId, "protestor cleanup") : elementId;
+
       if (element) {
         // First remove all event listeners if we stored any
         if (element._glowListeners) {
@@ -6634,41 +6949,37 @@ class FreedomManager {
           });
           element._glowListeners = null;
         }
-        
+
         // Remove all animation-related classes and styles
-        element.classList.remove(
-          'animate-protestor-grow', 
-          'animate-protestor-shrink', 
-          'resistance-pulse'
-        );
-        
+        element.classList.remove("animate-protestor-grow", "animate-protestor-shrink", "resistance-pulse");
+
         // Clear inline styles that might persist
-        element.style.animation = '';
-        element.style.transition = '';
-        element.style.transform = '';
-        element.style.opacity = '';
-        
+        element.style.animation = "";
+        element.style.transition = "";
+        element.style.transform = "";
+        element.style.opacity = "";
+
         // Remove from DOM
         if (element.parentNode) {
           element.parentNode.removeChild(element);
         }
       }
     });
-  
+
     // Specifically check for and remove any glow-related elements
-    const glowElement = this._getElement(`${countryId}-glow-wrapper`, 'glow cleanup');
+    const glowElement = this._getElement(`${countryId}-glow-wrapper`, "glow cleanup");
     if (glowElement && glowElement.parentNode) {
       glowElement.parentNode.removeChild(glowElement);
     }
-  
+
     // Reset country state
     if (this.countries[countryId]) {
       this.countries[countryId].protestorsShown = false;
       this.countries[countryId].clickCounter = 0;
       this.countries[countryId].protestorWrapper = null;
     }
-  
-    this._logProtestorEvent(countryId, 'CLEANUP_COMPLETE', 'Protestors fully removed');
+
+    this._logProtestorEvent(countryId, "CLEANUP_COMPLETE", "Protestors fully removed");
   }
 
   /**
@@ -6678,61 +6989,59 @@ class FreedomManager {
     // FIRST: Stop ALL protestor sounds
     if (this.audioManager) {
       // Make sure audio context is resumed to properly handle sound stopping
-      this.audioManager.resumeAudioContext()
-        .then(() => {
-          try {
-            // Single call to stop all protestor sounds 
-            this.audioManager.stopAllProtestorSounds();
-            
-            // Double-check after a short delay to ensure complete cleanup
-            setTimeout(() => {
-              if (this.audioManager.activeProtestorSounds && 
-                  Object.keys(this.audioManager.activeProtestorSounds).length > 0) {
-                // Force a second cleanup if needed
-                this.audioManager.stopAllProtestorSounds();
-                
-                // Clear the collection after stopping just to be
-                // Clear the collection after stopping just to be safe
-                this.audioManager.activeProtestorSounds = {};
-              }
-            }, 50);
-          } catch (error) {
-            this.logger.warn("freedom", "Error stopping all protestor sounds:", error);
-          }
-        });
+      this.audioManager.resumeAudioContext().then(() => {
+        try {
+          // Single call to stop all protestor sounds
+          this.audioManager.stopAllProtestorSounds();
+
+          // Double-check after a short delay to ensure complete cleanup
+          setTimeout(() => {
+            if (this.audioManager.activeProtestorSounds && Object.keys(this.audioManager.activeProtestorSounds).length > 0) {
+              // Force a second cleanup if needed
+              this.audioManager.stopAllProtestorSounds();
+
+              // Clear the collection after stopping just to be
+              // Clear the collection after stopping just to be safe
+              this.audioManager.activeProtestorSounds = {};
+            }
+          }, 50);
+        } catch (error) {
+          this.logger.warn("freedom", "Error stopping all protestor sounds:", error);
+        }
+      });
     }
-  
+
     // Clear all timers
     for (const timerId of this.protestorTimers.values()) {
       clearTimeout(timerId);
     }
     this.protestorTimers.clear();
-  
+
     // Explicitly stop all animation manager animations
     if (window.animationManager) {
       // Stop all sprite animations related to protestors
       if (this.activeAnimations.protestors) {
-        Object.values(this.activeAnimations.protestors).forEach(animId => {
+        Object.values(this.activeAnimations.protestors).forEach((animId) => {
           if (animId) window.animationManager.stopSpriteAnimation(animId);
         });
       }
-      
+
       if (this.activeAnimations.extraProtestors) {
-        Object.values(this.activeAnimations.extraProtestors).forEach(animId => {
+        Object.values(this.activeAnimations.extraProtestors).forEach((animId) => {
           if (animId) window.animationManager.stopSpriteAnimation(animId);
         });
       }
     }
-  
+
     // Clean up each country's protestors
     Object.keys(this.countries).forEach((countryId) => {
       this._cleanupProtestorElements(countryId);
-  
+
       // Reset country state
       if (this.countries[countryId]) {
         this.countries[countryId].protestorsShown = false;
         this.countries[countryId].clickCounter = 0;
-  
+
         // Clear any disappear timeout
         if (this.countries[countryId].disappearTimeout) {
           clearTimeout(this.countries[countryId].disappearTimeout);
@@ -6740,28 +7049,28 @@ class FreedomManager {
         }
       }
     });
-  
+
     // Find and remove any lingering protestor elements that might have been missed
-    document.querySelectorAll('[id$="-protestors"],[id$="-protestors-wrapper"],[class*="additional-protestor"]').forEach(el => {
+    document.querySelectorAll('[id$="-protestors"],[id$="-protestors-wrapper"],[class*="additional-protestor"]').forEach((el) => {
       if (el && el.parentNode) {
         el.parentNode.removeChild(el);
       }
     });
-  
+
     // Clean up hitboxes
     if (this.protestorHitboxManager) {
       this.protestorHitboxManager.cleanupAll();
     }
-  
+
     // Clear all animation tracking
     this.activeAnimations.protestors = {};
     this.activeAnimations.extraProtestors = {};
-  
+
     // Clear all sound state tracking
     this._soundState.active.clear();
     this._soundState.cleanup.clear();
     this._soundState.debounceTimers.clear();
-  
+
     this.logger.info("freedom", "All protestors cleaned up");
   }
 
@@ -6802,7 +7111,7 @@ class FreedomManager {
         el.parentNode.removeChild(el);
       }
     });
-    
+
     if (window.animationManager) {
       window.animationManager.reset();
     }
@@ -6818,51 +7127,50 @@ class FreedomManager {
     // Quick initial checks without setting locks
     const country = this.countries[countryId];
     if (!country) return;
-  
+
     // Shorter debounce (100ms) for better responsiveness
     const now = Date.now();
-    if (country.lastClickTime && (now - country.lastClickTime < 100)) {
+    if (country.lastClickTime && now - country.lastClickTime < 100) {
       return;
     }
     country.lastClickTime = now;
-  
+
     // Only lock for the critical operations
     this.isProcessingProtestorClick = true;
-  
+
     try {
       // Increment counter
       country.clickCounter = (country.clickCounter || 0) + 1;
-  
+
       // Handle score update immediately
       if (this.gameState) {
         this._updateScore();
       }
-  
+
       // Clear existing timeouts
       if (country.disappearTimeout) {
         clearTimeout(country.disappearTimeout);
       }
-  
+
       // Get elements
       const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "click handling");
       const protestorSprite = this._getElement(`${countryId}-protestors`, "click handling");
       if (!protestorWrapper || !protestorSprite) {
         throw new Error(`Required elements not found for ${countryId}`);
       }
-  
+
       // Store wrapper reference
       country.protestorWrapper = protestorWrapper;
-  
+
       // Handle based on click count
       if (country.clickCounter >= 3) {
         this._handleThirdClick(countryId);
       } else {
         this._processProtestorClick(countryId, country.clickCounter, protestorWrapper, protestorSprite);
       }
-  
     } catch (error) {
-      this._logProtestorEvent(countryId, 'ERROR', 'Click handling failed', {
-        error: error.message
+      this._logProtestorEvent(countryId, "ERROR", "Click handling failed", {
+        error: error.message,
       });
     } finally {
       // Clear the processing lock immediately after critical operations
@@ -6880,12 +7188,10 @@ class FreedomManager {
     setTimeout(() => {
       scoreElement.classList.remove("score-bounce");
     }, 500);
-  
+
     this.gameState.score += 5;
     this.gameEngine.systems.ui.updateHUD(this.gameState);
-    this.gameEngine.systems.ui.announceForScreenReaders(
-      `Protestor supported! +5 points. Total score: ${this.gameState.score}`
-    );
+    this.gameEngine.systems.ui.announceForScreenReaders(`Protestor supported! +5 points. Total score: ${this.gameState.score}`);
   }
 
   /**
@@ -6896,30 +7202,29 @@ class FreedomManager {
   _handleThirdClick(countryId) {
     // Stop audio first
     this._stopProtestorSound(countryId);
-  
+
     // Handle visual changes immediately
     if (countryId === "usa") {
       this.handleUSAThirdClick();
     } else {
       this.triggerCountryResistance(countryId);
     }
-  
+
     // Reset counter
     this.countries[countryId].clickCounter = 0;
-  
+
     // Handle audio with slight delay
     if (this.audioManager) {
       const gameSpeedAdjustedDelay = 50 / Math.max(1, this.gameState.gameSpeedMultiplier);
       setTimeout(() => {
-        this.audioManager.resumeAudioContext()
-          .then(() => {
-            if (countryId !== "usa") {
-              setTimeout(() => {
-                // Commented out in original code:
-                // this.audioManager.playRandom("resistance", countryId, null, 0.9);
-              }, 100);
-            }
-          });
+        this.audioManager.resumeAudioContext().then(() => {
+          if (countryId !== "usa") {
+            setTimeout(() => {
+              // Commented out in original code:
+              // this.audioManager.playRandom("resistance", countryId, null, 0.9);
+            }, 100);
+          }
+        });
       }, gameSpeedAdjustedDelay);
     }
   }
@@ -7075,9 +7380,9 @@ class FreedomManager {
       frameCount: 4,
       frameDuration: this._isMobile() ? 500 : 350, // Slower on mobile
       loop: true,
-      id: `${countryId}-additional-${index}`
+      id: `${countryId}-additional-${index}`,
     });
-  
+
     // Store animation ID for cleanup
     if (!this.activeAnimations.extraProtestors) {
       this.activeAnimations.extraProtestors = {};
@@ -7121,23 +7426,23 @@ class FreedomManager {
    */
   _startProtestorSound(countryId) {
     if (!this.audioManager) return;
-    
+
     // Log the action
-    this._logProtestorEvent(countryId, 'SOUND_START', 'Starting protestor sound');
-    
+    this._logProtestorEvent(countryId, "SOUND_START", "Starting protestor sound");
+
     try {
       // Special handling for canada
       if (countryId === "canada") {
         // First ensure both sides are stopped
         this.audioManager.stopProtestorSound("canada"); // This will handle both east and west
-        
+
         // Determine which side to play - could be based on game state
         // For simplicity, randomly select east or west
         const canadaSide = Math.random() < 0.5 ? "eastCanada" : "westCanada";
-        
+
         // Store which side we're using for canada
         this._canadaActiveSide = canadaSide;
-        
+
         // Play the selected side with delay to ensure cleanup completes
         setTimeout(() => {
           this.audioManager.playProtestorSound(canadaSide, 0.05);
@@ -7145,21 +7450,21 @@ class FreedomManager {
       } else {
         // For other countries, simply play the sound
         this.audioManager.stopProtestorSound(countryId);
-        
+
         setTimeout(() => {
           this.audioManager.playProtestorSound(countryId, 0.05);
         }, 50);
       }
-      
+
       // Play freedom particles sound after protestor sound starts
       setTimeout(() => {
         this.audioManager.playRandom("particles", "freedom", null, 0.3);
       }, 100);
     } catch (error) {
-      this._logProtestorEvent(countryId, 'SOUND_ERROR', error.message);
+      this._logProtestorEvent(countryId, "SOUND_ERROR", error.message);
     }
   }
-  
+
   /**
    * Stop protestor sound
    * @private
@@ -7167,19 +7472,19 @@ class FreedomManager {
    */
   _stopProtestorSound(countryId) {
     if (!this.audioManager) return;
-    
-    this._logProtestorEvent(countryId, 'SOUND_STOP', 'Stopping protestor sound');
-    
+
+    this._logProtestorEvent(countryId, "SOUND_STOP", "Stopping protestor sound");
+
     try {
       // Use the improved AudioManager method that properly handles Canada
       this.audioManager.stopProtestorSound(countryId);
-      
+
       // Clear our tracking if it was Canada
       if (countryId === "canada") {
         this._canadaActiveSide = null;
       }
     } catch (error) {
-      this._logProtestorEvent(countryId, 'SOUND_ERROR', `Stop failed: ${error.message}`);
+      this._logProtestorEvent(countryId, "SOUND_ERROR", `Stop failed: ${error.message}`);
     }
   }
 
@@ -7187,17 +7492,17 @@ class FreedomManager {
    * Clean up all sound resources
    */
   cleanup() {
-    this._logProtestorEvent('global', 'CLEANUP', 'Complete sound cleanup');
-    
+    this._logProtestorEvent("global", "CLEANUP", "Complete sound cleanup");
+
     // Stop all protestor sounds using the simplified method
     if (this.audioManager) {
       // First stop specific countries - especially Canada's sides
       this._stopProtestorSound("canada");
-      
+
       // Then do the general cleanup
       this.audioManager.stopAllProtestorSounds();
     }
-    
+
     // Clear all internal state
     this._soundState.active.clear();
     this._soundState.cleanup.clear();
@@ -7375,7 +7680,7 @@ class FreedomManager {
         }, 100);
       }
     }
-  
+
     // Hide protestors
     this.hideProtestors("usa");
 
@@ -7384,16 +7689,17 @@ class FreedomManager {
       setTimeout(() => {
         // First ensure any USA protestor sounds are stopped
         this.audioManager.stopProtestorSound("usa");
-        
+
         // Then play the appropriate sound
         if (isFinalShrink) {
           this.audioManager.playRandom("trump", "finalShrink", null, 0.9);
         } else {
-          this.audioManager.resumeAudioContext()
+          this.audioManager
+            .resumeAudioContext()
             .then(() => {
               this.audioManager.playRandom("trump", "shrink", null, 0.7);
             })
-            .catch(error => {
+            .catch((error) => {
               console.warn("[Freedom] Audio context error:", error);
             });
         }
@@ -7523,476 +7829,481 @@ class FreedomManager {
    * @param {boolean} isFinal - Whether this is the final shrink effect
    */
 
-createShrinkEffect(container, isFinal = false) {
-  // Get Trump's position
-  const trumpPosition = this._getTrumpPosition();
+  createShrinkEffect(container, isFinal = false) {
+    // Get Trump's position
+    const trumpPosition = this._getTrumpPosition();
 
-  console.log("Creating Shrink Effect with Position:", trumpPosition);
+    console.log("Creating Shrink Effect with Position:", trumpPosition);
 
-  // Create the effect wrapper
-  const effect = document.createElement("div");
-  effect.className = `shrink-effect ${isFinal ? "final-shrink" : ""}`;
+    // Create the effect wrapper
+    const effect = document.createElement("div");
+    effect.className = `shrink-effect ${isFinal ? "final-shrink" : ""}`;
 
-  // Calculate the center point of Trump
-  const centerX = trumpPosition.x + trumpPosition.width / 2;
-  const centerY = trumpPosition.y + trumpPosition.height / 2;
+    // Calculate the center point of Trump
+    const centerX = trumpPosition.x + trumpPosition.width / 2;
+    const centerY = trumpPosition.y + trumpPosition.height / 2;
 
-  // Set absolute positioning centered on Trump
-  effect.style.position = "absolute";
-  effect.style.left = `${centerX}px`;
-  effect.style.top = `${centerY}px`;
-  effect.style.transform = "translate(-50%, -50%)"; // This centers the effect precisely
+    // Set absolute positioning centered on Trump
+    effect.style.position = "absolute";
+    effect.style.left = `${centerX}px`;
+    effect.style.top = `${centerY}px`;
+    effect.style.transform = "translate(-50%, -50%)"; // This centers the effect precisely
 
-  // Optional: Set a consistent size for the effect
-  effect.style.width = "60vw"; // Or whatever size makes sense for your effect
-  effect.style.height = "60vh";
+    // Optional: Set a consistent size for the effect
+    effect.style.width = "60vw"; // Or whatever size makes sense for your effect
+    effect.style.height = "60vh";
 
-  // Log CSS variable settings
-  console.log("Setting CSS Variables:", {
-    "--trump-x": `${centerX}px`,
-    "--trump-y": `${centerY}px`,
-    "--trump-width": `${trumpPosition.width}px`,
-    "--trump-height": `${trumpPosition.height}px`,
-  });
+    // Log CSS variable settings
+    console.log("Setting CSS Variables:", {
+      "--trump-x": `${centerX}px`,
+      "--trump-y": `${centerY}px`,
+      "--trump-width": `${trumpPosition.width}px`,
+      "--trump-height": `${trumpPosition.height}px`,
+    });
 
-  // Set CSS variables for positioning relative to Trump's position
-  effect.style.setProperty("--trump-x", `${centerX}px`);
-  effect.style.setProperty("--trump-y", `${centerY}px`);
-  effect.style.setProperty("--trump-width", `${trumpPosition.width}px`);
-  effect.style.setProperty("--trump-height", `${trumpPosition.height}px`);
+    // Set CSS variables for positioning relative to Trump's position
+    effect.style.setProperty("--trump-x", `${centerX}px`);
+    effect.style.setProperty("--trump-y", `${centerY}px`);
+    effect.style.setProperty("--trump-width", `${trumpPosition.width}px`);
+    effect.style.setProperty("--trump-height", `${trumpPosition.height}px`);
 
-  // Create star impact
-  const starImpact = document.createElement("div");
-  starImpact.className = "star-impact";
-  effect.appendChild(starImpact);
+    // Create star impact
+    const starImpact = document.createElement("div");
+    starImpact.className = "star-impact";
+    effect.appendChild(starImpact);
 
-  // Create flash effect
-  const flash = document.createElement("div");
-  flash.className = "flash-effect";
-  effect.appendChild(flash);
+    // Create flash effect
+    const flash = document.createElement("div");
+    flash.className = "flash-effect";
+    effect.appendChild(flash);
 
-  // Create shards
-  for (let i = 1; i <= 4; i++) {
-    const shardy = document.createElement("div");
-    shardy.className = `shardy shardy${i}`;
-    effect.appendChild(shardy);
-  }
+    // Create shards
+    for (let i = 1; i <= 4; i++) {
+      const shardy = document.createElement("div");
+      shardy.className = `shardy shardy${i}`;
+      effect.appendChild(shardy);
+    }
 
-  // Create SVG arcs
-  this._createShrinkArcs(effect);
+    // Create SVG arcs
+    this._createShrinkArcs(effect);
 
-  // Insert the effect at the beginning of the container
-  container.insertBefore(effect, container.firstChild);
+    // Insert the effect at the beginning of the container
+    container.insertBefore(effect, container.firstChild);
 
-  // Create style element if it doesn't exist
-  if (!document.getElementById("shrink-effect-styles")) {
-    const styleElement = document.createElement("style");
-    styleElement.id = "shrink-effect-styles";
-    styleElement.textContent = `
+    // Create style element if it doesn't exist
+    if (!document.getElementById("shrink-effect-styles")) {
+      const styleElement = document.createElement("style");
+      styleElement.id = "shrink-effect-styles";
+      styleElement.textContent = `
     /* Styles for hand-drawn arcs */
     
   `;
-    document.head.appendChild(styleElement);
-  }
-
-  // Remove effect after animation
-  setTimeout(
-    () => {
-      effect.remove();
-    },
-    isFinal ? 2000 : 1500
-  );
-}
-
-/**
- * Create shrink arcs for Trump shrink effect
- * @private
- * @param {HTMLElement} effect - Effect container
- */
-_createShrinkArcs(effect) {
-  const svgNS = "http://www.w3.org/2000/svg";
-
-  const arcContainer1 = document.createElement("div");
-  arcContainer1.className = "hand-drawn-arc";
-  arcContainer1.style.animation = "shrink-arc-outer 0.8s ease-in forwards";
-
-  const arcContainer2 = document.createElement("div");
-  arcContainer2.className = "hand-drawn-arc";
-  arcContainer2.style.animation = "shrink-arc-inner 0.8s ease-in forwards 0.3s";
-
-  const svgOuter = document.createElementNS(svgNS, "svg");
-  svgOuter.setAttribute("width", "100%");
-  svgOuter.setAttribute("height", "100%");
-  svgOuter.setAttribute("viewBox", "-250 -250 500 500");
-
-  const svgInner = document.createElementNS(svgNS, "svg");
-  svgInner.setAttribute("width", "100%");
-  svgInner.setAttribute("height", "100%");
-  svgInner.setAttribute("viewBox", "-250 -250 500 500");
-
-  // Simplified wobble arc generation (similar to previous implementation)
-  const createWobblyArc = (startAngle, endAngle, radius, variation) => {
-    const startRad = (startAngle * Math.PI) / 180;
-    const endRad = (endAngle * Math.PI) / 180;
-    const arcLength = endRad - startRad;
-    const numPoints = Math.max(8, Math.floor(arcLength * 8)); // Reduced from 12 and 15
-    const angleStep = arcLength / numPoints;
-
-    let pathData = "";
-    for (let i = 0; i <= numPoints; i++) {
-      const angle = startRad + angleStep * i;
-      const wobble = Math.random() * variation * 4 - variation * 2;
-      const r = radius + wobble;
-      const x = r * Math.cos(angle);
-      const y = r * Math.sin(angle);
-
-      if (i === 0) {
-        pathData += `M ${x} ${y} `;
-      } else {
-        const prevAngle = startRad + angleStep * (i - 1);
-        const cpAngle = prevAngle + angleStep * 0.3;
-        const cpWobble = Math.random() * variation * 4 - variation * 2;
-        const cpRadius = radius + cpWobble;
-        const cpx = cpRadius * Math.cos(cpAngle);
-        const cpy = cpRadius * Math.sin(cpAngle);
-        pathData += `Q ${cpx} ${cpy} ${x} ${y} `;
-      }
+      document.head.appendChild(styleElement);
     }
 
-    const outlinePath = document.createElementNS(svgNS, "path");
-    outlinePath.setAttribute("d", pathData);
-    outlinePath.setAttribute("class", "arc-outline");
-    outlinePath.style.stroke = "#000";
-    outlinePath.style.strokeWidth = "16px";
-    outlinePath.style.fill = "none";
-    outlinePath.style.strokeLinecap = "round";
-    outlinePath.style.strokeLinejoin = "round";
-
-    const fillPath = document.createElementNS(svgNS, "path");
-    fillPath.setAttribute("d", pathData);
-    fillPath.setAttribute("class", "arc-fill");
-    fillPath.style.stroke = "white";
-    fillPath.style.strokeWidth = "4px";
-    fillPath.style.fill = "none";
-    fillPath.style.strokeLinecap = "round";
-    fillPath.style.strokeLinejoin = "round";
-
-    return [outlinePath, fillPath];
-  };
-
-  const outerArcs = [
-    { start: 0, end: 85, radius: 200, variation: 15 },
-    { start: 95, end: 175, radius: 210, variation: 12 },
-    { start: 185, end: 265, radius: 205, variation: 18 },
-    { start: 275, end: 355, radius: 215, variation: 14 },
-  ];
-
-  const innerArcs = [
-    { start: 20, end: 100, radius: 150, variation: 10 }, // Increased from 120
-    { start: 110, end: 190, radius: 155, variation: 8 }, // Increased from 125
-    { start: 200, end: 280, radius: 160, variation: 12 }, // Increased from 130
-    { start: 290, end: 370, radius: 158, variation: 9 }, // Increased from 128
-  ];
-
-  // Create the arcs
-  outerArcs.forEach((arcData) => {
-    const [outline, fill] = createWobblyArc(arcData.start, arcData.end, arcData.radius, arcData.variation);
-    svgOuter.appendChild(outline);
-    svgOuter.appendChild(fill);
-  });
-
-  innerArcs.forEach((arcData) => {
-    const [outline, fill] = createWobblyArc(arcData.start, arcData.end, arcData.radius, arcData.variation);
-    svgInner.appendChild(outline);
-    svgInner.appendChild(fill);
-  });
-
-  arcContainer1.appendChild(svgOuter);
-  arcContainer2.appendChild(svgInner);
-
-  effect.appendChild(arcContainer1);
-  effect.appendChild(arcContainer2);
-}
-
-// ===== COUNTRY RESISTANCE EFFECTS =====
-
-/**
- * Trigger country resistance
- * @param {string} countryId - Country identifier
- * @returns {boolean} - Success status
- */
-triggerCountryResistance(countryId) {
-  this.logger.info("freedom", `MAJOR RESISTANCE in ${countryId}!`);
-
-  // Stop protestor sounds first
-  if (this.audioManager) {
-    // Don't log this operation - use direct API call
-    if (countryId === "canada") {
-      this.audioManager.stopProtestorSound("canada"); // This handles both east and west
-    } else {
-      this.audioManager.stopProtestorSound(countryId);
-    }
-  }
-
-  // Add 50 points for successful revolution
-  if (this.gameState) {
-    let scoreElement = document.getElementById("score");
-    scoreElement.classList.add("score-bounce");
-    setTimeout(() => {
-      scoreElement.classList.remove("score-bounce");
-    }, 500);
-
-    this.gameState.score += 50;
-    // Update HUD
-    this.gameEngine.systems.ui.updateHUD(this.gameState);
-    // Announce for screen readers
-    this.gameEngine.systems.ui.announceForScreenReaders(`Revolution successful! +50 points. Total score: ${this.gameState.score}`);
-  }
-
-  // Remove pulsing effect if it exists
-  const countryElement = this.elements.countries[countryId];
-  if (countryElement) {
-    countryElement.classList.remove("resistance-possible");
-  }
-
-  // Reset claims to 0 (completely liberate the country)
-  if (this.gameState.countries[countryId]) {
-    this.gameState.countries[countryId].claims = 0;
-  }
-
-  // Update the flag overlay to be completely transparent
-  const flagOverlay = this._getElement(`${countryId}-flag-overlay`, "resistance");
-  if (flagOverlay) {
-    this.logger.info("freedom", `Resetting flag opacity for ${countryId} to zero`);
-    flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100");
-    flagOverlay.style.opacity = "0";
-  }
-
-  // Store position data before removing elements
-  const positionData = this._capturePositionData(countryId);
-
-  // Create celebration effects
-  this._createResistanceCelebration(countryId, positionData);
-  
-  // Ensure audio is ready for resistance animation playback
-  if (this.audioManager) {
-    this.audioManager
-      .resumeAudioContext()
-      .then(() => {
-        // Play resistance animation via smack manager
-        this._playResistanceAnimation(countryId);
-
-        // IMPORTANT: Delay protestor cleanup until after animation
-        setTimeout(() => {
-          this._cleanupProtestorElements(countryId);
-        }, this.config.animationDuration + 100); // Add small buffer after animation
-
-        // Reset claims in game state
-        if (this.gameState.countries[countryId]) {
-          this.gameState.countries[countryId].claims = 0;
-        }
-      })
-      .catch((e) => {
-        // Even if audio fails, still run the animations
-        console.warn("[Freedom] Audio context error for resistance:", e);
-        this._playResistanceAnimation(countryId);
-
-        setTimeout(() => {
-          this._cleanupProtestorElements(countryId);
-        }, this.config.animationDuration + 100);
-
-        if (this.gameState.countries[countryId]) {
-          this.gameState.countries[countryId].claims = 0;
-        }
-      });
-  } else {
-    // If no audio manager, still run the animation sequence
-    this._playResistanceAnimation(countryId);
-
-    setTimeout(() => {
-      this._cleanupProtestorElements(countryId);
-    }, this.config.animationDuration + 100);
-
-    if (this.gameState.countries[countryId]) {
-      this.gameState.countries[countryId].claims = 0;
-    }
-  }
-
-  return true;
-}
-
-/**
- * Capture position data for visual effects
- * @private
- * @param {string} countryId - Country identifier
- * @returns {Object|null} - Position data or null if not available
- */
-_capturePositionData(countryId) {
-  const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "position capture");
-  const hitbox = this.protestorHitboxManager?.protestorHitboxes[countryId]?.element;
-
-  if (protestorWrapper) {
-    const gameContainer = this._getGameContainer();
-    if (!gameContainer) return null;
-
-    const containerRect = gameContainer.getBoundingClientRect();
-    const wrapperRect = protestorWrapper.getBoundingClientRect();
-
-    return {
-      source: "wrapper",
-      left: wrapperRect.left - containerRect.left,
-      top: wrapperRect.top - containerRect.top,
-      width: wrapperRect.width,
-      height: wrapperRect.height,
-    };
-  } else if (hitbox) {
-    const gameContainer = this._getGameContainer();
-    if (!gameContainer) return null;
-
-    const containerRect = gameContainer.getBoundingClientRect();
-    const hitboxRect = hitbox.getBoundingClientRect();
-
-    return {
-      source: "hitbox",
-      left: hitboxRect.left - containerRect.left,
-      top: hitboxRect.top - containerRect.top,
-      width: hitboxRect.width,
-      height: hitboxRect.height,
-    };
-  }
-
-  // Fallback coordinates as last resort
-  const fallbackCoords = {
-    canada: { left: 117, top: 328, width: 35, height: 35 },
-    mexico: { left: 126, top: 440, width: 35, height: 35 },
-    greenland: { left: 249, top: 208, width: 35, height: 35 },
-  };
-
-  if (fallbackCoords[countryId]) {
-    return {
-      source: "fallback",
-      ...fallbackCoords[countryId],
-    };
-  }
-
-  return null;
-}
-
-/**
- * Create resistance celebration effects
- * @private
- * @param {string} countryId - Country identifier
- * @param {Object} positionData - Position data
- */
-_createResistanceCelebration(countryId, positionData) {
-  const gameContainer = this._getGameContainer();
-  if (!gameContainer || !positionData) return;
-
-  const isMobile = this._isMobile();
-  const { left, top, width, height } = positionData;
-
-  // Optimize audio handling
-  if (this.audioManager) {
-    this.audioManager.resumeAudioContext().then(() => {
-      try {
-        this.audioManager.playRandom("particles", "freedom", null, 0.8);
-      } catch (error) {
-        this.audioManager.playDirect("freedomSpark1.mp3", 0.8);
-      }
-    });
-  }
-
-  // Reduced effects for mobile
-  if (this.config.effectsEnabled.screenShake) {
-    gameContainer.classList.add(isMobile ? "light-screen-shake" : "screen-shake");
+    // Remove effect after animation
     setTimeout(
       () => {
-        gameContainer.classList.remove("light-screen-shake", "screen-shake");
+        effect.remove();
       },
-      isMobile ? 400 : 800
+      isFinal ? 2000 : 1500
     );
   }
 
-  // Create optimized flash effect
-  const flash = document.createElement("div");
-  flash.className = "freedom-flash mobile-optimized";
-  Object.assign(flash.style, {
-    position: "absolute",
-    left: `${left}px`,
-    top: `${top}px`,
-    width: `${width}px`,
-    height: `${height}px`,
-    borderRadius: "10%",
-    zIndex: FreedomManager.Z_INDEXES.FLASH,
-  });
-  gameContainer.appendChild(flash);
+  /**
+   * Create shrink arcs for Trump shrink effect
+   * @private
+   * @param {HTMLElement} effect - Effect container
+   */
+  _createShrinkArcs(effect) {
+    const svgNS = "http://www.w3.org/2000/svg";
 
-  // Cleanup flash after animation
-  setTimeout(() => this._cleanupAnimation(flash, "freedom-flash"), 1500);
+    const arcContainer1 = document.createElement("div");
+    arcContainer1.className = "hand-drawn-arc";
+    arcContainer1.style.animation = "shrink-arc-outer 0.8s ease-in forwards";
 
-  // Add resistance text
-  this._createResistanceText(left, top, width, height, gameContainer);
+    const arcContainer2 = document.createElement("div");
+    arcContainer2.className = "hand-drawn-arc";
+    arcContainer2.style.animation = "shrink-arc-inner 0.8s ease-in forwards 0.3s";
 
-  // Reduced particle effects for mobile
-  if (this.config.effectsEnabled.confetti) {
-    this._createConfettiBurst(left, top, width, height, gameContainer);
+    const svgOuter = document.createElementNS(svgNS, "svg");
+    svgOuter.setAttribute("width", "100%");
+    svgOuter.setAttribute("height", "100%");
+    svgOuter.setAttribute("viewBox", "-250 -250 500 500");
+
+    const svgInner = document.createElementNS(svgNS, "svg");
+    svgInner.setAttribute("width", "100%");
+    svgInner.setAttribute("height", "100%");
+    svgInner.setAttribute("viewBox", "-250 -250 500 500");
+
+    // Simplified wobble arc generation (similar to previous implementation)
+    const createWobblyArc = (startAngle, endAngle, radius, variation) => {
+      const startRad = (startAngle * Math.PI) / 180;
+      const endRad = (endAngle * Math.PI) / 180;
+      const arcLength = endRad - startRad;
+      const numPoints = Math.max(8, Math.floor(arcLength * 8)); // Reduced from 12 and 15
+      const angleStep = arcLength / numPoints;
+
+      let pathData = "";
+      for (let i = 0; i <= numPoints; i++) {
+        const angle = startRad + angleStep * i;
+        const wobble = Math.random() * variation * 4 - variation * 2;
+        const r = radius + wobble;
+        const x = r * Math.cos(angle);
+        const y = r * Math.sin(angle);
+
+        if (i === 0) {
+          pathData += `M ${x} ${y} `;
+        } else {
+          const prevAngle = startRad + angleStep * (i - 1);
+          const cpAngle = prevAngle + angleStep * 0.3;
+          const cpWobble = Math.random() * variation * 4 - variation * 2;
+          const cpRadius = radius + cpWobble;
+          const cpx = cpRadius * Math.cos(cpAngle);
+          const cpy = cpRadius * Math.sin(cpAngle);
+          pathData += `Q ${cpx} ${cpy} ${x} ${y} `;
+        }
+      }
+
+      const outlinePath = document.createElementNS(svgNS, "path");
+      outlinePath.setAttribute("d", pathData);
+      outlinePath.setAttribute("class", "arc-outline");
+      outlinePath.style.stroke = "#000";
+      outlinePath.style.strokeWidth = "16px";
+      outlinePath.style.fill = "none";
+      outlinePath.style.strokeLinecap = "round";
+      outlinePath.style.strokeLinejoin = "round";
+
+      const fillPath = document.createElementNS(svgNS, "path");
+      fillPath.setAttribute("d", pathData);
+      fillPath.setAttribute("class", "arc-fill");
+      fillPath.style.stroke = "white";
+      fillPath.style.strokeWidth = "4px";
+      fillPath.style.fill = "none";
+      fillPath.style.strokeLinecap = "round";
+      fillPath.style.strokeLinejoin = "round";
+
+      return [outlinePath, fillPath];
+    };
+
+    const outerArcs = [
+      { start: 0, end: 85, radius: 200, variation: 15 },
+      { start: 95, end: 175, radius: 210, variation: 12 },
+      { start: 185, end: 265, radius: 205, variation: 18 },
+      { start: 275, end: 355, radius: 215, variation: 14 },
+    ];
+
+    const innerArcs = [
+      { start: 20, end: 100, radius: 150, variation: 10 }, // Increased from 120
+      { start: 110, end: 190, radius: 155, variation: 8 }, // Increased from 125
+      { start: 200, end: 280, radius: 160, variation: 12 }, // Increased from 130
+      { start: 290, end: 370, radius: 158, variation: 9 }, // Increased from 128
+    ];
+
+    // Create the arcs
+    outerArcs.forEach((arcData) => {
+      const [outline, fill] = createWobblyArc(arcData.start, arcData.end, arcData.radius, arcData.variation);
+      svgOuter.appendChild(outline);
+      svgOuter.appendChild(fill);
+    });
+
+    innerArcs.forEach((arcData) => {
+      const [outline, fill] = createWobblyArc(arcData.start, arcData.end, arcData.radius, arcData.variation);
+      svgInner.appendChild(outline);
+      svgInner.appendChild(fill);
+    });
+
+    arcContainer1.appendChild(svgOuter);
+    arcContainer2.appendChild(svgInner);
+
+    effect.appendChild(arcContainer1);
+    effect.appendChild(arcContainer2);
   }
 
-  if (this.config.effectsEnabled.fireworks) {
-    this._createFireworkBurst(left, top, width, height, gameContainer);
+  // ===== COUNTRY RESISTANCE EFFECTS =====
+
+  /**
+   * Trigger country resistance
+   * @param {string} countryId - Country identifier
+   * @returns {boolean} - Success status
+   */
+  triggerCountryResistance(countryId) {
+    this.logger.info("freedom", `MAJOR RESISTANCE in ${countryId}!`);
+
+    // Stop protestor sounds first
+    if (this.audioManager) {
+      // Don't log this operation - use direct API call
+      if (countryId === "canada") {
+        this.audioManager.stopProtestorSound("canada"); // This handles both east and west
+      } else {
+        this.audioManager.stopProtestorSound(countryId);
+      }
+    }
+
+    // Add 50 points for successful revolution
+    if (this.gameState) {
+      let scoreElement = document.getElementById("score");
+      scoreElement.classList.add("score-bounce");
+      setTimeout(() => {
+        scoreElement.classList.remove("score-bounce");
+      }, 500);
+
+      this.gameState.score += 50;
+      // Update HUD
+      this.gameEngine.systems.ui.updateHUD(this.gameState);
+      // Announce for screen readers
+      this.gameEngine.systems.ui.announceForScreenReaders(`Revolution successful! +50 points. Total score: ${this.gameState.score}`);
+    }
+
+    // Remove pulsing effect if it exists
+    const countryElement = this.elements.countries[countryId];
+    if (countryElement) {
+      countryElement.classList.remove("resistance-possible");
+    }
+
+    console.log("nnnn about to remove flags");
+    
+    // Remove Trump flags from the country
+    this._removeCountryFlags(countryId);
+
+    // Reset claims to 0 (completely liberate the country)
+    if (this.gameState.countries[countryId]) {
+      this.gameState.countries[countryId].claims = 0;
+    }
+
+    // Update the flag overlay to be completely transparent
+    const flagOverlay = this._getElement(`${countryId}-flag-overlay`, "resistance");
+    if (flagOverlay) {
+      this.logger.info("freedom", `Resetting flag opacity for ${countryId} to zero`);
+      flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100");
+      flagOverlay.style.opacity = "0";
+    }
+
+    // Store position data before removing elements
+    const positionData = this._capturePositionData(countryId);
+
+    // Create celebration effects
+    this._createResistanceCelebration(countryId, positionData);
+
+    // Ensure audio is ready for resistance animation playback
+    if (this.audioManager) {
+      this.audioManager
+        .resumeAudioContext()
+        .then(() => {
+          // Play resistance animation via smack manager
+          this._playResistanceAnimation(countryId);
+
+          // IMPORTANT: Delay protestor cleanup until after animation
+          setTimeout(() => {
+            this._cleanupProtestorElements(countryId);
+          }, this.config.animationDuration + 100); // Add small buffer after animation
+
+          // Reset claims in game state
+          if (this.gameState.countries[countryId]) {
+            this.gameState.countries[countryId].claims = 0;
+          }
+        })
+        .catch((e) => {
+          // Even if audio fails, still run the animations
+          console.warn("[Freedom] Audio context error for resistance:", e);
+          this._playResistanceAnimation(countryId);
+
+          setTimeout(() => {
+            this._cleanupProtestorElements(countryId);
+          }, this.config.animationDuration + 100);
+
+          if (this.gameState.countries[countryId]) {
+            this.gameState.countries[countryId].claims = 0;
+          }
+        });
+    } else {
+      // If no audio manager, still run the animation sequence
+      this._playResistanceAnimation(countryId);
+
+      setTimeout(() => {
+        this._cleanupProtestorElements(countryId);
+      }, this.config.animationDuration + 100);
+
+      if (this.gameState.countries[countryId]) {
+        this.gameState.countries[countryId].claims = 0;
+      }
+    }
+
+    return true;
   }
-}
 
-/**
- * Create resistance text effect
- * @private
- * @param {number} x - X position
- * @param {number} y - Y position
- * @param {number} width - Width
- * @param {number} height - Height
- * @param {HTMLElement} container - Container element
- */
-_createResistanceText(x, y, width, height, container) {
-  const text = document.createElement("div");
-  text.className = "freedom-text";
-  text.textContent = "!!!";
-  text.style.position = "absolute";
-  text.style.zIndex = FreedomManager.Z_INDEXES.TEXT;
+  /**
+   * Capture position data for visual effects
+   * @private
+   * @param {string} countryId - Country identifier
+   * @returns {Object|null} - Position data or null if not available
+   */
+  _capturePositionData(countryId) {
+    const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "position capture");
+    const hitbox = this.protestorHitboxManager?.protestorHitboxes[countryId]?.element;
 
-  // MUCH larger text
-  text.style.fontSize = "1rem";
+    if (protestorWrapper) {
+      const gameContainer = this._getGameContainer();
+      if (!gameContainer) return null;
 
-  // Thicker outline
-  text.style.webkitTextStroke = ".5px black";
-  text.style.textStroke = ".5px black";
+      const containerRect = gameContainer.getBoundingClientRect();
+      const wrapperRect = protestorWrapper.getBoundingClientRect();
 
-  // More vibrant color
-  const hue = Math.floor(Math.random() * 60); // Randomize between red-yellow
-  text.style.color = `hsl(${hue}, 100%, 50%)`;
-  text.style.fontWeight = "900";
+      return {
+        source: "wrapper",
+        left: wrapperRect.left - containerRect.left,
+        top: wrapperRect.top - containerRect.top,
+        width: wrapperRect.width,
+        height: wrapperRect.height,
+      };
+    } else if (hitbox) {
+      const gameContainer = this._getGameContainer();
+      if (!gameContainer) return null;
 
-  // Calculate center position
-  const centerX = x + width / 2;
-  const centerY = y + height / 2;
+      const containerRect = gameContainer.getBoundingClientRect();
+      const hitboxRect = hitbox.getBoundingClientRect();
 
-  // Position to allow for animation
-  const textWidth = 300; // Generous width estimate
-  text.style.width = `${textWidth}px`;
-  text.style.left = `${centerX - textWidth / 2}px`;
-  text.style.top = `${centerY - 30}px`;
-  text.style.textAlign = "center";
+      return {
+        source: "hitbox",
+        left: hitboxRect.left - containerRect.left,
+        top: hitboxRect.top - containerRect.top,
+        width: hitboxRect.width,
+        height: hitboxRect.height,
+      };
+    }
 
-  container.appendChild(text);
+    // Fallback coordinates as last resort
+    const fallbackCoords = {
+      canada: { left: 117, top: 328, width: 35, height: 35 },
+      mexico: { left: 126, top: 440, width: 35, height: 35 },
+      greenland: { left: 249, top: 208, width: 35, height: 35 },
+    };
 
-  // Random starting rotation for more dynamism
-  const startRotation = -10 + Math.random() * 20;
+    if (fallbackCoords[countryId]) {
+      return {
+        source: "fallback",
+        ...fallbackCoords[countryId],
+      };
+    }
 
-  // Create unique animation ID to avoid conflicts
-  const animationId = `resistance-text-${Date.now()}`;
+    return null;
+  }
 
-  // Create custom keyframes for this specific instance
-  const style = document.createElement("style");
-  style.textContent = `
+  /**
+   * Create resistance celebration effects
+   * @private
+   * @param {string} countryId - Country identifier
+   * @param {Object} positionData - Position data
+   */
+  _createResistanceCelebration(countryId, positionData) {
+    const gameContainer = this._getGameContainer();
+    if (!gameContainer || !positionData) return;
+
+    const isMobile = this._isMobile();
+    const { left, top, width, height } = positionData;
+
+    // Optimize audio handling
+    if (this.audioManager) {
+      this.audioManager.resumeAudioContext().then(() => {
+        try {
+          this.audioManager.playRandom("particles", "freedom", null, 0.8);
+        } catch (error) {
+          this.audioManager.playDirect("freedomSpark1.mp3", 0.8);
+        }
+      });
+    }
+
+    // Reduced effects for mobile
+    if (this.config.effectsEnabled.screenShake) {
+      gameContainer.classList.add(isMobile ? "light-screen-shake" : "screen-shake");
+      setTimeout(
+        () => {
+          gameContainer.classList.remove("light-screen-shake", "screen-shake");
+        },
+        isMobile ? 400 : 800
+      );
+    }
+
+    // Create optimized flash effect
+    const flash = document.createElement("div");
+    flash.className = "freedom-flash mobile-optimized";
+    Object.assign(flash.style, {
+      position: "absolute",
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+      borderRadius: "10%",
+      zIndex: FreedomManager.Z_INDEXES.FLASH,
+    });
+    gameContainer.appendChild(flash);
+
+    // Cleanup flash after animation
+    setTimeout(() => this._cleanupAnimation(flash, "freedom-flash"), 1500);
+
+    // Add resistance text
+    this._createResistanceText(left, top, width, height, gameContainer);
+
+    // Reduced particle effects for mobile
+    if (this.config.effectsEnabled.confetti) {
+      this._createConfettiBurst(left, top, width, height, gameContainer);
+    }
+
+    if (this.config.effectsEnabled.fireworks) {
+      this._createFireworkBurst(left, top, width, height, gameContainer);
+    }
+  }
+
+  /**
+   * Create resistance text effect
+   * @private
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @param {number} width - Width
+   * @param {number} height - Height
+   * @param {HTMLElement} container - Container element
+   */
+  _createResistanceText(x, y, width, height, container) {
+    const text = document.createElement("div");
+    text.className = "freedom-text";
+    text.textContent = "!!!";
+    text.style.position = "absolute";
+    text.style.zIndex = FreedomManager.Z_INDEXES.TEXT;
+
+    // MUCH larger text
+    text.style.fontSize = "1rem";
+
+    // Thicker outline
+    text.style.webkitTextStroke = ".5px black";
+    text.style.textStroke = ".5px black";
+
+    // More vibrant color
+    const hue = Math.floor(Math.random() * 60); // Randomize between red-yellow
+    text.style.color = `hsl(${hue}, 100%, 50%)`;
+    text.style.fontWeight = "900";
+
+    // Calculate center position
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+
+    // Position to allow for animation
+    const textWidth = 300; // Generous width estimate
+    text.style.width = `${textWidth}px`;
+    text.style.left = `${centerX - textWidth / 2}px`;
+    text.style.top = `${centerY - 30}px`;
+    text.style.textAlign = "center";
+
+    container.appendChild(text);
+
+    // Random starting rotation for more dynamism
+    const startRotation = -10 + Math.random() * 20;
+
+    // Create unique animation ID to avoid conflicts
+    const animationId = `resistance-text-${Date.now()}`;
+
+    // Create custom keyframes for this specific instance
+    const style = document.createElement("style");
+    style.textContent = `
     @keyframes ${animationId} {
       0% {
         transform: scale(0.1) rotate(${startRotation - 15}deg);
@@ -8024,1007 +8335,1029 @@ _createResistanceText(x, y, width, height, container) {
       }
     }
   `;
-  document.head.appendChild(style);
+    document.head.appendChild(style);
 
-  // Apply the animation
-  text.style.animation = `${animationId} 2.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards`;
+    // Apply the animation
+    text.style.animation = `${animationId} 2.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards`;
 
-  // Remove text and style after animation
-  setTimeout(() => {
-    if (text.parentNode) {
-      text.parentNode.removeChild(text);
-    }
-    if (style.parentNode) {
-      style.parentNode.removeChild(style);
-    }
-  }, 2500);
-}
-
-/**
- * Play resistance animation
- * @private
- * @param {string} countryId - Country identifier
- */
-_playResistanceAnimation(countryId) {
-  let smackAnimation = "";
-
-  // Map country to correct animation
-  if (countryId === "canada") {
-    smackAnimation = Math.random() < 0.5 ? "smackEastCanada" : "smackWestCanada";
-  } else if (countryId === "mexico") {
-    smackAnimation = "smackMexico";
-  } else if (countryId === "greenland") {
-    smackAnimation = "smackGreenland";
-  }
-  
-  if (smackAnimation && (window.animationManager || this.animationManager)) {
-    const animationManager = window.animationManager || this.animationManager;
-
-    this.logger.info("freedom", `Playing smack animation ${smackAnimation} for resistance effect`);
-    // Commented out in original code:
-    // animationManager.playSmackAnimation(smackAnimation, () => {
-    //   this.logger.debug("freedom", "Resistance animation completed");
-    // });
-  }
-}
-
-// ===== VISUAL EFFECT METHODS =====
-
-/**
- * Create confetti burst
- * @private
- * @param {number} left - Left position
- * @param {number} top - Top position
- * @param {number} width - Width
- * @param {number} height - Height
- * @param {HTMLElement} container - Container element
- */
-_createConfettiBurst(left, top, width, height, container) {
-  // Determine particle count based on device
-  const isMobile = this._isMobile();
-  const confettiCount = isMobile ? FreedomManager.MOBILE_CONFIG.CONFETTI_COUNT : 60;
-
-  const points = [
-    { x: left + width * 0.2, y: top + height * 0.3 },
-    { x: left + width * 0.5, y: top + height * 0.5 },
-    { x: left + width * 0.8, y: top + height * 0.4 },
-  ];
-
-  // On mobile, use two spawn points instead of just one
-  const spawnPoints = isMobile ? [points[0], points[2]] : points;
-
-  for (let i = 0; i < confettiCount; i++) {
+    // Remove text and style after animation
     setTimeout(() => {
-      const point = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
-      // Wider initial position variation for mobile
-      const spreadFactor = isMobile ? 70 : 50;
-      const startX = point.x + (Math.random() * spreadFactor - spreadFactor / 2);
-      const startY = point.y + (Math.random() * spreadFactor - spreadFactor / 2);
-      this._createConfettiPiece(startX, startY, container, i % 2 === 0);
-    }, i * (isMobile ? 30 : 15)); // Slower spawn rate on mobile
-  }
-}
-
-/**
- * Create a single confetti piece
- * @private
- * @param {number} startX - Starting X position
- * @param {number} startY - Starting Y position
- * @param {HTMLElement} container - Container element
- * @param {boolean} isLarger - Whether this piece should be larger
- */
-_createConfettiPiece(startX, startY, container, isLarger = false) {
-  if (!container) return;
-
-  const isMobile = this._isMobile();
-
-  if (isMobile) {
-    // Only create 1/3 of the confetti pieces on mobile
-    if (Math.random() > 0.33) return; // Early return, not null
-  }
-
-  // Create confetti element
-  const confetti = document.createElement("div");
-  confetti.className = "freedom-confetti";
-
-  // Performance optimization: use CSS properties that are cheap to animate
-  confetti.style.willChange = "transform, opacity";
-
-  // Random confetti properties for more variety
-  const shapes = ["circle", "square", "rectangle", "triangle"];
-  const shape = shapes[Math.floor(Math.random() * shapes.length)];
-  confetti.classList.add(`confetti-${shape}`);
-
-  // Size - make mobile confetti larger to compensate for fewer pieces
-  // On mobile, make most pieces larger (50% chance instead of relying on isLarger)
-  const shouldBeLarger = isMobile ? Math.random() > 0.5 : isLarger;
-
-  // Base size is now larger for mobile
-  const baseSize = isMobile ? 7 : 4;
-  const variance = isMobile ? 8 : 6;
-
-  const size = shouldBeLarger
-    ? baseSize + Math.random() * variance * 1.5 // Extra large pieces
-    : baseSize + Math.random() * variance;
-
-  confetti.style.width = `${size}px`;
-  confetti.style.height = shape === "rectangle" ? `${size * 2}px` : `${size}px`;
-
-  // Random vibrant color with high saturation
-  const hue = Math.floor(Math.random() * 360);
-  const lightness = 50 + Math.random() * 30; // Brighter colors
-  confetti.style.backgroundColor = `hsl(${hue}, 100%, ${lightness}%)`;
-
-  // Add black border for cartoon look
-  confetti.style.border = "1px solid black";
-
-  // Set the initial position
-  confetti.style.position = "absolute";
-  confetti.style.left = `${startX}px`;
-  confetti.style.top = `${startY}px`;
-  confetti.style.zIndex = FreedomManager.Z_INDEXES.CONFETTI;
-
-  // Add to container
-  container.appendChild(confetti);
-
-  // Store confetti reference for potential cleanup
-  const confettiRef = {
-    element: confetti,
-    startTime: performance.now(),
-    animationCompleted: false,
-  };
-  this.activeAnimations.confetti.push(confettiRef);
-
-  // Animation parameters
-  const angle = Math.random() * Math.PI * 2;
-  // Increased distance/spread for mobile
-  const distance = isMobile
-    ? 60 + Math.random() * 140 // Wider spread on mobile
-    : 40 + Math.random() * 120;
-
-  const destinationX = startX + Math.cos(angle) * distance;
-  const destinationY = startY + Math.sin(angle) * distance;
-  const duration = 1200 + Math.random() * 1500;
-
-  // Control points for bezier curve
-  const cp1x = startX + (destinationX - startX) * 0.3 + (Math.random() * 30 - 15);
-  const cp1y = startY + (destinationY - startY) * 0.3 - Math.random() * 20;
-  const cp2x = startX + (destinationX - startX) * 0.6 + (Math.random() * 30 - 15);
-  const cp2y = destinationY - Math.random() * 50;
-
-  // Initial rotation
-  const rotation = Math.random() * 360;
-  confetti.style.transform = `rotate(${rotation}deg)`;
-
-  // Use simpler animation path on mobile
-  const simplifiedPath = this._isMobile();
-
-  this._animateConfetti(confettiRef, startX, startY, destinationX, destinationY, rotation, duration, cp1x, cp1y, cp2x, cp2y, simplifiedPath);
-}
-
-/**
- * Animate confetti piece
- * @private
- * @param {Object} confettiRef - Confetti reference object
- * @param {number} startX - Starting X position
- * @param {number} startY - Starting Y position
- * @param {number} destinationX - Destination X position
- * @param {number} destinationY - Destination Y position
- * @param {number} rotation - Initial rotation
- * @param {number} duration - Animation duration
- * @param {number} cp1x - Bezier control point 1 X
- * @param {number} cp1y - Bezier control point 1 Y
- * @param {number} cp2x - Bezier control point 2 X
- * @param {number} cp2y - Bezier control point 2 Y
- * @param {boolean} simplifiedPath - Whether to use simplified path
- */
-_animateConfetti(confettiRef, startX, startY, destinationX, destinationY, rotation, duration, cp1x, cp1y, cp2x, cp2y, simplifiedPath) {
-  const confetti = confettiRef.element;
-
-  // Force simplified path on mobile
-  const isMobile = this._isMobile();
-  if (isMobile) {
-    simplifiedPath = true;
-  }
-
-  // Save parameters for pause/resume
-  Object.assign(confettiRef, {
-    startX,
-    startY,
-    destinationX,
-    destinationY,
-    rotation,
-    duration,
-    cp1x,
-    cp1y,
-    cp2x,
-    cp2y,
-    simplifiedPath,
-  });
-
-  const animateConfettiFrame = (timestamp) => {
-    if (confettiRef.paused || confettiRef.animationCompleted) return;
-
-    const elapsed = timestamp - confettiRef.startTime;
-    const progress = Math.min(elapsed / duration, 1);
-
-    if (progress < 1) {
-      let currentX, currentY;
-
-      if (simplifiedPath) {
-        // Linear path for mobile (more efficient)
-        currentX = startX + (destinationX - startX) * progress;
-        currentY = startY + (destinationY - startY) * progress;
-      } else {
-        // Cubic bezier calculations for smooth movement on desktop
-        const t = progress;
-        const t_ = 1 - t;
-
-        currentX = Math.pow(t_, 3) * startX + 3 * Math.pow(t_, 2) * t * cp1x + 3 * t_ * Math.pow(t, 2) * cp2x + Math.pow(t, 3) * destinationX;
-        currentY = Math.pow(t_, 3) * startY + 3 * Math.pow(t_, 2) * t * cp1y + 3 * t_ * Math.pow(t, 2) * cp2y + Math.pow(t, 3) * destinationY;
+      if (text.parentNode) {
+        text.parentNode.removeChild(text);
       }
+      if (style.parentNode) {
+        style.parentNode.removeChild(style);
+      }
+    }, 2500);
+  }
 
-      // Update position
-      confetti.style.left = `${currentX}px`;
-      confetti.style.top = `${currentY}px`;
+  /**
+   * Play resistance animation
+   * @private
+   * @param {string} countryId - Country identifier
+   */
+  _playResistanceAnimation(countryId) {
+    let smackAnimation = "";
 
-      // Simplified rotation on mobile
-      if (simplifiedPath) {
-        // Much simpler rotation calculation for mobile
-        const spin = rotation + progress * 180 * (Math.random() > 0.5 ? 1 : -1);
-        confetti.style.transform = `rotate(${spin}deg)`;
-      } else {
-        // Add spin animation
-        const spin = rotation + progress * progress * 720 * (Math.random() > 0.5 ? 1 : -1);
+    // Map country to correct animation
+    if (countryId === "canada") {
+      smackAnimation = Math.random() < 0.5 ? "smackEastCanada" : "smackWestCanada";
+    } else if (countryId === "mexico") {
+      smackAnimation = "smackMexico";
+    } else if (countryId === "greenland") {
+      smackAnimation = "smackGreenland";
+    }
 
-        // Instead of fading out, shrink at the end
-        if (progress > 0.7) {
-          const scale = 1 - ((progress - 0.7) / 0.3) * 0.7; // Don't scale all the way to 0
-          confetti.style.transform = `rotate(${spin}deg) scale(${scale})`;
+    if (smackAnimation && (window.animationManager || this.animationManager)) {
+      const animationManager = window.animationManager || this.animationManager;
+
+      this.logger.info("freedom", `Playing smack animation ${smackAnimation} for resistance effect`);
+      // Commented out in original code:
+      // animationManager.playSmackAnimation(smackAnimation, () => {
+      //   this.logger.debug("freedom", "Resistance animation completed");
+      // });
+    }
+  }
+
+  // ===== VISUAL EFFECT METHODS =====
+
+  /**
+   * Create confetti burst
+   * @private
+   * @param {number} left - Left position
+   * @param {number} top - Top position
+   * @param {number} width - Width
+   * @param {number} height - Height
+   * @param {HTMLElement} container - Container element
+   */
+  _createConfettiBurst(left, top, width, height, container) {
+    // Determine particle count based on device
+    const isMobile = this._isMobile();
+    const confettiCount = isMobile ? FreedomManager.MOBILE_CONFIG.CONFETTI_COUNT : 60;
+
+    const points = [
+      { x: left + width * 0.2, y: top + height * 0.3 },
+      { x: left + width * 0.5, y: top + height * 0.5 },
+      { x: left + width * 0.8, y: top + height * 0.4 },
+    ];
+
+    // On mobile, use two spawn points instead of just one
+    const spawnPoints = isMobile ? [points[0], points[2]] : points;
+
+    for (let i = 0; i < confettiCount; i++) {
+      setTimeout(() => {
+        const point = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+        // Wider initial position variation for mobile
+        const spreadFactor = isMobile ? 70 : 50;
+        const startX = point.x + (Math.random() * spreadFactor - spreadFactor / 2);
+        const startY = point.y + (Math.random() * spreadFactor - spreadFactor / 2);
+        this._createConfettiPiece(startX, startY, container, i % 2 === 0);
+      }, i * (isMobile ? 30 : 15)); // Slower spawn rate on mobile
+    }
+  }
+
+  /**
+   * Create a single confetti piece
+   * @private
+   * @param {number} startX - Starting X position
+   * @param {number} startY - Starting Y position
+   * @param {HTMLElement} container - Container element
+   * @param {boolean} isLarger - Whether this piece should be larger
+   */
+  _createConfettiPiece(startX, startY, container, isLarger = false) {
+    if (!container) return;
+
+    const isMobile = this._isMobile();
+
+    if (isMobile) {
+      // Only create 1/3 of the confetti pieces on mobile
+      if (Math.random() > 0.33) return; // Early return, not null
+    }
+
+    // Create confetti element
+    const confetti = document.createElement("div");
+    confetti.className = "freedom-confetti";
+
+    // Performance optimization: use CSS properties that are cheap to animate
+    confetti.style.willChange = "transform, opacity";
+
+    // Random confetti properties for more variety
+    const shapes = ["circle", "square", "rectangle", "triangle"];
+    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+    confetti.classList.add(`confetti-${shape}`);
+
+    // Size - make mobile confetti larger to compensate for fewer pieces
+    // On mobile, make most pieces larger (50% chance instead of relying on isLarger)
+    const shouldBeLarger = isMobile ? Math.random() > 0.5 : isLarger;
+
+    // Base size is now larger for mobile
+    const baseSize = isMobile ? 7 : 4;
+    const variance = isMobile ? 8 : 6;
+
+    const size = shouldBeLarger
+      ? baseSize + Math.random() * variance * 1.5 // Extra large pieces
+      : baseSize + Math.random() * variance;
+
+    confetti.style.width = `${size}px`;
+    confetti.style.height = shape === "rectangle" ? `${size * 2}px` : `${size}px`;
+
+    // Random vibrant color with high saturation
+    const hue = Math.floor(Math.random() * 360);
+    const lightness = 50 + Math.random() * 30; // Brighter colors
+    confetti.style.backgroundColor = `hsl(${hue}, 100%, ${lightness}%)`;
+
+    // Add black border for cartoon look
+    confetti.style.border = "1px solid black";
+
+    // Set the initial position
+    confetti.style.position = "absolute";
+    confetti.style.left = `${startX}px`;
+    confetti.style.top = `${startY}px`;
+    confetti.style.zIndex = FreedomManager.Z_INDEXES.CONFETTI;
+
+    // Add to container
+    container.appendChild(confetti);
+
+    // Store confetti reference for potential cleanup
+    const confettiRef = {
+      element: confetti,
+      startTime: performance.now(),
+      animationCompleted: false,
+    };
+    this.activeAnimations.confetti.push(confettiRef);
+
+    // Animation parameters
+    const angle = Math.random() * Math.PI * 2;
+    // Increased distance/spread for mobile
+    const distance = isMobile
+      ? 60 + Math.random() * 140 // Wider spread on mobile
+      : 40 + Math.random() * 120;
+
+    const destinationX = startX + Math.cos(angle) * distance;
+    const destinationY = startY + Math.sin(angle) * distance;
+    const duration = 1200 + Math.random() * 1500;
+
+    // Control points for bezier curve
+    const cp1x = startX + (destinationX - startX) * 0.3 + (Math.random() * 30 - 15);
+    const cp1y = startY + (destinationY - startY) * 0.3 - Math.random() * 20;
+    const cp2x = startX + (destinationX - startX) * 0.6 + (Math.random() * 30 - 15);
+    const cp2y = destinationY - Math.random() * 50;
+
+    // Initial rotation
+    const rotation = Math.random() * 360;
+    confetti.style.transform = `rotate(${rotation}deg)`;
+
+    // Use simpler animation path on mobile
+    const simplifiedPath = this._isMobile();
+
+    this._animateConfetti(confettiRef, startX, startY, destinationX, destinationY, rotation, duration, cp1x, cp1y, cp2x, cp2y, simplifiedPath);
+  }
+
+  /**
+   * Animate confetti piece
+   * @private
+   * @param {Object} confettiRef - Confetti reference object
+   * @param {number} startX - Starting X position
+   * @param {number} startY - Starting Y position
+   * @param {number} destinationX - Destination X position
+   * @param {number} destinationY - Destination Y position
+   * @param {number} rotation - Initial rotation
+   * @param {number} duration - Animation duration
+   * @param {number} cp1x - Bezier control point 1 X
+   * @param {number} cp1y - Bezier control point 1 Y
+   * @param {number} cp2x - Bezier control point 2 X
+   * @param {number} cp2y - Bezier control point 2 Y
+   * @param {boolean} simplifiedPath - Whether to use simplified path
+   */
+  _animateConfetti(confettiRef, startX, startY, destinationX, destinationY, rotation, duration, cp1x, cp1y, cp2x, cp2y, simplifiedPath) {
+    const confetti = confettiRef.element;
+
+    // Force simplified path on mobile
+    const isMobile = this._isMobile();
+    if (isMobile) {
+      simplifiedPath = true;
+    }
+
+    // Save parameters for pause/resume
+    Object.assign(confettiRef, {
+      startX,
+      startY,
+      destinationX,
+      destinationY,
+      rotation,
+      duration,
+      cp1x,
+      cp1y,
+      cp2x,
+      cp2y,
+      simplifiedPath,
+    });
+
+    const animateConfettiFrame = (timestamp) => {
+      if (confettiRef.paused || confettiRef.animationCompleted) return;
+
+      const elapsed = timestamp - confettiRef.startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      if (progress < 1) {
+        let currentX, currentY;
+
+        if (simplifiedPath) {
+          // Linear path for mobile (more efficient)
+          currentX = startX + (destinationX - startX) * progress;
+          currentY = startY + (destinationY - startY) * progress;
         } else {
+          // Cubic bezier calculations for smooth movement on desktop
+          const t = progress;
+          const t_ = 1 - t;
+
+          currentX = Math.pow(t_, 3) * startX + 3 * Math.pow(t_, 2) * t * cp1x + 3 * t_ * Math.pow(t, 2) * cp2x + Math.pow(t, 3) * destinationX;
+          currentY = Math.pow(t_, 3) * startY + 3 * Math.pow(t_, 2) * t * cp1y + 3 * t_ * Math.pow(t, 2) * cp2y + Math.pow(t, 3) * destinationY;
+        }
+
+        // Update position
+        confetti.style.left = `${currentX}px`;
+        confetti.style.top = `${currentY}px`;
+
+        // Simplified rotation on mobile
+        if (simplifiedPath) {
+          // Much simpler rotation calculation for mobile
+          const spin = rotation + progress * 180 * (Math.random() > 0.5 ? 1 : -1);
           confetti.style.transform = `rotate(${spin}deg)`;
+        } else {
+          // Add spin animation
+          const spin = rotation + progress * progress * 720 * (Math.random() > 0.5 ? 1 : -1);
+
+          // Instead of fading out, shrink at the end
+          if (progress > 0.7) {
+            const scale = 1 - ((progress - 0.7) / 0.3) * 0.7; // Don't scale all the way to 0
+            confetti.style.transform = `rotate(${spin}deg) scale(${scale})`;
+          } else {
+            confetti.style.transform = `rotate(${spin}deg)`;
+          }
+        }
+
+        // Optimize animation frame rate on mobile - skip frames
+        if (isMobile && Math.random() > 0.7) {
+          // Skip ~30% of frames on mobile devices
+          setTimeout(() => requestAnimationFrame(animateConfettiFrame), 32);
+        } else {
+          requestAnimationFrame(animateConfettiFrame);
+        }
+      } else {
+        // Animation complete, clean up
+        confettiRef.animationCompleted = true;
+
+        if (confetti.parentNode) {
+          confetti.parentNode.removeChild(confetti);
+        }
+
+        // Remove from active animations
+        const index = this.activeAnimations.confetti.indexOf(confettiRef);
+        if (index !== -1) {
+          this.activeAnimations.confetti.splice(index, 1);
         }
       }
+    };
 
-      // Optimize animation frame rate on mobile - skip frames
-      if (isMobile && Math.random() > 0.7) {
-        // Skip ~30% of frames on mobile devices
-        setTimeout(() => requestAnimationFrame(animateConfettiFrame), 32);
-      } else {
-        requestAnimationFrame(animateConfettiFrame);
-      }
+    requestAnimationFrame(animateConfettiFrame);
+  }
+
+  /**
+   * Create firework burst
+   * @private
+   * @param {number} left - Left position
+   * @param {number} top - Top position
+   * @param {number} width - Width
+   * @param {number} height - Height
+   * @param {HTMLElement} container - Container element
+   */
+  _createFireworkBurst(left, top, width, height, container) {
+    const isMobile = this._isMobile();
+
+    // On mobile, now use two burst locations instead of one
+    const burstLocations = isMobile
+      ? [
+          { x: left + width * 0.3, y: top + height * 0.3, delay: 0 },
+          { x: left + width * 0.7, y: top + height * 0.4, delay: 300 },
+        ]
+      : [
+          { x: left + width * 0.3, y: top + height * 0.3, delay: 0 },
+          { x: left + width * 0.7, y: top + height * 0.4, delay: 300 },
+          { x: left + width * 0.5, y: top + height * 0.2, delay: 600 },
+        ];
+
+    burstLocations.forEach((burst) => {
+      setTimeout(() => {
+        // Increased particle count for mobile
+        const particleCount = isMobile
+          ? FreedomManager.MOBILE_CONFIG.FIREWORK_COUNT // Use constant from config
+          : 15 + Math.floor(Math.random() * 10); // 15-25 particles on desktop
+
+        for (let i = 0; i < particleCount; i++) {
+          setTimeout(() => {
+            this._createFireworkParticle(burst.x, burst.y, container);
+          }, i * (isMobile ? 30 : 15)); // Slower spawn rate on mobile
+        }
+      }, burst.delay);
+    });
+  }
+
+  /**
+   * Create firework particle
+   * @private
+   * @param {number} centerX - Center X position
+   * @param {number} centerY - Center Y position
+   * @param {HTMLElement} container - Container element
+   */
+  _createFireworkParticle(centerX, centerY, container) {
+    if (!container) return;
+
+    const isMobile = this._isMobile();
+    if (isMobile) {
+      // Reduce particle creation frequency
+      if (Math.random() > 0.6) return; // Skip more particles
+    }
+
+    const particle = document.createElement("div");
+    particle.className = "freedom-firework";
+
+    // On mobile, favor simpler shapes
+    const particleTypes = isMobile ? ["circle", "circle", "spark"] : ["spark", "circle", "spark"];
+    const particleType = particleTypes[Math.floor(Math.random() * particleTypes.length)];
+
+    // Vibrant colors
+    const hue = Math.floor(Math.random() * 360);
+
+    // Particle styling
+    if (particleType === "circle") {
+      particle.style.backgroundColor = `hsl(${hue}, 100%, 60%)`;
+      particle.style.borderRadius = "50%";
+    } else if (particleType === "spark") {
+      // Elongated spark - streamer-like
+      const sparkAngle = Math.random() * 360;
+      particle.style.backgroundColor = `hsl(${hue}, 100%, 65%)`;
+      particle.style.borderRadius = "40% 40% 5% 5%";
+      particle.style.transform = `rotate(${sparkAngle}deg)`;
+    }
+
+    // Always add black border - thinner on mobile
+    particle.style.border = isMobile ? "1px solid black" : "2px solid black";
+
+    // LARGER size on mobile to compensate for fewer particles
+    const sizeFactor = isMobile ? 1.3 : 1.0; // Now 30% larger on mobile instead of smaller
+    const size = particleType === "spark" ? (6 + Math.random() * 12) * sizeFactor : (10 + Math.random() * 15) * sizeFactor;
+
+    particle.style.width = `${size}px`;
+    if (particleType === "spark") {
+      // Sparks are elongated like streamers - less extreme on mobile
+      const elongation = isMobile ? 2.5 + Math.random() : 3 + Math.random();
+      particle.style.height = `${size * elongation}px`;
     } else {
-      // Animation complete, clean up
-      confettiRef.animationCompleted = true;
-
-      if (confetti.parentNode) {
-        confetti.parentNode.removeChild(confetti);
-      }
-
-      // Remove from active animations
-      const index = this.activeAnimations.confetti.indexOf(confettiRef);
-      if (index !== -1) {
-        this.activeAnimations.confetti.splice(index, 1);
-      }
+      particle.style.height = `${size}px`;
     }
-  };
 
-  requestAnimationFrame(animateConfettiFrame);
-}
+    // Initial position
+    particle.style.position = "absolute";
+    particle.style.left = `${centerX}px`;
+    particle.style.top = `${centerY}px`;
+    particle.style.zIndex = FreedomManager.Z_INDEXES.FIREWORKS;
 
-/**
- * Create firework burst
- * @private
- * @param {number} left - Left position
- * @param {number} top - Top position
- * @param {number} width - Width
- * @param {number} height - Height
- * @param {HTMLElement} container - Container element
- */
-_createFireworkBurst(left, top, width, height, container) {
-  const isMobile = this._isMobile();
+    // Add to container
+    container.appendChild(particle);
 
-  // On mobile, now use two burst locations instead of one
-  const burstLocations = isMobile
-    ? [
-        { x: left + width * 0.3, y: top + height * 0.3, delay: 0 },
-        { x: left + width * 0.7, y: top + height * 0.4, delay: 300 },
-      ]
-    : [
-        { x: left + width * 0.3, y: top + height * 0.3, delay: 0 },
-        { x: left + width * 0.7, y: top + height * 0.4, delay: 300 },
-        { x: left + width * 0.5, y: top + height * 0.2, delay: 600 },
-      ];
+    // Store reference for potential cleanup
+    const fireworkRef = {
+      element: particle,
+      startTime: performance.now(),
+      animationCompleted: false,
+      centerX,
+      centerY,
+    };
+    this.activeAnimations.fireworks.push(fireworkRef);
 
-  burstLocations.forEach((burst) => {
-    setTimeout(() => {
-      // Increased particle count for mobile
-      const particleCount = isMobile
-        ? FreedomManager.MOBILE_CONFIG.FIREWORK_COUNT // Use constant from config
-        : 15 + Math.floor(Math.random() * 10); // 15-25 particles on desktop
+    // MUCH wider spread - increased for mobile
+    const angle = Math.random() * Math.PI * 2;
+    const distance = isMobile
+      ? 60 + Math.random() * 100 // Wider distribution on mobile
+      : 80 + Math.random() * 180; // Wider distribution on desktop
 
-      for (let i = 0; i < particleCount; i++) {
-        setTimeout(() => {
-          this._createFireworkParticle(burst.x, burst.y, container);
-        }, i * (isMobile ? 30 : 15)); // Slower spawn rate on mobile
-      }
-    }, burst.delay);
-  });
-}
+    const destinationX = centerX + Math.cos(angle) * distance;
+    const destinationY = centerY + Math.sin(angle) * distance;
 
-/**
- * Create firework particle
- * @private
- * @param {number} centerX - Center X position
- * @param {number} centerY - Center Y position
- * @param {HTMLElement} container - Container element
- */
-_createFireworkParticle(centerX, centerY, container) {
-  if (!container) return;
+    // Shorter duration on mobile for better perceived performance
+    const duration = isMobile
+      ? 1000 + Math.random() * 500 // 1-1.5 seconds on mobile
+      : 1500 + Math.random() * 1000; // 1.5-2.5 seconds on desktop
 
-  const isMobile = this._isMobile();
-  if (isMobile) {
-    // Reduce particle creation frequency
-    if (Math.random() > 0.6) return; // Skip more particles
+    this._animateFireworkParticle(fireworkRef, centerX, centerY, destinationX, destinationY, duration, particleType);
   }
 
-  const particle = document.createElement("div");
-  particle.className = "freedom-firework";
+  /**
+   * Animate firework particle
+   * @private
+   * @param {Object} fireworkRef - Firework reference object
+   * @param {number} centerX - Center X position
+   * @param {number} centerY - Center Y position
+   * @param {number} destinationX - Destination X position
+   * @param {number} destinationY - Destination Y position
+   * @param {number} duration - Animation duration
+   * @param {string} particleType - Particle type ("circle" or "spark")
+   */
+  _animateFireworkParticle(fireworkRef, centerX, centerY, destinationX, destinationY, duration, particleType) {
+    const particle = fireworkRef.element;
+    const isMobile = this._isMobile();
 
-  // On mobile, favor simpler shapes
-  const particleTypes = isMobile ? ["circle", "circle", "spark"] : ["spark", "circle", "spark"];
-  const particleType = particleTypes[Math.floor(Math.random() * particleTypes.length)];
+    // Save parameters for pause/resume
+    Object.assign(fireworkRef, {
+      centerX,
+      centerY,
+      destinationX,
+      destinationY,
+      duration,
+      particleType,
+    });
 
-  // Vibrant colors
-  const hue = Math.floor(Math.random() * 360);
+    const animateParticleFrame = (timestamp) => {
+      if (fireworkRef.paused || fireworkRef.animationCompleted) return;
 
-  // Particle styling
-  if (particleType === "circle") {
-    particle.style.backgroundColor = `hsl(${hue}, 100%, 60%)`;
-    particle.style.borderRadius = "50%";
-  } else if (particleType === "spark") {
-    // Elongated spark - streamer-like
-    const sparkAngle = Math.random() * 360;
-    particle.style.backgroundColor = `hsl(${hue}, 100%, 65%)`;
-    particle.style.borderRadius = "40% 40% 5% 5%";
-    particle.style.transform = `rotate(${sparkAngle}deg)`;
-  }
+      const elapsed = timestamp - fireworkRef.startTime;
+      const progress = Math.min(elapsed / duration, 1);
 
-  // Always add black border - thinner on mobile
-  particle.style.border = isMobile ? "1px solid black" : "2px solid black";
+      if (progress < 1) {
+        // Arc path with gentle gravity - simplified for mobile
+        const easedProgress = progress;
+        const currentX = centerX + (destinationX - centerX) * easedProgress;
 
-  // LARGER size on mobile to compensate for fewer particles
-  const sizeFactor = isMobile ? 1.3 : 1.0; // Now 30% larger on mobile instead of smaller
-  const size = particleType === "spark" ? (6 + Math.random() * 12) * sizeFactor : (10 + Math.random() * 15) * sizeFactor;
+        // Arc effect - gentler on mobile
+        const arcHeight = isMobile ? 30 : 60; // Lower arc on mobile
+        const gravityStrength = isMobile ? 20 : 40; // Less gravity effect on mobile
 
-  particle.style.width = `${size}px`;
-  if (particleType === "spark") {
-    // Sparks are elongated like streamers - less extreme on mobile
-    const elongation = isMobile ? 2.5 + Math.random() : 3 + Math.random();
-    particle.style.height = `${size * elongation}px`;
-  } else {
-    particle.style.height = `${size}px`;
-  }
+        const verticalOffset = Math.sin(progress * Math.PI) * arcHeight;
+        const gravity = Math.pow(progress, 2) * gravityStrength;
+        const currentY = centerY + (destinationY - centerY) * easedProgress - verticalOffset + gravity;
 
-  // Initial position
-  particle.style.position = "absolute";
-  particle.style.left = `${centerX}px`;
-  particle.style.top = `${centerY}px`;
-  particle.style.zIndex = FreedomManager.Z_INDEXES.FIREWORKS;
+        // Update position
+        particle.style.left = `${currentX}px`;
+        particle.style.top = `${currentY}px`;
 
-  // Add to container
-  container.appendChild(particle);
+        // Rotation based on particle type - simplified for mobile
+        if (particleType === "spark") {
+          // Calculate angle based on movement direction
+          const dx = currentX - parseFloat(particle.style.left || centerX);
+          const dy = currentY - parseFloat(particle.style.top || centerY);
+          let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
 
-  // Store reference for potential cleanup
-  const fireworkRef = {
-    element: particle,
-    startTime: performance.now(),
-    animationCompleted: false,
-    centerX,
-    centerY,
-  };
-  this.activeAnimations.fireworks.push(fireworkRef);
+          // Add very slight wobble - less on mobile
+          const wobble = isMobile ? 2 : 5;
+          angle += Math.sin(progress * Math.PI * 2) * wobble;
 
-  // MUCH wider spread - increased for mobile
-  const angle = Math.random() * Math.PI * 2;
-  const distance = isMobile
-    ? 60 + Math.random() * 100 // Wider distribution on mobile
-    : 80 + Math.random() * 180; // Wider distribution on desktop
+          particle.style.transform = `rotate(${angle}deg)`;
+        } else {
+          // Almost no rotation for circles
+          const rotation = progress * 30 * (Math.random() > 0.5 ? 1 : -1);
+          particle.style.transform = `rotate(${rotation}deg)`;
+        }
 
-  const destinationX = centerX + Math.cos(angle) * distance;
-  const destinationY = centerY + Math.sin(angle) * distance;
+        // Simple exit - just fade
+        if (progress > 0.8) {
+          const exitScale = 1 - (progress - 0.8) / 0.2;
+          particle.style.opacity = exitScale.toString();
+        }
 
-  // Shorter duration on mobile for better perceived performance
-  const duration = isMobile
-    ? 1000 + Math.random() * 500 // 1-1.5 seconds on mobile
-    : 1500 + Math.random() * 1000; // 1.5-2.5 seconds on desktop
-
-  this._animateFireworkParticle(fireworkRef, centerX, centerY, destinationX, destinationY, duration, particleType);
-}
-
-/**
- * Animate firework particle
- * @private
- * @param {Object} fireworkRef - Firework reference object
- * @param {number} centerX - Center X position
- * @param {number} centerY - Center Y position
- * @param {number} destinationX - Destination X position
- * @param {number} destinationY - Destination Y position
- * @param {number} duration - Animation duration
- * @param {string} particleType - Particle type ("circle" or "spark")
- */
-_animateFireworkParticle(fireworkRef, centerX, centerY, destinationX, destinationY, duration, particleType) {
-  const particle = fireworkRef.element;
-  const isMobile = this._isMobile();
-
-  // Save parameters for pause/resume
-  Object.assign(fireworkRef, {
-    centerX,
-    centerY,
-    destinationX,
-    destinationY,
-    duration,
-    particleType,
-  });
-
-  const animateParticleFrame = (timestamp) => {
-    if (fireworkRef.paused || fireworkRef.animationCompleted) return;
-
-    const elapsed = timestamp - fireworkRef.startTime;
-    const progress = Math.min(elapsed / duration, 1);
-
-    if (progress < 1) {
-      // Arc path with gentle gravity - simplified for mobile
-      const easedProgress = progress;
-      const currentX = centerX + (destinationX - centerX) * easedProgress;
-
-      // Arc effect - gentler on mobile
-      const arcHeight = isMobile ? 30 : 60; // Lower arc on mobile
-      const gravityStrength = isMobile ? 20 : 40; // Less gravity effect on mobile
-
-      const verticalOffset = Math.sin(progress * Math.PI) * arcHeight;
-      const gravity = Math.pow(progress, 2) * gravityStrength;
-      const currentY = centerY + (destinationY - centerY) * easedProgress - verticalOffset + gravity;
-
-      // Update position
-      particle.style.left = `${currentX}px`;
-      particle.style.top = `${currentY}px`;
-
-      // Rotation based on particle type - simplified for mobile
-      if (particleType === "spark") {
-        // Calculate angle based on movement direction
-        const dx = currentX - parseFloat(particle.style.left || centerX);
-        const dy = currentY - parseFloat(particle.style.top || centerY);
-        let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
-
-        // Add very slight wobble - less on mobile
-        const wobble = isMobile ? 2 : 5;
-        angle += Math.sin(progress * Math.PI * 2) * wobble;
-
-        particle.style.transform = `rotate(${angle}deg)`;
+        // Skip frames on mobile for performance
+        if (isMobile && Math.random() > 0.6) {
+          // Skip ~40% of frames on mobile
+          setTimeout(() => requestAnimationFrame(animateParticleFrame), 32);
+        } else {
+          requestAnimationFrame(animateParticleFrame);
+        }
       } else {
-        // Almost no rotation for circles
-        const rotation = progress * 30 * (Math.random() > 0.5 ? 1 : -1);
-        particle.style.transform = `rotate(${rotation}deg)`;
+        // Animation complete, clean up
+        fireworkRef.animationCompleted = true;
+
+        if (particle.parentNode) {
+          particle.parentNode.removeChild(particle);
+        }
+
+        // Remove from active animations
+        const index = this.activeAnimations.fireworks.indexOf(fireworkRef);
+        if (index !== -1) {
+          this.activeAnimations.fireworks.splice(index, 1);
+        }
       }
+    };
 
-      // Simple exit - just fade
-      if (progress > 0.8) {
-        const exitScale = 1 - (progress - 0.8) / 0.2;
-        particle.style.opacity = exitScale.toString();
-      }
+    requestAnimationFrame(animateParticleFrame);
+  }
 
-      // Skip frames on mobile for performance
-      if (isMobile && Math.random() > 0.6) {
-        // Skip ~40% of frames on mobile
-        setTimeout(() => requestAnimationFrame(animateParticleFrame), 32);
-      } else {
-        requestAnimationFrame(animateParticleFrame);
-      }
-    } else {
-      // Animation complete, clean up
-      fireworkRef.animationCompleted = true;
+  // ===== SYSTEM LIFECYCLE METHODS =====
 
-      if (particle.parentNode) {
-        particle.parentNode.removeChild(particle);
-      }
+  /**
+   * Pause the freedom manager
+   */
+  pause() {
+    this.logger.info("freedom", "Pausing Freedom Manager");
 
-      // Remove from active animations
-      const index = this.activeAnimations.fireworks.indexOf(fireworkRef);
-      if (index !== -1) {
-        this.activeAnimations.fireworks.splice(index, 1);
-      }
-    }
-  };
+    // Store the current state of various animations and timers
+    this._pausedState = {
+      protestorAnimations: {},
+      extraProtestorAnimations: {},
+      disappearTimeouts: {},
+      confettiAnimations: [],
+      fireworkAnimations: [],
+    };
 
-  requestAnimationFrame(animateParticleFrame);
-}
-
-// ===== SYSTEM LIFECYCLE METHODS =====
-
-/**
- * Pause the freedom manager
- */
-pause() {
-  this.logger.info("freedom", "Pausing Freedom Manager");
-
-  // Store the current state of various animations and timers
-  this._pausedState = {
-    protestorAnimations: {},
-    extraProtestorAnimations: {},
-    disappearTimeouts: {},
-    confettiAnimations: [],
-    fireworkAnimations: [],
-  };
-
-  // Pause protestor animations
-  Object.keys(this.activeAnimations.protestors).forEach((countryId) => {
-    const interval = this.activeAnimations.protestors[countryId];
-    if (interval) {
-      this._pausedState.protestorAnimations[countryId] = interval;
-      clearInterval(interval);
-    }
-  });
-
-  // Pause extra protestor animations
-  if (this.activeAnimations.extraProtestors) {
-    Object.keys(this.activeAnimations.extraProtestors).forEach((key) => {
-      const interval = this.activeAnimations.extraProtestors[key];
+    // Pause protestor animations
+    Object.keys(this.activeAnimations.protestors).forEach((countryId) => {
+      const interval = this.activeAnimations.protestors[countryId];
       if (interval) {
-        this._pausedState.extraProtestorAnimations[key] = interval;
+        this._pausedState.protestorAnimations[countryId] = interval;
         clearInterval(interval);
       }
     });
-  }
 
-  // Store active confetti and fireworks animations
-  this._pausedState.confettiAnimations = [...this.activeAnimations.confetti];
-  this._pausedState.fireworkAnimations = [...this.activeAnimations.fireworks];
-  
-  // Mark all animations as paused
-  this.activeAnimations.confetti.forEach(confetti => {
-    confetti.paused = true;
-  });
-  
-  this.activeAnimations.fireworks.forEach(firework => {
-    firework.paused = true;
-  });
-
-  // Pause disappear timeouts for each country
-  Object.keys(this.countries).forEach((countryId) => {
-    const country = this.countries[countryId];
-    if (country.disappearTimeout) {
-      this._pausedState.disappearTimeouts[countryId] = country.disappearTimeout;
-      clearTimeout(country.disappearTimeout);
-      country.disappearTimeout = null;
-    }
-  });
-
-  // Ensure all sounds are properly stopped
-  if (this.audioManager) {
-    // Resume context first to ensure sounds actually stop
-    this.audioManager.resumeAudioContext().then(() => {
-      this.audioManager.stopAllProtestorSounds();
-    });
-  }
-
-  // Clear all sound state tracking for a clean pause
-  this._soundState.active.clear();
-}
-
-/**
- * Resume the freedom manager
- */
-resume() {
-  // Ensure we have a saved paused state
-  if (!this._pausedState) {
-    return;
-  }
-
-  // Restart protestor animations
-  Object.keys(this._pausedState.protestorAnimations).forEach((countryId) => {
-    const country = this.countries[countryId];
-    if (country && country.protestorWrapper) {
-      this._setupProtestorAnimations(countryId, country.protestorWrapper);
-    }
-  });
-
-  // Restart extra protestor animations
-  Object.keys(this._pausedState.extraProtestorAnimations).forEach((key) => {
-    const [countryId, index] = key.split("-");
-    if (this.countries[countryId]) {
-      this._animateAdditionalProtestor(countryId, parseInt(index), document.getElementById(`${countryId}-additional-protestor-${index}`));
-    }
-  });
-
-  // Restore disappear timeouts
-  Object.keys(this._pausedState.disappearTimeouts).forEach((countryId) => {
-    const timeout = this._pausedState.disappearTimeouts[countryId];
-    if (timeout) {
-      this.countries[countryId].disappearTimeout = setTimeout(() => {
-        this._shrinkAndHideProtestors(countryId);
-      }, timeout - (Date.now() - timeout.startTime));
-    }
-  });
-
-  // Resume confetti and fireworks animations
-  this._pausedState.confettiAnimations.forEach((confettiRef) => {
-    if (confettiRef.paused) {
-      const remainingTime = confettiRef.duration - (Date.now() - confettiRef.startTime);
-      if (remainingTime > 0) {
-        confettiRef.paused = false;
-        // Restart the animation
-        this._animateConfetti(
-          confettiRef,
-          confettiRef.startX,
-          confettiRef.startY,
-          confettiRef.destinationX,
-          confettiRef.destinationY,
-          confettiRef.rotation,
-          remainingTime,
-          confettiRef.cp1x,
-          confettiRef.cp1y,
-          confettiRef.cp2x,
-          confettiRef.cp2y,
-          confettiRef.simplifiedPath
-        );
-      }
-    }
-  });
-
-  this._pausedState.fireworkAnimations.forEach((fireworkRef) => {
-    if (fireworkRef.paused) {
-      const remainingTime = fireworkRef.duration - (Date.now() - fireworkRef.startTime);
-      if (remainingTime > 0) {
-        fireworkRef.paused = false;
-        // Restart the animation
-        this._animateFireworkParticle(
-          fireworkRef,
-          fireworkRef.centerX,
-          fireworkRef.centerY,
-          fireworkRef.destinationX,
-          fireworkRef.destinationY,
-          remainingTime,
-          fireworkRef.particleType
-        );
-      }
-    }
-  });
-
-  // Clear the paused state
-  this._pausedState = null;
-}
-
-/**
- * Reset the freedom manager
- */
-reset() {
-  // Clear all timers
-  for (const timerId of this.protestorTimers.values()) {
-    clearTimeout(timerId);
-  }
-  this.protestorTimers.clear();
-  this.logger.info("freedom", "Resetting Freedom Manager");
-
-  // Reset USA protestor timing
-  this.usaTimingCheckDone = false;
-
-  // Stop ALL animations first
-  this.cleanupAllEffects();
-
-  // Reset ALL protestors completely - ensure all sounds are stopped first
-  if (this.audioManager) {
-    this.audioManager.stopAllProtestorSounds();
-  }
-  this.cleanupAllProtestors();
-
-  // Clear any intervals or timeouts
-  if (this.activeAnimations.extraProtestors) {
-    Object.keys(this.activeAnimations.extraProtestors).forEach((key) => {
-      clearInterval(this.activeAnimations.extraProtestors[key]);
-    });
-    this.activeAnimations.extraProtestors = {};
-  }
-
-  // Additional clearing of sound state for a full reset
-  this._soundState.active.clear();
-  this._soundState.cleanup.clear();
-  this._soundState.debounceTimers.clear();
-
-  // Re-initialize protestor hitbox manager
-  this._initProtestorHitboxManager();
-
-  // Reset ALL country states
-  Object.keys(this.countries).forEach((countryId) => {
-    // Full country state reset
-    this.countries[countryId] = {
-      id: countryId,
-      annexTime: 0,
-      protestorsShown: false,
-      clickCounter: 0,
-      disappearTimeout: null,
-      animations: {},
-      protestorWrapper: null,
-      currentScale: 1.0,
-    };
-
-    // Reset visual state of country overlay
-    const flagOverlay = this._getElement(`${countryId}-flag-overlay`, "reset");
-    if (flagOverlay) {
-      flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100", "resistance-possible", "targeting-pulse");
-      flagOverlay.style.opacity = "";
-    }
-  });
-
-  // Reset animation manager
-  if (window.animationManager) {
-    window.animationManager.reset();
-  }
-
-  // Reset trump size
-  this.trumpShrinkLevel = 0;
-  this.resetTrumpSize();
-}
-
-/**
- * Handle grab success
- */
-handleGrabSuccess() {
-  // FIRST: Clean up protestors if this is a game-ending grab
-  const isGameEnding = this._checkGameOverCondition();
-  if (isGameEnding) {
-    this.cleanupAllProtestors();
-  }
-
-  // THEN: Unhighlight the country
-  if (this.state && this.state.targetCountry) {
-    this.highlightTargetCountry(this.state.targetCountry, false);
-  }
-
-  // Set to not grabbing
-  if (typeof this.setNotGrabbingState === 'function') {
-    this.setNotGrabbingState();
-  }
-
-  // Apply success effect only if game isn't ending
-  if (!isGameEnding && typeof this.applyGrabSuccessEffect === 'function') {
-    this.applyGrabSuccessEffect();
-  }
-
-  this.logger.debug("freedom", "Handled grab success");
-}
-
-/**
- * Check if game is over (placeholder - implement based on game rules)
- * @private
- * @returns {boolean} - Whether game is over
- */
-_checkGameOverCondition() {
-  // Should be implemented based on game rules
-  return false;
-}
-
-/**
- * Destroy the freedom manager and clean up resources
- */
-destroy() {
-  // Clear all timers
-  for (const timerId of this.protestorTimers.values()) {
-    clearTimeout(timerId);
-  }
-  this.protestorTimers.clear();
-  this.logger.info("freedom", "Destroying Freedom Manager");
-
-  // Stop all sounds first
-  if (this.audioManager) {
-    this.audioManager.stopAllProtestorSounds();
-    this.audioManager.stopAll();
-  }
-
-  // Clean up all effects and protestors
-  this.cleanupAllEffects();
-
-  // Explicitly destroy protestor hitbox manager
-  if (this.protestorHitboxManager) {
-    this.protestorHitboxManager.destroy();
-  }
-
-  // Reset internal state for all countries
-  Object.keys(this.countries).forEach((countryId) => {
-    const country = this.countries[countryId];
-    country.annexTime = 0;
-    country.protestorsShown = false;
-    country.clickCounter = 0;
-  });
-
-  // Clear all timers and intervals
-  Object.keys(this.activeAnimations).forEach((key) => {
-    const animations = this.activeAnimations[key];
-    if (typeof animations === "object") {
-      Object.values(animations).forEach((interval) => {
-        if (typeof interval === "number") {
+    // Pause extra protestor animations
+    if (this.activeAnimations.extraProtestors) {
+      Object.keys(this.activeAnimations.extraProtestors).forEach((key) => {
+        const interval = this.activeAnimations.extraProtestors[key];
+        if (interval) {
+          this._pausedState.extraProtestorAnimations[key] = interval;
           clearInterval(interval);
         }
       });
     }
+
+    // Store active confetti and fireworks animations
+    this._pausedState.confettiAnimations = [...this.activeAnimations.confetti];
+    this._pausedState.fireworkAnimations = [...this.activeAnimations.fireworks];
+
+    // Mark all animations as paused
+    this.activeAnimations.confetti.forEach((confetti) => {
+      confetti.paused = true;
+    });
+
+    this.activeAnimations.fireworks.forEach((firework) => {
+      firework.paused = true;
+    });
+
+    // Pause disappear timeouts for each country
+    Object.keys(this.countries).forEach((countryId) => {
+      const country = this.countries[countryId];
+      if (country.disappearTimeout) {
+        this._pausedState.disappearTimeouts[countryId] = country.disappearTimeout;
+        clearTimeout(country.disappearTimeout);
+        country.disappearTimeout = null;
+      }
+    });
+
+    // Ensure all sounds are properly stopped
+    if (this.audioManager) {
+      // Resume context first to ensure sounds actually stop
+      this.audioManager.resumeAudioContext().then(() => {
+        this.audioManager.stopAllProtestorSounds();
+      });
+    }
+
+    // Clear all sound state tracking for a clean pause
+    this._soundState.active.clear();
+  }
+
+  /**
+   * Resume the freedom manager
+   */
+  resume() {
+    // Ensure we have a saved paused state
+    if (!this._pausedState) {
+      return;
+    }
+
+    // Restart protestor animations
+    Object.keys(this._pausedState.protestorAnimations).forEach((countryId) => {
+      const country = this.countries[countryId];
+      if (country && country.protestorWrapper) {
+        this._setupProtestorAnimations(countryId, country.protestorWrapper);
+      }
+    });
+
+    // Restart extra protestor animations
+    Object.keys(this._pausedState.extraProtestorAnimations).forEach((key) => {
+      const [countryId, index] = key.split("-");
+      if (this.countries[countryId]) {
+        this._animateAdditionalProtestor(countryId, parseInt(index), document.getElementById(`${countryId}-additional-protestor-${index}`));
+      }
+    });
+
+    // Restore disappear timeouts
+    Object.keys(this._pausedState.disappearTimeouts).forEach((countryId) => {
+      const timeout = this._pausedState.disappearTimeouts[countryId];
+      if (timeout) {
+        this.countries[countryId].disappearTimeout = setTimeout(() => {
+          this._shrinkAndHideProtestors(countryId);
+        }, timeout - (Date.now() - timeout.startTime));
+      }
+    });
+
+    // Resume confetti and fireworks animations
+    this._pausedState.confettiAnimations.forEach((confettiRef) => {
+      if (confettiRef.paused) {
+        const remainingTime = confettiRef.duration - (Date.now() - confettiRef.startTime);
+        if (remainingTime > 0) {
+          confettiRef.paused = false;
+          // Restart the animation
+          this._animateConfetti(
+            confettiRef,
+            confettiRef.startX,
+            confettiRef.startY,
+            confettiRef.destinationX,
+            confettiRef.destinationY,
+            confettiRef.rotation,
+            remainingTime,
+            confettiRef.cp1x,
+            confettiRef.cp1y,
+            confettiRef.cp2x,
+            confettiRef.cp2y,
+            confettiRef.simplifiedPath
+          );
+        }
+      }
+    });
+
+    this._pausedState.fireworkAnimations.forEach((fireworkRef) => {
+      if (fireworkRef.paused) {
+        const remainingTime = fireworkRef.duration - (Date.now() - fireworkRef.startTime);
+        if (remainingTime > 0) {
+          fireworkRef.paused = false;
+          // Restart the animation
+          this._animateFireworkParticle(
+            fireworkRef,
+            fireworkRef.centerX,
+            fireworkRef.centerY,
+            fireworkRef.destinationX,
+            fireworkRef.destinationY,
+            remainingTime,
+            fireworkRef.particleType
+          );
+        }
+      }
+    });
+
+    // Clear the paused state
+    this._pausedState = null;
+  }
+
+  /**
+   * Reset the freedom manager
+   */
+  reset() {
+    // Clear all timers
+    for (const timerId of this.protestorTimers.values()) {
+      clearTimeout(timerId);
+    }
+    this.protestorTimers.clear();
+    this.logger.info("freedom", "Resetting Freedom Manager");
+
+    // Reset USA protestor timing
+    this.usaTimingCheckDone = false;
+
+    // Stop ALL animations first
+    this.cleanupAllEffects();
+
+    // Reset ALL protestors completely - ensure all sounds are stopped first
+    if (this.audioManager) {
+      this.audioManager.stopAllProtestorSounds();
+    }
+    this.cleanupAllProtestors();
+
+    // Clear any intervals or timeouts
+    if (this.activeAnimations.extraProtestors) {
+      Object.keys(this.activeAnimations.extraProtestors).forEach((key) => {
+        clearInterval(this.activeAnimations.extraProtestors[key]);
+      });
+      this.activeAnimations.extraProtestors = {};
+    }
+
+    // Additional clearing of sound state for a full reset
+    this._soundState.active.clear();
+    this._soundState.cleanup.clear();
+    this._soundState.debounceTimers.clear();
+
+    // Re-initialize protestor hitbox manager
+    this._initProtestorHitboxManager();
+
+    // Reset ALL country states
+    Object.keys(this.countries).forEach((countryId) => {
+      // Full country state reset
+      this.countries[countryId] = {
+        id: countryId,
+        annexTime: 0,
+        protestorsShown: false,
+        clickCounter: 0,
+        disappearTimeout: null,
+        animations: {},
+        protestorWrapper: null,
+        currentScale: 1.0,
+      };
+
+      // Reset visual state of country overlay
+      const flagOverlay = this._getElement(`${countryId}-flag-overlay`, "reset");
+      if (flagOverlay) {
+        flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100", "resistance-possible", "targeting-pulse");
+        flagOverlay.style.opacity = "";
+      }
+    });
+
+    // Reset animation manager
+    if (window.animationManager) {
+      window.animationManager.reset();
+    }
+
+    // Reset trump size
+    this.trumpShrinkLevel = 0;
+    this.resetTrumpSize();
+  }
+
+  /**
+   * Handle grab success
+   */
+  handleGrabSuccess() {
+    // FIRST: Clean up protestors if this is a game-ending grab
+    const isGameEnding = this._checkGameOverCondition();
+    if (isGameEnding) {
+      this.cleanupAllProtestors();
+    }
+
+    // THEN: Unhighlight the country
+    if (this.state && this.state.targetCountry) {
+      this.highlightTargetCountry(this.state.targetCountry, false);
+    }
+
+    // Set to not grabbing
+    if (typeof this.setNotGrabbingState === "function") {
+      this.setNotGrabbingState();
+    }
+
+    // Apply success effect only if game isn't ending
+    if (!isGameEnding && typeof this.applyGrabSuccessEffect === "function") {
+      this.applyGrabSuccessEffect(targetCountry);
+    }
+
+    this.logger.debug("freedom", "Handled grab success");
+  }
+
+  /**
+   * Check if game is over (placeholder - implement based on game rules)
+   * @private
+   * @returns {boolean} - Whether game is over
+   */
+  _checkGameOverCondition() {
+    // Should be implemented based on game rules
+    return false;
+  }
+
+  /**
+   * Destroy the freedom manager and clean up resources
+   */
+  destroy() {
+    // Clear all timers
+    for (const timerId of this.protestorTimers.values()) {
+      clearTimeout(timerId);
+    }
+    this.protestorTimers.clear();
+    this.logger.info("freedom", "Destroying Freedom Manager");
+
+    // Stop all sounds first
+    if (this.audioManager) {
+      this.audioManager.stopAllProtestorSounds();
+      this.audioManager.stopAll();
+    }
+
+    // Clean up all effects and protestors
+    this.cleanupAllEffects();
+
+    // Explicitly destroy protestor hitbox manager
+    if (this.protestorHitboxManager) {
+      this.protestorHitboxManager.destroy();
+    }
+
+    // Reset internal state for all countries
+    Object.keys(this.countries).forEach((countryId) => {
+      const country = this.countries[countryId];
+      country.annexTime = 0;
+      country.protestorsShown = false;
+      country.clickCounter = 0;
+    });
+
+    // Clear all timers and intervals
+    Object.keys(this.activeAnimations).forEach((key) => {
+      const animations = this.activeAnimations[key];
+      if (typeof animations === "object") {
+        Object.values(animations).forEach((interval) => {
+          if (typeof interval === "number") {
+            clearInterval(interval);
+          }
+        });
+      }
+    });
+
+    // Reset animation tracking
+    this.activeAnimations = {
+      confetti: [],
+      fireworks: [],
+      protestors: {},
+      extraProtestors: {},
+    };
+
+    // Clear references to other systems
+    this.animationManager = null;
+    this.protestorHitboxManager = null;
+  }
+
+  // ===== DEBUG METHODS =====
+
+  /**
+   * Debug method to log active protestor sounds
+   */
+  _debugProtestorSounds() {
+    if (this.audioManager && this.audioManager.activeProtestorSounds) {
+      console.log("Active Protestor Sounds:", Object.keys(this.audioManager.activeProtestorSounds));
+    }
+  }
+
+  /**
+   * Debug method to set country claims
+   * @param {string} countryId - Country identifier
+   * @param {number} claimLevel - Number of claims to set
+   * @returns {boolean} - Success status
+   */
+  setCountryClaims(countryId, claimLevel) {
+    const gameCountry = this.gameState.countries[countryId];
+    if (!gameCountry) {
+      this.logger.error("freedom", `Country ${countryId} not found in gameState`);
+      return false;
+    }
+
+    // Set the claim level (between 0 and maxClaims)
+    const maxClaims = gameCountry.maxClaims;
+    const newClaims = Math.max(0, Math.min(claimLevel, maxClaims));
+
+    gameCountry.claims = newClaims;
+    this.updateFlagOpacity(countryId);
+
+    return true;
+  }
+
+  /**
+   * Debug method to annex a country
+   * @param {string} countryId - Country identifier
+   * @returns {boolean} - Success status
+   */
+  annexCountry(countryId) {
+    const gameCountry = this.gameState.countries[countryId];
+    if (!gameCountry) {
+      this.logger.error("freedom", `Country ${countryId} not found in gameState`);
+      return false;
+    }
+
+    // Set claims to max
+    gameCountry.claims = gameCountry.maxClaims;
+
+    // Update the flag overlay
+    this.updateFlagOpacity(countryId);
+
+    return true;
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has("record")) {
+    // Hide intro screen
+    document.getElementById("intro-screen").classList.add("hidden");
+
+    // Directly show game over screen without animations
+    if (window.gameEngine) {
+      // Skip animations and flash effects
+      window.gameEngine.systems.state.gameEnding = true;
+      window.gameEngine.systems.state.isPlaying = false;
+
+      // Show game over screen directly
+      window.gameEngine.systems.ui.showGameOverScreen(true, window.gameEngine.systems.state);
+
+      // Show recorder after a slight delay
+      setTimeout(() => {
+        openVoiceRecordingInterface();
+      }, 500);
+    } else {
+      // If game engine isn't ready yet, wait a short moment
+      setTimeout(() => {
+        window.gameEngine.systems.state.gameEnding = true;
+        window.gameEngine.systems.state.isPlaying = false;
+        window.gameEngine.systems.ui.showGameOverScreen(true, window.gameEngine.systems.state);
+        setTimeout(() => {
+          openVoiceRecordingInterface();
+        }, 500);
+      }, 100);
+    }
+  }
+});
+
+document.addEventListener("click", function (event) {
+  const trumpHandHitbox = document.getElementById("trump-hand-hitbox");
+  const trumpHandVisual = document.getElementById("trump-hand-visual");
+  const protestorHitboxes = document.querySelectorAll('[id$="-protestor-hitbox"]');
+
+  // Check if click is within Trump's hand hitbox
+  const isClickInTrumpHitbox = trumpHandHitbox
+    ? event.clientX >= trumpHandHitbox.getBoundingClientRect().left &&
+      event.clientX <= trumpHandHitbox.getBoundingClientRect().right &&
+      event.clientY >= trumpHandHitbox.getBoundingClientRect().top &&
+      event.clientY <= trumpHandHitbox.getBoundingClientRect().bottom
+    : false;
+
+  // Check if click is within any protestor hitboxes
+  const protestorHitboxIntersections = Array.from(protestorHitboxes).map((hitbox) => {
+    const rect = hitbox.getBoundingClientRect();
+    const isIntersecting = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+
+    return {
+      id: hitbox.id,
+      isIntersecting,
+      rect,
+    };
   });
 
-  // Reset animation tracking
-  this.activeAnimations = {
-    confetti: [],
-    fireworks: [],
-    protestors: {},
-    extraProtestors: {},
-  };
-
-  // Clear references to other systems
-  this.animationManager = null;
-  this.protestorHitboxManager = null;
-}
-
-// ===== DEBUG METHODS =====
-
-/**
- * Debug method to log active protestor sounds
- */
-_debugProtestorSounds() {
-  if (this.audioManager && this.audioManager.activeProtestorSounds) {
-    console.log("Active Protestor Sounds:", Object.keys(this.audioManager.activeProtestorSounds));
-  }
-}
-
-/**
- * Debug method to set country claims
- * @param {string} countryId - Country identifier
- * @param {number} claimLevel - Number of claims to set
- * @returns {boolean} - Success status
- */
-setCountryClaims(countryId, claimLevel) {
-  const gameCountry = this.gameState.countries[countryId];
-  if (!gameCountry) {
-    this.logger.error("freedom", `Country ${countryId} not found in gameState`);
-    return false;
-  }
-
-  // Set the claim level (between 0 and maxClaims)
-  const maxClaims = gameCountry.maxClaims;
-  const newClaims = Math.max(0, Math.min(claimLevel, maxClaims));
-
-  gameCountry.claims = newClaims;
-  this.updateFlagOpacity(countryId);
-
-  return true;
-}
-
-/**
- * Debug method to annex a country
- * @param {string} countryId - Country identifier
- * @returns {boolean} - Success status
- */
-annexCountry(countryId) {
-  const gameCountry = this.gameState.countries[countryId];
-  if (!gameCountry) {
-    this.logger.error("freedom", `Country ${countryId} not found in gameState`);
-    return false;
-  }
-
-  // Set claims to max
-  gameCountry.claims = gameCountry.maxClaims;
-
-  // Update the flag overlay
-  this.updateFlagOpacity(countryId);
-
-  return true;
-}
-}
-
-
-
-
-
-
-
-
-
-window.addEventListener('DOMContentLoaded', () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has('record')) {
-      // Hide intro screen
-      document.getElementById('intro-screen').classList.add('hidden');
-      
-      // Directly show game over screen without animations
-      if (window.gameEngine) {
-          // Skip animations and flash effects
-          window.gameEngine.systems.state.gameEnding = true;
-          window.gameEngine.systems.state.isPlaying = false;
-          
-          // Show game over screen directly
-          window.gameEngine.systems.ui.showGameOverScreen(true, window.gameEngine.systems.state);
-          
-          // Show recorder after a slight delay
-          setTimeout(() => {
-              openVoiceRecordingInterface();
-          }, 500);
-      } else {
-          // If game engine isn't ready yet, wait a short moment
-          setTimeout(() => {
-              window.gameEngine.systems.state.gameEnding = true;
-              window.gameEngine.systems.state.isPlaying = false;
-              window.gameEngine.systems.ui.showGameOverScreen(true, window.gameEngine.systems.state);
-              setTimeout(() => {
-                  openVoiceRecordingInterface();
-              }, 500);
-          }, 100);
-      }
-  }
+  console.log("bbb 🤚 Comprehensive Click Debug:", {
+    clickCoordinates: {
+      x: event.clientX,
+      y: event.clientY,
+    },
+    clickedElement: {
+      tagName: event.target.tagName,
+      id: event.target.id,
+      className: event.target.className,
+    },
+    trumpHandHitbox: trumpHandHitbox
+      ? {
+          exists: true,
+          rect: trumpHandHitbox.getBoundingClientRect(),
+          style: {
+            display: trumpHandHitbox.style.display,
+            visibility: trumpHandHitbox.style.visibility,
+            opacity: trumpHandHitbox.style.opacity,
+            pointerEvents: trumpHandHitbox.style.pointerEvents,
+            zIndex: trumpHandHitbox.style.zIndex,
+          },
+          isClickWithin: isClickInTrumpHitbox,
+        }
+      : { exists: false },
+    protestorHitboxes: {
+      count: protestorHitboxes.length,
+      intersections: protestorHitboxIntersections,
+    },
+    handHitboxManager: window.handHitboxManager
+      ? {
+          isVisible: window.handHitboxManager.isVisible,
+          currentState: window.handHitboxManager.currentState,
+          currentFrame: window.handHitboxManager.currentFrame,
+        }
+      : "No HandHitboxManager",
+    gameState: window.gameEngine
+      ? {
+          isPlaying: window.gameEngine.systems.state.isPlaying,
+          isPaused: window.gameEngine.systems.state.isPaused,
+          currentTarget: window.gameEngine.systems.state.currentTarget,
+        }
+      : "Game engine not available",
+  });
 });
 
 
 
 document.addEventListener('click', function(event) {
-  const trumpHandHitbox = document.getElementById('trump-hand-hitbox');
-  const trumpHandVisual = document.getElementById('trump-hand-visual');
-  const protestorHitboxes = document.querySelectorAll('[id$="-protestor-hitbox"]');
-
-  // Check if click is within Trump's hand hitbox
-  const isClickInTrumpHitbox = trumpHandHitbox ? 
-    event.clientX >= trumpHandHitbox.getBoundingClientRect().left &&
-    event.clientX <= trumpHandHitbox.getBoundingClientRect().right &&
-    event.clientY >= trumpHandHitbox.getBoundingClientRect().top &&
-    event.clientY <= trumpHandHitbox.getBoundingClientRect().bottom 
-    : false;
-
-  // Check if click is within any protestor hitboxes
-  const protestorHitboxIntersections = Array.from(protestorHitboxes).map(hitbox => {
-    const rect = hitbox.getBoundingClientRect();
-    const isIntersecting = 
-      event.clientX >= rect.left &&
-      event.clientX <= rect.right &&
-      event.clientY >= rect.top &&
-      event.clientY <= rect.bottom;
-    
-    return {
-      id: hitbox.id,
-      isIntersecting,
-      rect
-    };
-  });
-
-  console.log('bbb 🤚 Comprehensive Click Debug:', {
-    clickCoordinates: {
-      x: event.clientX,
-      y: event.clientY
-    },
-    clickedElement: {
-      tagName: event.target.tagName,
-      id: event.target.id,
-      className: event.target.className
-    },
-    trumpHandHitbox: trumpHandHitbox ? {
-      exists: true,
-      rect: trumpHandHitbox.getBoundingClientRect(),
-      style: {
-        display: trumpHandHitbox.style.display,
-        visibility: trumpHandHitbox.style.visibility,
-        opacity: trumpHandHitbox.style.opacity,
-        pointerEvents: trumpHandHitbox.style.pointerEvents,
-        zIndex: trumpHandHitbox.style.zIndex
-      },
-      isClickWithin: isClickInTrumpHitbox
-    } : { exists: false },
-    protestorHitboxes: {
-      count: protestorHitboxes.length,
-      intersections: protestorHitboxIntersections
-    },
-    handHitboxManager: window.handHitboxManager ? {
-      isVisible: window.handHitboxManager.isVisible,
-      currentState: window.handHitboxManager.currentState,
-      currentFrame: window.handHitboxManager.currentFrame
-    } : 'No HandHitboxManager',
-    gameState: window.gameEngine ? {
-      isPlaying: window.gameEngine.systems.state.isPlaying,
-      isPaused: window.gameEngine.systems.state.isPaused,
-      currentTarget: window.gameEngine.systems.state.currentTarget
-    } : 'Game engine not available'
-  });
+  // Get the map element
+  const mapElement = document.getElementById('map-background');
+  if (!mapElement) return;
+  
+  // Get the game container
+  const gameContainer = document.getElementById('game-container');
+  if (!gameContainer) return;
+  
+  // Get container positions
+  const mapRect = mapElement.getBoundingClientRect();
+  const containerRect = gameContainer.getBoundingClientRect();
+  
+  // Get the current map scale
+  const currentMapScale = mapRect.width / mapElement.naturalWidth;
+  
+  // Calculate click position relative to the container
+  const clickX = event.clientX - containerRect.left;
+  const clickY = event.clientY - containerRect.top;
+  
+  // Convert to "natural" coordinates by dividing by the current scale
+  const naturalX = Math.round((clickX - (mapRect.left - containerRect.left)) / currentMapScale);
+  const naturalY = Math.round((clickY - (mapRect.top - containerRect.top)) / currentMapScale);
+  
+  // Log with the POSPOS prefix
+  console.log(`POSPOS x: ${naturalX} y: ${naturalY}`);
 });

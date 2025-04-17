@@ -817,6 +817,67 @@ class AnimationManager {
     }
   }
 
+
+
+
+  createFlagAnimation(countryId, position, scale = 1.0) {
+    const flagElement = document.createElement("div");
+    flagElement.id = `${countryId}-trump-flag`;
+    flagElement.className = "trump-flag-animation";
+    // flagElement.setAttribute('data-animation-id', animationId);
+
+    
+    // Style the flag
+    Object.assign(flagElement.style, {
+      position: "absolute",
+      left: `${position.x}px`,
+      top: `${position.y}px`,
+      width: `${400 * scale}px`,
+      height: `${400 * scale}px`,
+      backgroundImage: "url('images/trump-flag.png')",
+      backgroundSize: "400% 100%", // 4 frames side by side
+      backgroundPosition: "0% 0%",
+      backgroundRepeat: "no-repeat",
+      zIndex: "1", // Above country overlay
+      transform: `rotate(${-5 + Math.random() * 90}deg)`, // Slight random rotation
+      transformOrigin: "bottom center",
+      filter: "drop-shadow(2px 2px 2px rgba(0,0,0,0.5))",
+    });
+    
+    // Get the game container
+    const gameContainer = document.getElementById("game-container");
+    if (gameContainer) {
+      gameContainer.appendChild(flagElement);
+    }
+    
+    // Create and return the animation
+    const animationId = this.createSpriteAnimation({
+      element: flagElement,
+      frameCount: 4,
+      frameDuration: 500 + Math.random() * 300, // Random variation in timing
+      loop: true,
+      id: `flag-${countryId}-${Date.now()}`,
+    });
+    
+    return {
+      element: flagElement,
+      animationId: animationId
+    };
+  }
+
+
+  removeAllFlags() {
+    document.querySelectorAll('.trump-flag-animation').forEach(flag => {
+      const animId = flag.getAttribute('data-animation-id');
+      if (animId) {
+        this.stopSpriteAnimation(animId);
+      }
+      if (flag.parentNode) {
+        flag.parentNode.removeChild(flag);
+      }
+    });
+  }
+
   destroy() {
     this.stop();
     if (this.handHitboxManager && typeof this.handHitboxManager.destroy === "function") {
@@ -828,6 +889,8 @@ class AnimationManager {
     this.animations = null;
     this.currentState = "";
     this.onAnimationEnd = null;
+
+    this.removeAllFlags;
 
     // Remove overlay
     const overlay = document.getElementById("smack-overlay");
