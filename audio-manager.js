@@ -28,7 +28,7 @@ class AudioManager {
     // Base delay configuration
     this.baseDelays = {
       catchphrase: 2,
-      grabWarning: .5,
+      grabWarning: 0.5,
       protest: 0.5,
       sobToProtest: 0.8,
     };
@@ -70,14 +70,8 @@ class AudioManager {
           mexicoSaysNo: [],
           greenlandSaysNo: [],
         },
-        protestors: {
-          eastCanadaProtestors: null,
-          westCanadaProtestors: null,
-          mexicoProtestors: null,
-          greenlandProtestors: null,
-          usaProtestors: null,
-        },
       },
+      protestors: {},
       resistance: {
         canada: [],
         mexico: [],
@@ -161,8 +155,6 @@ class AudioManager {
             "protestEastCan19.mp3",
             "protestEastCan20.mp3",
             "protestEastCan21.mp3",
-
-
           ],
           westCanadaSaysNo: [
             "protestWestCan1.mp3",
@@ -213,13 +205,13 @@ class AudioManager {
             "protestGreen7.mp3",
           ],
         },
-        protestors: {
-          eastCanadaProtestors: ["protestorsEastCan1.mp3"],
-          westCanadaProtestors: ["protestorsEastCan1.mp3"],
-          mexicoProtestors: ["protestorsEastCan1.mp3"],
-          greenlandProtestors: ["protestorsEastCan1.mp3"],
-          usaProtestors: ["protestorsEastCan1.mp3"],
-        },
+      },
+      protestors: {
+        eastCanadaProtestors: "protestorsEastCan2.mp3",
+        westCanadaProtestors: "protestorsEastCan2.mp3",
+        mexicoProtestors: "protestorsEastCan2.mp3",
+        greenlandProtestors: "protestorsEastCan2.mp3",
+        usaProtestors: "protestorsEastCan2.mp3",
       },
       particles: {
         freedom: ["freedomSpark1.mp3", "freedomSpark2.mp3", "freedomSpark3.mp3"],
@@ -428,20 +420,19 @@ class AudioManager {
     });
   }
 
-
   _returnAudioToPool(audio, options = {}) {
     if (!audio) return;
-    
+
     try {
       // 1. Remove from tracking collections first
       const playingIndex = this.currentlyPlaying.indexOf(audio);
       if (playingIndex !== -1) {
         this.currentlyPlaying.splice(playingIndex, 1);
       }
-      
+
       // 2. Stop playback
       audio.pause();
-      
+
       // 3. Clear all event listeners to prevent memory leaks
       audio.onended = null;
       audio.oncanplay = null;
@@ -451,19 +442,19 @@ class AudioManager {
       audio.onloadedmetadata = null;
       audio.onpause = null;
       audio.onplay = null;
-      
+
       // 4. Reset audio element state
       audio.currentTime = 0;
       audio.loop = false;
       audio.volume = 1.0;
       audio.playbackRate = 1.0;
       audio.muted = false;
-      
+
       // 5. Clear src to release resources
       if (!options.keepSrc) {
         audio.src = "";
       }
-      
+
       // 6. Check pool size and return to pool if not too large
       const MAX_POOL_SIZE = 20; // Set a reasonable limit
       if (window._primedAudioPool && window._primedAudioPool.length < MAX_POOL_SIZE) {
@@ -494,27 +485,24 @@ class AudioManager {
     };
   }
 
+  // Add this method to AudioManager
+  _monitorAudioPoolSize() {
+    const poolSize = window._primedAudioPool?.length || 0;
+    console.log(`[AUDIO MONITOR] Audio pool size: ${poolSize}`);
 
+    // Count active protestor sounds
+    const activeProtestorCount = Object.keys(this.activeProtestorSounds || {}).length;
+    console.log(`[AUDIO MONITOR] Active protestor sounds: ${activeProtestorCount}`);
 
-// Add this method to AudioManager
-_monitorAudioPoolSize() {
-  const poolSize = window._primedAudioPool?.length || 0;
-  console.log(`[AUDIO MONITOR] Audio pool size: ${poolSize}`);
-  
-  // Count active protestor sounds
-  const activeProtestorCount = Object.keys(this.activeProtestorSounds || {}).length;
-  console.log(`[AUDIO MONITOR] Active protestor sounds: ${activeProtestorCount}`);
-  
-  // Count total playing sounds
-  console.log(`[AUDIO MONITOR] Total playing sounds: ${this.currentlyPlaying.length}`);
-  
-  return {
-    poolSize,
-    activeProtestorCount,
-    totalPlaying: this.currentlyPlaying.length
-  };
-}
+    // Count total playing sounds
+    console.log(`[AUDIO MONITOR] Total playing sounds: ${this.currentlyPlaying.length}`);
 
+    return {
+      poolSize,
+      activeProtestorCount,
+      totalPlaying: this.currentlyPlaying.length,
+    };
+  }
 
   /**
    * Detect if the connection is slow
@@ -847,44 +835,40 @@ _monitorAudioPoolSize() {
     });
   }
 
-
   startDiagnosticAuditing() {
     if (this._auditInterval) {
       clearInterval(this._auditInterval);
     }
-    
+
     this._auditCount = 0;
     this._auditInterval = setInterval(() => {
       this._auditCount++;
-      
+
       const stats = this._monitorAudioPoolSize();
-      
+
       // Only log full details every 5th time to avoid cluttering the console
       if (this._auditCount % 5 === 0) {
-        console.log('[AUDIO AUDIT] ======= DETAILED AUDIO STATE =======');
-        console.log('Active protestor sounds:', Object.keys(this.activeProtestorSounds));
-        
+        console.log("[AUDIO AUDIT] ======= DETAILED AUDIO STATE =======");
+        console.log("Active protestor sounds:", Object.keys(this.activeProtestorSounds));
+
         // Check for potential leaks - elements not in pool or currently playing
         let inPoolCount = window._primedAudioPool?.length || 0;
         let playingCount = this.currentlyPlaying.length;
-        
+
         console.log(`[AUDIO AUDIT] Pool: ${inPoolCount}, Playing: ${playingCount}`);
-        
+
         // Check for any sounds with protestor paths still playing
-        const protestorSoundsStillPlaying = this.currentlyPlaying.filter(
-          sound => sound.src && sound.src.includes('protestors')
-        ).length;
-        
+        const protestorSoundsStillPlaying = this.currentlyPlaying.filter((sound) => sound.src && sound.src.includes("protestors")).length;
+
         if (protestorSoundsStillPlaying > 0) {
           console.warn(`[AUDIO LEAK?] Found ${protestorSoundsStillPlaying} protestor sounds in currently playing array`);
         }
       }
     }, 3000); // Check every 3 seconds
-    
-    console.log('[AUDIO AUDIT] Started diagnostic auditing');
+
+    console.log("[AUDIO AUDIT] Started diagnostic auditing");
     return true;
   }
-
 
   /**
    * Get or create an audio element from the pool
@@ -1518,31 +1502,31 @@ _monitorAudioPoolSize() {
    */
   playDirect(soundPath, volume = null) {
     if (!this.initialized || this.muted) return null;
-  
+
     try {
       // Get an audio element from pool
       const audio = this._getOrCreatePrimedAudio();
-  
+
       // Set properties
       audio.loop = false;
       audio.muted = false;
       audio.currentTime = 0;
-  
+
       // Set source and volume
       audio.src = this.resolvePath(soundPath);
       audio.volume = volume !== null ? volume : this.volume;
-  
+
       // Add to tracking
       this.currentlyPlaying.push(audio);
-  
+
       // Set up ended handler for cleanup using our new method
       audio.onended = () => {
         this._returnAudioToPool(audio);
       };
-  
+
       // Play it
       const playPromise = audio.play();
-  
+
       if (playPromise) {
         playPromise.catch((error) => {
           console.warn(`[AUDIO] Play failed for ${soundPath}:`, error);
@@ -1550,7 +1534,7 @@ _monitorAudioPoolSize() {
           this._returnAudioToPool(audio);
         });
       }
-  
+
       return audio;
     } catch (e) {
       console.warn(`[AUDIO] Error in playDirect:`, e);
@@ -1558,177 +1542,7 @@ _monitorAudioPoolSize() {
     }
   }
 
-  
-  playProtestorSound(countryId, initialVolume = 0.05) {
-    if (this.muted) return null;
-    
-    console.log(`[AUDIO] Playing protestor sound for ${countryId}`);
-    
-    // Special handling for "canada" - this should never happen but let's handle it
-    if (countryId === "canada") {
-      console.warn("[AUDIO] 'canada' passed to playProtestorSound - using eastCanada instead");
-      countryId = "eastCanada"; // Default to east when given generic 'canada'
-    }
-    
-    // First stop any existing sound for this country
-    this.stopProtestorSound(countryId);
-    
-    // Get the correct sound file path
-    const protestorKey = countryId + "Protestors";
-    let soundPath;
-    
-    if (this.sounds.defense?.protestors?.[protestorKey]) {
-      soundPath = this.sounds.defense.protestors[protestorKey].src;
-    } else if (this.soundFiles.defense?.protestors?.[protestorKey]?.[0]) {
-      soundPath = this.soundFiles.defense.protestors[protestorKey][0];
-    } else {
-      soundPath = "protestorsEastCan1.mp3"; // Fallback
-    }
-    
-    // Create a new audio element from the pool
-    const audio = this._getOrCreatePrimedAudio();
-    
-    // Configure the audio element
-    audio.loop = true;
-    audio.src = this.resolvePath(soundPath);
-    audio.volume = initialVolume;
-    
-    // Track this sound with specific metadata
-    audio._protestorId = countryId; // Add a property to track which country this belongs to
-    
-    // Store in our tracking map
-    this.activeProtestorSounds[countryId] = audio;
-    this.currentlyPlaying.push(audio);
-    
-    // Log current state after setup
-    console.log(`[AUDIO DEBUG] After setup - Current playing count: ${this.currentlyPlaying.length}`);
-    console.log(`[AUDIO DEBUG] Active protestor sounds after:`, Object.keys(this.activeProtestorSounds));
-    
-    // Play with proper error handling
-    const playPromise = audio.play();
-    if (playPromise) {
-      playPromise.catch(error => {
-        console.warn(`[AUDIO] Failed to play protestor sound for ${countryId}:`, error);
-        this._cleanupProtestorSound(countryId);
-      });
-    }
-    
-    return audio;
-  }
-  
-  stopProtestorSound(countryId = null) {
-    // If no country specified, stop all protestor sounds
-    if (countryId === null) {
-      console.log("[AUDIO] Stopping ALL protestor sounds");
-      
-      // First get a copy of all keys to avoid modification during iteration
-      const allCountries = [...Object.keys(this.activeProtestorSounds)];
-      
-      // Stop each protestor sound individually
-      allCountries.forEach(country => {
-        this._cleanupProtestorSound(country);
-      });
-      
-      // Double check for any protestor sounds that might have been missed
-      this.currentlyPlaying = this.currentlyPlaying.filter(sound => {
-        if (sound.src && sound.src.includes('protestors')) {
-          sound.pause();
-          sound.currentTime = 0;
-          this._returnAudioToPool(sound);
-          return false;
-        }
-        return true;
-      });
-      
-      return;
-    }
-    
-    // Handle the special case for Canada
-    if (countryId === "canada") {
-      console.log("[AUDIO] Stopping both eastCanada and westCanada protestor sounds");
-      // Stop both east and west Canada sounds
-      this._cleanupProtestorSound("eastCanada");
-      this._cleanupProtestorSound("westCanada");
-      return;
-    }
-    
-    // Stop the specific country sound
-    this._cleanupProtestorSound(countryId);
-  }
-  
-  _cleanupProtestorSound(soundCountry) {
-    console.log(`[AUDIO DEBUG] CLEANUP ${soundCountry} - Active sounds before cleanup:`, 
-      Object.keys(this.activeProtestorSounds));
-    console.log(`[AUDIO DEBUG] CLEANUP ${soundCountry} - All playing sounds:`, 
-      this.currentlyPlaying.map(sound => sound.src));
-  
-    // First stop the tracked sound
-    const audio = this.activeProtestorSounds[soundCountry];
-    if (audio) {
-      try {
-        audio.pause();
-        audio.currentTime = 0;
-    
-        // Remove from active tracking first
-        delete this.activeProtestorSounds[soundCountry];
-        
-        // Now find and clean up ALL protestor sounds for this country from currently playing
-        this.currentlyPlaying = this.currentlyPlaying.filter(sound => {
-          // Check if this is a protestor sound for this country
-          if (sound._protestorId === soundCountry || 
-              (sound.src && sound.src.includes('protestors') && 
-               sound.src.includes(soundCountry.replace('east', '').replace('west', '')))) {
-            // Stop it
-            sound.pause();
-            sound.currentTime = 0;
-            // Clear listeners
-            sound.onended = null;
-            sound.oncanplay = null;
-            sound.oncanplaythrough = null;
-            sound.onerror = null;
-            // Return to pool
-            this._returnAudioToPool(sound);
-            // Filter it out
-            return false;
-          }
-          return true;
-        });
-      } catch (error) {
-        console.warn(`[AUDIO] Error cleaning up protestor sound for ${soundCountry}:`, error);
-      }
-    }
-    
-    console.log(`[AUDIO DEBUG] Cleanup - Playing count after: ${this.currentlyPlaying.length}`);
-  }
 
-  setProtestorVolume(countryId, volume) {
-    if (!this.initialized || this.muted) return;
-    
-    const effectiveVolume = Math.min(1, Math.max(0, volume)) * this.volume;
-    
-    // Handle country-specific sound
-    if (countryId === "canada") {
-      // For Canada, handle both east and west regions
-      if (this.activeProtestorSounds["eastCanada"]) {
-        this.activeProtestorSounds["eastCanada"].volume = effectiveVolume;
-      }
-      if (this.activeProtestorSounds["westCanada"]) {
-        this.activeProtestorSounds["westCanada"].volume = effectiveVolume;
-      }
-    } else {
-      // Handle regular country
-      if (this.activeProtestorSounds[countryId]) {
-        this.activeProtestorSounds[countryId].volume = effectiveVolume;
-      }
-    }
-  }
-  
-  /**
-   * Stop all protestor sounds
-   */
-  stopAllProtestorSounds() {
-    this.stopProtestorSound(); // No parameter means stop all
-  }
 
   /**
    * Play grab warning sound with delay
@@ -1847,162 +1661,162 @@ _monitorAudioPoolSize() {
   _sanitizeGameSpeed() {
     return Math.max(1, Number(this.gameSpeed) || 1);
   }
-  
+
   playSuccessfulGrab(country, volume = null) {
     if (this.muted) return null;
-  
+
     // Sanitize game speed to ensure positive number
     const gameSpeedMultiplier = this._sanitizeGameSpeed();
-  
+
     this.stopGrabSound();
-  
+
     return this.resumeAudioContext().then(() => {
       // Define audio sequence with files and base durations
       const audioSequence = [
-        { 
-          type: 'breaking', 
+        {
+          type: "breaking",
           getFile: () => this._getShuffledSound("trump", "trumpSmash"),
-          baseDuration: 0.5 
+          baseDuration: 0.5,
         },
-        { 
-          type: 'annex', 
+        {
+          type: "annex",
           getFile: () => this._getShuffledSound("trump", "partialAnnexCry"),
-          baseDuration: 1.6 
+          baseDuration: 1.6,
         },
-        { 
-          type: 'ya', 
+        {
+          type: "ya",
           getFile: () => this._getShuffledSound("trump", "trumpYa"),
-          baseDuration: 1.0 
-        }
+          baseDuration: 1.0,
+        },
       ];
-  
+
       // Unified audio playback method
       const playAudioSequence = () => {
         let totalElapsedTime = 0;
-  
+
         audioSequence.forEach((soundItem) => {
           // Adjust delay based on game speed (ensure it doesn't go below 0)
           const adjustedDelay = Math.max(0, totalElapsedTime / gameSpeedMultiplier);
-          
+
           setTimeout(() => {
             const soundFile = soundItem.getFile();
             const playedSound = this.playDirect(soundFile, volume);
             console.log(`Playing ${soundItem.type} sound: ${soundFile}`);
           }, adjustedDelay * 1000);
-  
+
           // Accumulate time for next sound (adjusted by game speed)
           totalElapsedTime += soundItem.baseDuration / gameSpeedMultiplier;
         });
-  
+
         // Play catchphrase after sequence
         setTimeout(() => {
           console.log(`Playing catchphrase for ${country}`);
           this.playCatchphrase(country, volume);
         }, totalElapsedTime * 1000);
       };
-  
+
       // Trigger audio sequence
       playAudioSequence();
     });
   }
-  
+
   playSuccessfulBlock(country, volume = null) {
     // Immediately play the slap sound
     this._playInstantSlap(volume);
-  
+
     this.stopGrabSound();
-  
+
     // Sanitize game speed to ensure positive number
     const gameSpeedMultiplier = this._sanitizeGameSpeed();
-  
+
     // Queue additional sounds after the slap
     setTimeout(() => {
       this.resumeAudioContext().then(() => {
         // Define sound sequence with base delays
         const soundSequence = [
           {
-            type: 'sob',
+            type: "sob",
             getFile: () => this._getShuffledSound("trump", "trumpSob"),
-            baseDelay: this.baseDelays.sobToProtest
+            baseDelay: this.baseDelays.sobToProtest,
           },
           {
-            type: 'protest',
+            type: "protest",
             getFile: () => this._getShuffledSound("defense", "peopleSayNo", country),
-            baseDelay: this.baseDelays.protest
-          }
+            baseDelay: this.baseDelays.protest,
+          },
         ];
-  
+
         let totalElapsedTime = 0;
-  
+
         soundSequence.forEach((soundItem) => {
           // Adjust delay based on game speed (ensure it doesn't go below 0)
           const adjustedDelay = Math.max(0, totalElapsedTime / gameSpeedMultiplier);
-          
+
           setTimeout(() => {
             const soundFile = soundItem.getFile();
             this.playDirect(soundFile, volume);
             console.log(`Playing ${soundItem.type} sound: ${soundFile}`);
           }, adjustedDelay * 1000);
-  
+
           // Accumulate time for next sound (adjusted by game speed)
           totalElapsedTime += soundItem.baseDelay / gameSpeedMultiplier;
         });
       });
     }, 0);
-  
+
     return Promise.resolve(true);
   }
-  
+
   playCountryFullyAnnexedCry(country, volume = null) {
     if (this.muted) return null;
-  
+
     // Sanitize game speed to ensure positive number
     const gameSpeedMultiplier = this._sanitizeGameSpeed();
-  
+
     this.stopGrabSound(); // Stop any ongoing grab sounds
-  
+
     return this.resumeAudioContext().then(() => {
       // Define audio sequence with files and base durations
       const audioSequence = [
-        { 
-          type: 'breaking', 
+        {
+          type: "breaking",
           getFile: () => this._getShuffledSound("trump", "trumpSmash"),
           baseDuration: 0.5,
-          tinyPause: 0.1 // Optional pause between sounds
+          tinyPause: 0.1, // Optional pause between sounds
         },
-        { 
-          type: 'fullAnnex', 
+        {
+          type: "fullAnnex",
           getFile: () => this._getShuffledSound("trump", "fullAnnexCry"),
-          baseDuration: 3.5 // Longest duration + small buffer
+          baseDuration: 3.5, // Longest duration + small buffer
         },
-        { 
-          type: 'victory', 
+        {
+          type: "victory",
           getFile: () => this._getShuffledSound("trump", "trumpVictorySounds"),
-          baseDuration: 1.0 // Default duration for victory sound
-        }
+          baseDuration: 1.0, // Default duration for victory sound
+        },
       ];
-  
+
       // Unified audio playback method
       const playAudioSequence = () => {
         let totalElapsedTime = 0;
-  
+
         audioSequence.forEach((soundItem, index) => {
           // Adjust delay based on game speed (ensure it doesn't go below 0)
           const adjustedDelay = Math.max(0, totalElapsedTime / gameSpeedMultiplier);
-          
+
           setTimeout(() => {
             const soundFile = soundItem.getFile();
             const playedSound = this.playDirect(soundFile, volume);
             console.log(`Playing ${soundItem.type} sound: ${soundFile}`);
           }, adjustedDelay * 1000);
-  
+
           // Accumulate time for next sound (adjusted by game speed)
           // Add tiny pause for first item if specified
-          const additionalPause = index === 0 ? (soundItem.tinyPause || 0) : 0;
+          const additionalPause = index === 0 ? soundItem.tinyPause || 0 : 0;
           totalElapsedTime += (soundItem.baseDuration + additionalPause) / gameSpeedMultiplier;
         });
       };
-  
+
       // Trigger audio sequence
       playAudioSequence();
     });
@@ -2099,50 +1913,55 @@ _monitorAudioPoolSize() {
 
   startBackgroundMusic(volume = null) {
     if (!this.initialized || this.muted) return Promise.resolve(false);
-  
+
     // First stop any existing background music
     this.stopBackgroundMusic();
-  
+
     // Resume AudioContext first (mobile requirement)
     return this.resumeAudioContext().then(() => {
       try {
         // Get an audio element from the pool
         const music = this._getOrCreatePrimedAudio();
-        
+
         // Configure it
         music.loop = true;
         music.src = this.resolvePath(this.soundFiles.music.background);
         music.volume = volume !== null ? volume : this.volume * 0.5; // Lower default volume
-  
-        return music.play()
+
+        return music
+          .play()
           .then(() => {
             // Store references
             this.backgroundMusic = music;
             this.backgroundMusicPlaying = true;
             this.currentlyPlaying.push(music);
-  
+
             // Set up error recovery
             music.onerror = () => {
               console.warn(`[AUDIO] Background music error, attempting recover`);
               this.stopBackgroundMusic();
               this.startBackgroundMusic(volume);
             };
-  
+
             return true;
           })
           .catch((error) => {
             console.warn(`[AUDIO] Background music play failed:`, error);
             this._returnAudioToPool(music);
-            
+
             // On mobile, set up auto-recovery
             if (this.isMobile) {
-              document.addEventListener("click", () => {
-                if (!this.backgroundMusicPlaying) {
-                  this.startBackgroundMusic(volume);
-                }
-              }, { once: true });
+              document.addEventListener(
+                "click",
+                () => {
+                  if (!this.backgroundMusicPlaying) {
+                    this.startBackgroundMusic(volume);
+                  }
+                },
+                { once: true }
+              );
             }
-            
+
             return false;
           });
       } catch (e) {
@@ -2211,13 +2030,13 @@ _monitorAudioPoolSize() {
   stopBackgroundMusic() {
     if (this.backgroundMusic) {
       console.log(`[AUDIO] Stopping background music`);
-      
+
       const music = this.backgroundMusic;
-      
+
       // Clear references first
       this.backgroundMusic = null;
       this.backgroundMusicPlaying = false;
-      
+
       // Use our centralized cleanup
       this._returnAudioToPool(music);
     }
@@ -2547,7 +2366,6 @@ _monitorAudioPoolSize() {
    * Clean up resources
    */
   cleanup() {
-
     if (this._auditInterval) {
       clearInterval(this._auditInterval);
       this._auditInterval = null;

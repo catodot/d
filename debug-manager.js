@@ -1640,7 +1640,7 @@ startCalibration(animationName) {
       () => {
         const country = countrySelector.value;
         if (this.audioManager && typeof this.audioManager.playProtestorSound === "function") {
-          this.audioManager.playProtestorSound(country);
+          // this.audioManager.playProtestorSound(country);
         }
       },
       { small: true }
