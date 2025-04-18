@@ -2122,7 +2122,7 @@ class AudioManager {
     this.currentlyPlaying = this.currentlyPlaying.filter((sound) => sound === bgMusic);
 
     // Stop all protestor sounds
-    this.stopAllProtestorSounds();
+    // this.stopAllProtestorSounds();
 
     // Stop grab sound
     this.stopGrabSound();
@@ -2182,7 +2182,7 @@ class AudioManager {
     }
 
     // Stop all protestor sounds
-    this.stopAllProtestorSounds();
+    // this.stopAllProtestorSounds();
   }
 
   /**
@@ -2243,7 +2243,7 @@ class AudioManager {
     this.stopGrabSound();
 
     // Stop all protestor sounds
-    this.stopAllProtestorSounds();
+    // this.stopAllProtestorSounds();
 
     // Clear any active fades
     Object.keys(this._fadeIntervals).forEach((key) => {
