@@ -3,6 +3,11 @@ class AnimationManager {
     // Main DOM elements
     this.trumpSprite = document.getElementById("trump-sprite");
 
+    this._lastAnimationUpdate = Date.now();
+    this._stateMonitorInterval = null;
+    this._stuckStateTimeout = 8000; // Max time an animation should take
+    
+
     // Animation state tracking
     this.currentState = "idle";
     this.currentFrame = 0;
@@ -495,6 +500,32 @@ class AnimationManager {
     });
   }
 
+  _startStateMonitor() {
+    // Clear any existing monitor
+    if (this._stateMonitorInterval) {
+      clearInterval(this._stateMonitorInterval);
+    }
+
+    // Check animation health every 2 seconds
+    this._stateMonitorInterval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceUpdate = now - this._lastAnimationUpdate;
+
+      // If not in idle and animation hasn't updated for too long
+      if (this.currentState !== "idle" && timeSinceUpdate > this._stuckStateTimeout) {
+        console.warn(`Animation appears stuck in state ${this.currentState} for ${timeSinceUpdate}ms`);
+        
+        // Reset to idle if not already transitioning
+        if (!this.isTransitioning) {
+          console.warn("Forcing reset to idle state");
+          this.stop();
+          this._updateStateDirectly("idle", null);
+          this.play();
+        }
+      }
+    }, 2000);
+  }
+
   /**
    * Load animations by priority level
    * @param {number} priorityLevel - Priority level (1=essential, 2=important, 3=optional)
@@ -749,6 +780,8 @@ class AnimationManager {
     // Ensure valid frame index
     frameIndex = Math.min(frameIndex, animation.frameCount - 1);
 
+    this._lastAnimationUpdate = Date.now();
+
     // Calculate percentage for background position
     // If there are 2 frames, positions would be 0% and 100%
     const percentPosition = (frameIndex / (animation.frameCount - 1 || 1)) * 100;
@@ -797,6 +830,9 @@ class AnimationManager {
   }
 
   play() {
+
+    this._lastAnimationUpdate = Date.now();
+
     // Clear any existing animation interval
     if (this.animationInterval) {
       clearInterval(this.animationInterval);
@@ -978,6 +1014,11 @@ class AnimationManager {
     this.stop();
     if (this.handHitboxManager && typeof this.handHitboxManager.destroy === "function") {
       this.handHitboxManager.destroy();
+    }
+
+    if (this._stateMonitorInterval) {
+      clearInterval(this._stateMonitorInterval);
+      this._stateMonitorInterval = null;
     }
 
     // Clear all references

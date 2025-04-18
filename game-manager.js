@@ -46,7 +46,7 @@ class GameEngine {
       resistance_win: {
         trumpAnimation: "slapped",
         audioSequence: ["fourYears", "win"],
-        message: "YOU LOSE! It was never going to be just 4 years",
+        message: "elections cancelled, forever",
         playerWon: true,
       },
       trump_destroyed: {
@@ -165,32 +165,38 @@ class GameEngine {
     window.gameManager = this; // For backward compatibility
 
     // Add visibility change handler
-    // document.addEventListener("visibilitychange", () => {
-    //   if (document.hidden) {
-    //     // Only pause if the game is active and not already paused
-    //     if (this.systems.state.isPlaying && !this.systems.state.isPaused) {
-    //       // Use the existing pause functionality instead of partial pausing
-    //       this.togglePause();
-
-    //       // Set a flag to indicate this was auto-paused due to visibility change
-    //       this.systems.state.autopaused = true;
-
-    //       // If a grab is in progress, force-complete it
-    //       if (this.systems.state.currentTarget) {
-    //         this.grabSuccess(this.systems.state.currentTarget);
-    //       }
-    //     }
-    //   } else {
-    //     // Resume only if game was auto-paused by visibility change
-    //     if (this.systems.state.isPlaying && this.systems.state.isPaused && this.systems.state.autopaused) {
-    //       // Remove auto-pause flag
-    //       this.systems.state.autopaused = false;
-
-    //       // Resume the game
-    //       this.togglePause();
-    //     }
-    //   }
-    // });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        // Only pause if the game is active and not already paused
+        if (this.systems.state.isPlaying && !this.systems.state.isPaused) {
+          // Set a flag to indicate this was auto-paused due to visibility change
+          this.systems.state.autopaused = true;
+          
+          // If a grab is in progress, force-complete it
+          if (this.systems.state.currentTarget) {
+            console.log("Tab change detected during grab - forcing grab completion");
+            this.grabSuccess(this.systems.state.currentTarget);
+          }
+          
+          // Use the existing pause functionality
+          this.togglePause();
+          
+          // Also pause audio to prevent sound playing in background tab
+          if (this.systems.audio) {
+            this.systems.audio.pauseAll();
+          }
+        }
+      } else {
+        // Resume only if game was auto-paused by visibility change
+        if (this.systems.state.isPlaying && this.systems.state.isPaused && this.systems.state.autopaused) {
+          // Remove auto-pause flag
+          this.systems.state.autopaused = false;
+          
+          // Resume the game
+          this.togglePause();
+        }
+      }
+    });
 
     return this;
   }
@@ -449,7 +455,7 @@ class GameEngine {
       if (sequence.audioSequence && sequence.audioSequence.length) {
         sequence.audioSequence.forEach((sound, index) => {
           setTimeout(() => {
-            const category = sound === "beenVeryNiceToYou" ? "trump" : "ui";
+            const category = ["beenVeryNiceToYou", "fourYears"].includes(sound) ? "trump" : "ui";
             this.systems.audio.play(category, sound, 0.8);
           }, index * 800); // Stagger sounds slightly
         });
@@ -3129,14 +3135,30 @@ class GameSpeedManager {
     };
 
     // Speed levels configuration
-    this.speedLevels = [
-      { multiplier: 0.9, name: "Tutorial", sound: "tutorial" },
+    this.baseSpeedLevels = [
+      { multiplier: 1.2, name: "Tutorial", sound: "tutorial" },
       { multiplier: 2.5, name: "Faster?", sound: "faster" },
       { multiplier: 3.3, name: "oopsie trade war", sound: "oopsieTradeWar" },
       { multiplier: 4.3, name: "Faster", sound: "faster" },
-      { multiplier: 5.1, name: "no one is coming", sound: "noOneIsComingToSaveUs" }, // Reduced from 3.5
-      { multiplier: 5.7, name: "get up and fight", sound: "getUpAndFight" },
+      { multiplier: 4.9, name: "no one is coming", sound: "noOneIsComingToSaveUs" }, // Reduced from 3.5
+      { multiplier: 5.5, name: "get up and fight", sound: "getUpAndFight" },
     ];
+    
+    this.isMobile = window.DeviceUtils ? window.DeviceUtils.isMobile() : false;
+
+
+    // Mobile speed levels (keep original as mobile is already easier)
+    this.mobileSpeedLevels = this.baseSpeedLevels;
+    
+    // Desktop speed levels (slower for trackpad users)
+    this.desktopSpeedLevels = this.baseSpeedLevels.map(level => ({
+      ...level,
+      multiplier: Math.max(level.multiplier * 0.7, 0.7) // 30% slower for desktop/trackpad
+    }));
+    
+    // Choose appropriate speed levels based on device
+    this.speedLevels = this.isMobile ? this.mobileSpeedLevels : this.desktopSpeedLevels;
+
 
     // Tutorial instruction messages
     this.instructionMessages = [
@@ -9117,15 +9139,11 @@ class FreedomManager {
     this.logger.debug("freedom", "Handled grab success");
   }
 
-  /**
-   * Check if game is over (placeholder - implement based on game rules)
-   * @private
-   * @returns {boolean} - Whether game is over
-   */
-  _checkGameOverCondition() {
-    // Should be implemented based on game rules
-    return false;
-  }
+
+  // _checkGameOverCondition() {
+  //   // Should be implemented based on game rules
+  //   return false;
+  // }
 
   /**
    * Destroy the freedom manager and clean up resources

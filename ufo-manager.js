@@ -279,6 +279,8 @@ class UFOManager {
   finishUfoAnimation() {
     this.elements.ufo.style.opacity = "0";
 
+    this.stopScoreReduction();
+
     // Initiate Elon tumbling downward animation
     if (this.elements.elon) {
       this.fadeOutElonElement();
