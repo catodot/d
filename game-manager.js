@@ -343,6 +343,12 @@ class GameEngine {
       return false;
     }
 
+    const trumpHandVisual = document.getElementById("trump-hand-visual");
+    if (trumpHandVisual) {
+      trumpHandVisual.style.opacity = "0";
+      // trumpHandVisual.style.display = "none";
+    }
+
     this._cleanupAllFlags();
 
     // Set flags to prevent multiple calls
@@ -7589,9 +7595,9 @@ console.log(`sss cid ${countryId}`);
     if (this.audioManager) {
       if (countryId === "canada") {
         const region = "westCanada";
-        this.audioManager.play("protestors", region + "Protestors", 0.7);
+        // this.audioManager.play("protestors", region + "Protestors", 0.7);
       } else {
-        this.audioManager.play("protestors", countryId + "Protestors", 0.7);
+        // this.audioManager.play("protestors", countryId + "Protestors", 0.7);
       }
     }
     // Create protestor with callbacks

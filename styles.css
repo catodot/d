@@ -1646,3 +1646,78 @@ button:hover {
     stroke: 2px #ea1487;
     color: white;
   }
+
+
+
+
+  #elon-wrapper {
+    position: absolute;
+    pointer-events: none;
+    z-index: 7;
+  }
+  
+  #elon-protestors-outline {
+    border-radius: 50%;
+    opacity: 1;
+    z-index: -1;
+  }
+  
+  #elon-underglow {
+    position: absolute;
+    width: var(--elon-spotlight-size);
+    height: var(--elon-spotlight-size);
+    left: var(--elon-spotlight-left);
+    top: var(--elon-spotlight-top);
+    background: radial-gradient(circle, #2196F3 0%, rgb(255 90 0 / 41%) 50%, rgba(255, 90, 0, 0) 80%);
+    border-radius: 50%;
+    filter: blur(15px);
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    transform: scale(1.2);
+    pointer-events: none;
+  }
+  
+  #elon-sprite {
+    width: var(--elon-sprite-size);
+    height: var(--elon-sprite-size);
+    left: var(--elon-left-pos);
+    top: var(--elon-top-pos);
+    position: absolute;
+    z-index: 8;
+    opacity: 0;
+    transform-origin: bottom center;
+    transform: scale(0.2);
+    transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.18, 1.25, 0.4, 1.1);
+  }
+  
+  #elon-frame-0, #elon-frame-1 {
+    width: 100%;
+    height: 100%;
+    background-image: url("images/musk.png");
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  
+  #elon-frame-0 {
+    background-position: 0% 0%;
+    display: block;
+  }
+  
+  #elon-frame-1 {
+    background-position: 100% 0%;
+    display: none;
+  }
+  
+  /* Animation classes */
+  .elon-visible #elon-sprite {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  .elon-visible #elon-underglow {
+    opacity: 1;
+  }

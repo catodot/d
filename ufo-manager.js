@@ -64,6 +64,9 @@ class UFOManager {
 
     this.handleKeyboardEvent = this.handleKeyboardEvent.bind(this);
     this.elonHitboxManager = null;
+    this.glowOutline = new GlowOutline();
+
+  
   }
 
   init(gameEngine) {
@@ -255,26 +258,40 @@ class UFOManager {
     }
   }
 
-  animateElonAppearance() {
-    setTimeout(() => {
-      if (this.elements.elon) {
-        // Explicitly set transform origin to bottom center
-        this.elements.elon.style.transformOrigin = "bottom center";
+// Modify the animateElonAppearance method
+animateElonAppearance() {
+  setTimeout(() => {
+    if (this.elements.elon) {
+      // Explicitly set transform origin to bottom center
+      this.elements.elon.style.transformOrigin = "bottom center";
 
-        // Start from bottom, scaled down, and slightly pushed up
-        this.elements.elon.style.transform = "scale(0) translateY(100%)";
-        this.elements.elon.style.opacity = "0";
-
-        // Short timeout to ensure initial state is set
-        requestAnimationFrame(() => {
-          // Grow up with a bouncy effect
-          this.elements.elon.style.transition = "all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
-          this.elements.elon.style.transform = "scale(1) translateY(0)";
-          this.elements.elon.style.opacity = "1";
-        });
+      // Start from bottom, scaled down, and slightly pushed up
+      this.elements.elon.style.transform = "scale(0) translateY(100%)";
+      this.elements.elon.style.opacity = "0";
+      
+      // Make sure underglow starts hidden
+      if (this.elements.elonUnderglow) {
+        this.elements.elonUnderglow.style.opacity = "0";
+        this.elements.elonUnderglow.style.transition = "opacity 0.8s ease";
       }
-    }, 100);
-  }
+
+      // Short timeout to ensure initial state is set
+      requestAnimationFrame(() => {
+        // Grow up with a bouncy effect
+        this.elements.elon.style.transition = "all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55)";
+        this.elements.elon.style.transform = "scale(1) translateY(0)";
+        this.elements.elon.style.opacity = "1";
+        
+        // Delay the underglow appearance slightly after Elon
+        setTimeout(() => {
+          if (this.elements.elonUnderglow) {
+            this.elements.elonUnderglow.style.opacity = "1";
+          }
+        }, 300); // 300ms delay for the underglow to appear after Elon
+      });
+    }
+  }, 100);
+}
 
   finishUfoAnimation() {
     this.elements.ufo.style.opacity = "0";
@@ -486,7 +503,7 @@ class UFOManager {
         this.updateUfoPosition(progress, start, end, controlPoints, animation);
         requestAnimationFrame(animateUfo);
       } else {
-        this.finishUfoAnimation();
+        // this.finishUfoAnimation();
       }
     };
 
@@ -521,17 +538,21 @@ class UFOManager {
     if (this.elements.elon) {
       // Change transform origin to center
       this.elements.elon.style.transformOrigin = "center center";
-
+  
       // Faster opacity fade, slower falling motion
       this.elements.elon.style.transition = "opacity 0.8s ease, transform 2.5s cubic-bezier(0.4, 0.1, 0.2, 1)";
-
+      
+      // Make sure underglow fades out with Elon
+      if (this.elements.elonUnderglow) {
+        this.elements.elonUnderglow.style.transition = "opacity 0.8s ease";
+        this.elements.elonUnderglow.style.opacity = "0";
+      }
+  
       // Short timeout to ensure the new properties are applied
       setTimeout(() => {
         this.elements.elon.style.transform = "scale(0) translate(0px, 300px) rotate(-360deg)";
         this.elements.elon.style.opacity = "0";
       }, 10);
-
-      // console.log("Elon tumbling away");
     }
   }
 
@@ -606,6 +627,7 @@ class UFOManager {
   showElonMusk(autoCleanup = false) {
     // console.log("showElonMusk called - attempting to show Elon Musk");
 
+
     // Check if we've reached the maximum number of appearances or game is over
 
     if (this.state.elonAppearanceCount >= this.config.elon.maxAppearances || this._isGameOver()) {
@@ -657,6 +679,7 @@ class UFOManager {
 
     this.animateElonAppearance();
     this.startElonSpriteAnimation();
+  this.elements.elonUnderglow.style.opacity = "1";
 
     this.startGrayscaleEffect();
 
@@ -670,91 +693,213 @@ class UFOManager {
     // console.log("Started Elon animation with pop-up effect and continuous looping");
   }
 
+
+  // createElonElement() {
+  //   const mapBackground = document.getElementById("map-background");
+  //   const gameContainer = document.getElementById("game-container");
+  
+  //   if (!mapBackground || !gameContainer) {
+  //     console.error("Required elements not found for Elon positioning");
+  //     return false;
+  //   }
+  
+  //   const mapRect = mapBackground.getBoundingClientRect();
+  //   const containerRect = gameContainer.getBoundingClientRect();
+  
+  //   // Create a regular wrapper without glow
+  //   const wrapper = document.createElement("div");
+  //   wrapper.id = "elon-wrapper";
+  //   wrapper.style.position = "absolute";
+  //   wrapper.style.left = `${mapRect.left - containerRect.left}px`;
+  //   wrapper.style.top = `${mapRect.top - containerRect.top}px`;
+  //   wrapper.style.width = `${mapRect.width}px`;
+  //   wrapper.style.height = `${mapRect.height}px`;
+  //   wrapper.style.zIndex = "8";
+  //   wrapper.style.pointerEvents = "none";
+  
+  //   gameContainer.appendChild(wrapper);
+  
+  //   // Create a container element for Elon
+  //   this.elements.elon = document.createElement("div");
+  //   this.elements.elon.id = "elon-sprite";
+  
+  //   const spriteSize = Math.round(mapRect.width * 0.2);
+  //   this.elements.elon.style.width = `${spriteSize}px`;
+  //   this.elements.elon.style.height = `${spriteSize}px`;
+  //   this.elements.elon.style.position = "absolute";
+  
+  //   // Fixed pixel value positioning
+  //   const leftPos = Math.round(mapRect.width * 0.15);
+  //   const topPos = Math.round(mapRect.height * 0.05);
+  
+  //   this.elements.elon.style.left = `${leftPos}px`;
+  //   this.elements.elon.style.top = `${topPos}px`;
+  //   this.elements.elon.style.opacity = "0";
+  //   this.elements.elon.style.transformOrigin = "bottom center";
+  //   this.elements.elon.style.transform = "scale(0.2)";
+  //   this.elements.elon.style.transition = "opacity 0.8s ease, transform 0.8s cubic-bezier(0.18, 1.25, 0.4, 1.1)";
+  
+  //   // Create two separate image elements for the frames
+  //   this.elements.elonFrame0 = document.createElement("div");
+  //   this.elements.elonFrame0.id = "elon-frame-0";
+  //   this.elements.elonFrame0.style.width = "100%";
+  //   this.elements.elonFrame0.style.height = "100%";
+  //   this.elements.elonFrame0.style.backgroundImage = 'url("images/musk.png")';
+  //   this.elements.elonFrame0.style.backgroundSize = "200% 100%";
+  //   this.elements.elonFrame0.style.backgroundPosition = "0% 0%";
+  //   this.elements.elonFrame0.style.backgroundRepeat = "no-repeat";
+  //   this.elements.elonFrame0.style.position = "absolute";
+  //   this.elements.elonFrame0.style.top = "0";
+  //   this.elements.elonFrame0.style.left = "0";
+  
+  //   this.elements.elonFrame1 = document.createElement("div");
+  //   this.elements.elonFrame1.id = "elon-frame-1";
+  //   this.elements.elonFrame1.style.width = "100%";
+  //   this.elements.elonFrame1.style.height = "100%";
+  //   this.elements.elonFrame1.style.backgroundImage = 'url("images/musk.png")';
+  //   this.elements.elonFrame1.style.backgroundSize = "200% 100%";
+  //   this.elements.elonFrame1.style.backgroundPosition = "100% 0%";
+  //   this.elements.elonFrame1.style.backgroundRepeat = "no-repeat";
+  //   this.elements.elonFrame1.style.position = "absolute";
+  //   this.elements.elonFrame1.style.top = "0";
+  //   this.elements.elonFrame1.style.left = "0";
+  //   this.elements.elonFrame1.style.display = "none";
+  
+  //   // Add both frames to the container
+  //   this.elements.elon.appendChild(this.elements.elonFrame0);
+  //   this.elements.elon.appendChild(this.elements.elonFrame1);
+  
+  //   // Create a dedicated glow element specifically for Elon
+  //   const glowElement = document.createElement("div");
+  //   glowElement.id = "elon-glow-effect";
+  //   glowElement.style.position = "absolute";
+  //   glowElement.style.top = `${topPos}px`;
+  //   glowElement.style.left = `${leftPos}px`;
+  //   glowElement.style.width = `${spriteSize}px`;
+  //   glowElement.style.height = `${spriteSize}px`;
+  //   glowElement.style.borderRadius = "50%";
+  //   glowElement.style.zIndex = "7"; // Lower than Elon (8) but still visible
+  //   glowElement.style.pointerEvents = "none";
+  //   glowElement.style.animation = "elonGlowPulse 2s infinite ease-in-out";
+  
+  //   // Add the glow animation style if it doesn't exist yet
+  //   if (!document.getElementById("elon-glow-style")) {
+  //     const styleElement = document.createElement("style");
+  //     styleElement.id = "elon-glow-style";
+  //     styleElement.textContent = `
+  //       @keyframes elonGlowPulse {
+  //         0% { box-shadow: 0 0 15px 8px rgba(255, 69, 0, 0.7); }
+  //         50% { box-shadow: 0 0 25px 15px rgba(255, 69, 0, 0.9); }
+  //         100% { box-shadow: 0 0 15px 8px rgba(255, 69, 0, 0.7); }
+  //       }
+  //     `;
+  //     document.head.appendChild(styleElement);
+  //   }
+  
+  //   // Add the glow element to the wrapper before Elon
+  //   wrapper.appendChild(glowElement);
+    
+  //   // Then add Elon on top of the glow
+  //   wrapper.appendChild(this.elements.elon);
+  //   this.elements.elonContainer = wrapper;
+  //   this.elements.elonGlow = glowElement; // Store for later reference
+  
+  //   // Store original position for reference
+  //   this.elonOriginalPosition = {
+  //     left: leftPos,
+  //     top: topPos,
+  //   };
+  
+  //   return true;
+  // }
+
   createElonElement() {
     const mapBackground = document.getElementById("map-background");
     const gameContainer = document.getElementById("game-container");
-
+    
     if (!mapBackground || !gameContainer) {
       console.error("Required elements not found for Elon positioning");
       return false;
     }
-
-    const mapRect = mapBackground.getBoundingClientRect();
-    const containerRect = gameContainer.getBoundingClientRect();
-
+    
+   // Calculate positioning
+  const mapRect = mapBackground.getBoundingClientRect();
+  const containerRect = gameContainer.getBoundingClientRect();
+  
+  // Determine if mobile
+  const isMobile = window.DeviceUtils && window.DeviceUtils.isMobileDevice;
+  console.log("is movile " + isMobile);
+  
+  // Use different positions based on device type
+  const leftPos = isMobile 
+    ? Math.round(mapRect.width * 0.02)  // Mobile position
+    : Math.round(mapRect.width * 0.07); // Desktop position
+    
+  const topPos = isMobile 
+    ? Math.round(mapRect.height * 0.02)  // Mobile position
+    : Math.round(mapRect.height * 0.07); // Desktop position
+  
+  // Calculate sprite size (keeping the same proportional sizing)
+  const mobileSizeMultiplier = isMobile ? 1.3 : 1; // 30% larger on mobile
+  const spriteSize = Math.round(mapRect.width * 0.2 * mobileSizeMultiplier);
+  const spotlightSize = spriteSize * 1.5;
+  
+    
+    
+    // Set CSS variables that the stylesheet can use
+    document.documentElement.style.setProperty('--elon-sprite-size', `${spriteSize}px`);
+    document.documentElement.style.setProperty('--elon-left-pos', `${leftPos}px`);
+    document.documentElement.style.setProperty('--elon-top-pos', `${topPos}px`);
+    document.documentElement.style.setProperty('--elon-spotlight-size', `${spotlightSize}px`);
+    document.documentElement.style.setProperty('--elon-spotlight-left', `${leftPos + (spriteSize - spotlightSize)/2}px`);
+    document.documentElement.style.setProperty('--elon-spotlight-top', `${topPos + (spriteSize - spotlightSize)/2}px`);
+    
+    // Create the wrapper with CSS classes
     const wrapper = document.createElement("div");
     wrapper.id = "elon-wrapper";
-    wrapper.style.position = "absolute";
     wrapper.style.left = `${mapRect.left - containerRect.left}px`;
     wrapper.style.top = `${mapRect.top - containerRect.top}px`;
     wrapper.style.width = `${mapRect.width}px`;
     wrapper.style.height = `${mapRect.height}px`;
-    wrapper.style.zIndex = "8";
-    wrapper.style.pointerEvents = "none";
-
-    gameContainer.appendChild(wrapper);
-
-    // Create a container element for Elon
+    
+    // Create glow outline
+    // const glowOutline = new GlowOutline();
+    // const outlineElement = glowOutline.create({
+    //   parentId: "elon",
+    //   color: "#FF4500",
+    //   diffused: true,
+    //   glowOpacity: 0.1
+    // });
+    // outlineElement.id = "elon-protestors-outline";
+    // wrapper.appendChild(outlineElement);
+    
+    // Create underglow element
+    const underglow = document.createElement("div");
+    underglow.id = "elon-underglow";
+    
+    // Create Elon sprite and frames
     this.elements.elon = document.createElement("div");
     this.elements.elon.id = "elon-sprite";
-
-    const spriteSize = Math.round(mapRect.width * 0.2);
-    this.elements.elon.style.width = `${spriteSize}px`;
-    this.elements.elon.style.height = `${spriteSize}px`;
-    this.elements.elon.style.position = "absolute";
-
-    // Fixed pixel value positioning
-    const leftPos = Math.round(mapRect.width * 0.15);
-    const topPos = Math.round(mapRect.height * 0.05);
-
-    this.elements.elon.style.left = `${leftPos}px`;
-    this.elements.elon.style.top = `${topPos}px`;
-    this.elements.elon.style.opacity = "0";
-    this.elements.elon.style.transformOrigin = "bottom center";
-    this.elements.elon.style.transform = "scale(0.2)";
-    this.elements.elon.style.transition = "opacity 0.8s ease, transform 0.8s cubic-bezier(0.18, 1.25, 0.4, 1.1)";
-
-    // Create two separate image elements for the frames
+    
     this.elements.elonFrame0 = document.createElement("div");
     this.elements.elonFrame0.id = "elon-frame-0";
-    this.elements.elonFrame0.style.width = "100%";
-    this.elements.elonFrame0.style.height = "100%";
-    this.elements.elonFrame0.style.backgroundImage = 'url("images/musk.png")';
-    this.elements.elonFrame0.style.backgroundSize = "200% 100%";
-    this.elements.elonFrame0.style.backgroundPosition = "0% 0%";
-    this.elements.elonFrame0.style.backgroundRepeat = "no-repeat";
-    this.elements.elonFrame0.style.position = "absolute";
-    this.elements.elonFrame0.style.top = "0";
-    this.elements.elonFrame0.style.left = "0";
-
+    
     this.elements.elonFrame1 = document.createElement("div");
     this.elements.elonFrame1.id = "elon-frame-1";
-    this.elements.elonFrame1.style.width = "100%";
-    this.elements.elonFrame1.style.height = "100%";
-    this.elements.elonFrame1.style.backgroundImage = 'url("images/musk.png")';
-    this.elements.elonFrame1.style.backgroundSize = "200% 100%";
-    this.elements.elonFrame1.style.backgroundPosition = "100% 0%";
-    this.elements.elonFrame1.style.backgroundRepeat = "no-repeat";
-    this.elements.elonFrame1.style.position = "absolute";
-    this.elements.elonFrame1.style.top = "0";
-    this.elements.elonFrame1.style.left = "0";
-    this.elements.elonFrame1.style.display = "none";
-
-    // Add both frames to the container
+    
+    // Add frames to sprite
     this.elements.elon.appendChild(this.elements.elonFrame0);
     this.elements.elon.appendChild(this.elements.elonFrame1);
-
-    // Add the container to the wrapper
+    
+    // Assemble all elements
+    wrapper.appendChild(underglow);
     wrapper.appendChild(this.elements.elon);
+    gameContainer.appendChild(wrapper);
+    
+    // Store references
     this.elements.elonContainer = wrapper;
-
-    // Store original position for reference
-    this.elonOriginalPosition = {
-      left: leftPos,
-      top: topPos,
-    };
-
-    // console.log("Elon element created with separate frame elements");
+    this.elements.elonUnderglow = underglow;
+    
     return true;
   }
 
@@ -811,6 +956,12 @@ class UFOManager {
 
     // Stop animations first
     this.stopElonAnimation();
+  
+    // Make sure underglow fades out immediately
+    if (this.elements.elonUnderglow) {
+      this.elements.elonUnderglow.style.transition = "opacity 0.3s ease";
+      this.elements.elonUnderglow.style.opacity = "0";
+    }
 
     // Apply cartoony disappear animation
     if (options.withTumble && this.elements.elon) {
