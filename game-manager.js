@@ -40,7 +40,7 @@ class GameEngine {
       trump_victory: {
         trumpAnimation: "victory",
         audioSequence: ["beenVeryNiceToYou", "lose"],
-        message: "YOU LOSE!",
+        message: "TRUMP TOOK ALL THE COUNTRIES!",
         playerWon: false,
       },
       resistance_win: {
