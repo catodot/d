@@ -209,14 +209,14 @@ class GameEngine {
     }
 
     // Unlock audio for mobile
-    this.systems.audio.unlock().then((unlocked) => {
-      // Start background music with a delay
-      this.createTrackedTimeout(() => {
-        if (this.systems.audio) {
-          this.systems.audio.startBackgroundMusic();
-        }
-      }, 1000);
-    });
+    // this.systems.audio.unlock().then((unlocked) => {
+    //   // Start background music with a delay
+    //   this.createTrackedTimeout(() => {
+    //     if (this.systems.audio) {
+    //       this.systems.audio.startBackgroundMusic();
+    //     }
+    //   }, 1000);
+    // });
   }
 
   startGame() {
@@ -226,21 +226,25 @@ class GameEngine {
     this._prepareAudio();
 
     if (this.systems.audio) {
+      this.systems.audio.play("ui", "gameStart");
+      this.systems.audio.startBackgroundMusic();
+
+
       // Ensure audio context is ready, then play start sound with proper error handling
-      this.systems.audio
-        .resumeAudioContext()
-        .then(() => {
-          try {
-            this.systems.audio.play("ui", "gameStart");
-          } catch (error) {
-            console.warn("[Engine] Failed to play game start sound:", error);
-            // Try direct play as fallback for critical game feedback
-            this.systems.audio.playDirect("gameStart.mp3", 0.8);
-          }
-        })
-        .catch((e) => {
-          console.warn("[Engine] Failed to resume audio context at game start:", e);
-        });
+      // this.systems.audio
+      //   .resumeAudioContext()
+      //   .then(() => {
+      //     try {
+      //       this.systems.audio.play("ui", "gameStart");
+      //     } catch (error) {
+      //       console.warn("[Engine] Failed to play game start sound:", error);
+      //       // Try direct play as fallback for critical game feedback
+      //       this.systems.audio.playDirect("gameStart.mp3", 0.8);
+      //     }
+      //   })
+      //   .catch((e) => {
+      //     console.warn("[Engine] Failed to resume audio context at game start:", e);
+      //   });
     }
 
     // Show game screen and setup UI
