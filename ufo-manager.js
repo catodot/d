@@ -907,15 +907,15 @@ animateElonAppearance() {
     if (!this.elements.elon) {
       return;
     }
-
+  
     // Create animation for Elon with frame toggling
     const frameDuration =
       window.DeviceUtils && window.DeviceUtils.isMobileDevice ? this.config.elon.frameDuration * 1.5 : this.config.elon.frameDuration;
-
-    // Use a custom function with animation manager
+  
+    // Use a real DOM element instead of a dummy object
     let currentFrame = 0;
     const animationId = window.animationManager.createSpriteAnimation({
-      element: { style: {} }, // Dummy element - we're handling our own animation
+      element: this.elements.elon, // Use the actual Elon element instead of { style: {} }
       frameCount: 2,
       frameDuration: frameDuration,
       loop: true,
@@ -925,10 +925,10 @@ animateElonAppearance() {
           window.animationManager.stopSpriteAnimation(animationId);
           return;
         }
-
+  
         // Toggle frame
         currentFrame = currentFrame === 0 ? 1 : 0;
-
+  
         // Show current frame, hide the other
         if (currentFrame === 0) {
           this.elements.elonFrame0.style.display = "block";
@@ -939,7 +939,7 @@ animateElonAppearance() {
         }
       },
     });
-
+  
     // Store animation ID for cleanup
     this.elonAnimationId = animationId;
   }

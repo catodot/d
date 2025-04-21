@@ -772,84 +772,85 @@ if (mapBackground) {
     }
   }
 
+  grabSuccess(country) {
+    console.log(`[Game] Grab success for ${country}`);
+    
+    // Reset consecutive hits
+    this.systems.state.consecutiveHits = 0;
+    
+    // Apply visual effect if available
+    if (window.trumpHandEffects) {
+      window.trumpHandEffects.applyGrabSuccessEffect(country);
+    }
+  
+    // Determine the actual country to update (handle Canada special case)
+    const isCanada = country === "eastCanada" || country === "westCanada";
+    const targetCountry = isCanada ? "canada" : country;
+    
+    // Get current state for the country
+    const state = this.systems.state;
+    const countryState = state.countries[targetCountry];
+    
+    if (!countryState) {
+      console.error(`[Game] Country state not found for ${targetCountry}`);
+      return;
+    }
+    
+    // Update claims with bounds checking
+    const newClaims = Math.min(countryState.claims + 1, countryState.maxClaims);
+    countryState.claims = newClaims;
+    
+    console.log(`[Game] Updated claims for ${targetCountry}: ${countryState.claims}/${countryState.maxClaims}`);
+  
+    // Update UI
+    this.systems.ui.updateFlagOverlay(targetCountry, countryState.claims);
+    
+    // Play appropriate audio
+    if (isCanada) {
+      this._handleCanadaGrab(country);
+    } else {
+      this._handleStandardCountryGrab(country);
+    }
+  
+    // Check if this is the game-winning grab
+    const isGameOver = this._checkGameOverCondition();
+    if (isGameOver) {
+      console.log("[Game] Game over condition met in grabSuccess");
+      this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY, "all_countries_claimed");
+      return;
+    }
+  
+    // Continue game progression if game isn't over
+    this._proceedWithGameProgression();
+  }
+  
+  
   // grabSuccess(country) {
   //   console.log("iii grabsucess!");
+  //   console.log(`iii FULL COUNTRY STATE BEFORE GRAB:`, JSON.stringify(this.systems.state.countries, null, 2));
+  //   console.log(`iii country being grabbed: ${country}`);
     
   //   // Reset consecutive hits
   //   this.systems.state.consecutiveHits = 0;
   //   window.trumpHandEffects.applyGrabSuccessEffect(country);
-
+  
   //   // Check if this is the game-winning grab
   //   const isGameOver = this._checkGameOverCondition();
-
+  
   //   if (isGameOver) {
   //     console.log("game is over grabSuccess");
   //     this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY, "all_countries_claimed");
   //     return; // Important! Don't continue execution
   //   }
-
+  
   //   // Handle country grab (visual updates)
   //   this._updateCountryClaims(country);
-
+  
+  //   console.log(`iii FULL COUNTRY STATE AFTER GRAB:`, JSON.stringify(this.systems.state.countries, null, 2));
+  
   //   // Handle game progression
   //   this._proceedWithGameProgression();
   // }
-
-  // // Helper method to update country claims
-  // _updateCountryClaims(country) {
-  //   console.log("iii updating country claims!");
-
-  //   const state = this.systems.state;
-  //   const isCanada = country === "eastCanada" || country === "westCanada";
-  //   const targetCountry = isCanada ? "canada" : country;
-
-  //   state.countries[targetCountry].claims = Math.min(state.countries[targetCountry].claims + 1, state.countries[targetCountry].maxClaims);
-  //   console.log(`iii ${state.countries[targetCountry].claims}`);
-
-  //   this.systems.ui.updateFlagOverlay(isCanada ? "canada" : country, state.countries[targetCountry].claims);
-
-  //   // Optional: Handle audio if needed
-  //   try {
-  //     if (country === "eastCanada" || country === "westCanada") {
-  //       this._handleCanadaGrab();
-  //     } else {
-  //       this._handleStandardCountryGrab(country);
-  //     }
-  //   } catch (error) {
-  //     console.warn("[Engine] Error handling grab success:", error);
-  //   }
-  // }
-
-  // Helper method to proceed with game progression
-  
-  
-  
-  grabSuccess(country) {
-    console.log("iii grabsucess!");
-    console.log(`iii FULL COUNTRY STATE BEFORE GRAB:`, JSON.stringify(this.systems.state.countries, null, 2));
-    console.log(`iii country being grabbed: ${country}`);
-    
-    // Reset consecutive hits
-    this.systems.state.consecutiveHits = 0;
-    window.trumpHandEffects.applyGrabSuccessEffect(country);
-  
-    // Check if this is the game-winning grab
-    const isGameOver = this._checkGameOverCondition();
-  
-    if (isGameOver) {
-      console.log("game is over grabSuccess");
-      this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY, "all_countries_claimed");
-      return; // Important! Don't continue execution
-    }
-  
-    // Handle country grab (visual updates)
-    this._updateCountryClaims(country);
-  
-    console.log(`iii FULL COUNTRY STATE AFTER GRAB:`, JSON.stringify(this.systems.state.countries, null, 2));
-  
-    // Handle game progression
-    this._proceedWithGameProgression();
-  }
   
   _updateCountryClaims(country) {
     console.log("iii updating country claims!");
@@ -873,7 +874,7 @@ if (mapBackground) {
   
     try {
       if (country === "eastCanada" || country === "westCanada") {
-        this._handleCanadaGrab();
+        this._handleCanadaGrab(country);
       } else {
         this._handleStandardCountryGrab(country);
       }
@@ -1121,6 +1122,51 @@ if (mapBackground) {
     }
   }
 
+
+  /**
+ * Adds event listeners with proper tracking for cleanup
+ * @param {HTMLElement} element - Element to attach events to
+ * @param {Object} eventMap - Map of event types to handler functions
+ * @param {boolean} useCapture - Whether to use capture phase
+ */
+_addTrackedEventListeners(element, eventMap, useCapture = false) {
+  if (!element) return;
+  
+  // Initialize tracking array if it doesn't exist
+  if (!this.resources.eventListeners) {
+    this.resources.eventListeners = [];
+  }
+  
+  // Add each event listener and track it
+  Object.entries(eventMap).forEach(([eventType, handler]) => {
+    element.addEventListener(eventType, handler, useCapture);
+    
+    // Store reference for cleanup
+    this.resources.eventListeners.push({
+      element,
+      eventType,
+      handler,
+      useCapture
+    });
+  });
+}
+
+/**
+ * Removes all tracked event listeners
+ */
+_removeTrackedEventListeners() {
+  if (!this.resources.eventListeners) return;
+  
+  this.resources.eventListeners.forEach(({ element, eventType, handler, useCapture }) => {
+    if (element) {
+      element.removeEventListener(eventType, handler, useCapture);
+    }
+  });
+  
+  this.resources.eventListeners = [];
+}
+
+
   /**
    * Clean up all tracked resources
    * @private
@@ -1129,14 +1175,17 @@ if (mapBackground) {
     // Clear all timeouts
     this.resources.timeouts.forEach((id) => clearTimeout(id));
     this.resources.timeouts = [];
-
+  
     // Clear all intervals
     this.resources.intervals.forEach((id) => clearInterval(id));
     this.resources.intervals = [];
-
+  
     // Cancel all animation frames
     this.resources.animationFrames.forEach((id) => cancelAnimationFrame(id));
     this.resources.animationFrames = [];
+    
+    // Remove all tracked event listeners
+    this._removeTrackedEventListeners();
   }
 
   /**
@@ -1582,7 +1631,7 @@ if (mapBackground) {
     }
   }
 
-  _handleCanadaGrab() {
+  _handleCanadaGrab(eastOeWest) {
     const state = this.systems.state;
 
     // Increment claim on the shared Canada entity
@@ -3684,7 +3733,6 @@ class GlowOutline {
     }
   }
 
-  // Original create method for protestors remains unchanged
   create({
     parentId,
     position = { left: 0, top: 0 },

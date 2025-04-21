@@ -516,7 +516,7 @@ function createSentientOrb(container) {
         cleanupGlitchEffect(glitchElements);
         orb.dataset.glitching = '';
         updatePosition();
-      }, 3000);
+      }, 2000);
     }
   });
   
