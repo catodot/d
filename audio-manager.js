@@ -91,6 +91,7 @@ class AudioManager {
     this.soundFiles = {
       ui: {
         click: "click.mp3",
+        worldClick: "worldClick.mp3",
         gameStart: "gameStart.mp3",
         gameOver: "gameOver.mp3",
         win: "resistanceWins.mp3",
@@ -171,6 +172,10 @@ class AudioManager {
             "protestWestCan11.mp3",
             "protestWestCan12.mp3",
             "protestWestCan13.mp3",
+            "protestWestCan14.mp3",
+            "protestWestCan15.mp3",
+            "protestWestCan16.mp3",
+
           ],
           mexicoSaysNo: [
             "protestMex1.mp3",

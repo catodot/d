@@ -247,6 +247,11 @@ class GameEngine {
     this.systems.ui.showGameScreen();
     this.systems.ui.positionElements();
 
+    const mapBackground = document.getElementById("map-background");
+if (mapBackground) {
+  mapBackground.addEventListener("click", this.handleGlobeClick);
+}
+
     // Start game loop
     this._startGameLoop();
 
@@ -949,6 +954,8 @@ class GameEngine {
     this.initiateGrab = this.initiateGrab.bind(this);
     this.stopGrab = this.stopGrab.bind(this);
     this.grabSuccess = this.grabSuccess.bind(this);
+    this.handleGlobeClick = this.handleGlobeClick.bind(this);
+
 
     // Game flow control
     this.togglePause = this.togglePause.bind(this);
@@ -1215,6 +1222,33 @@ class GameEngine {
     // Continue animation loop
     this._requestAnimationFrame();
   }
+
+  handleGlobeClick(event) {
+    // Ignore if we're clicking on a hitbox or during game ending
+    if (event.target.classList.contains('hitbox') || 
+        this.systems.state.gameEnding || 
+        !this.systems.state.isPlaying) {
+      return;
+    }
+    
+    // Get the game container
+    const gameContainer = document.getElementById("game-container");
+    if (!gameContainer) return;
+    
+    // Apply light shake effect
+    gameContainer.classList.add("light-screen-shake");
+    
+    // Remove the class after animation completes
+    setTimeout(() => {
+      gameContainer.classList.remove("light-screen-shake");
+    }, 400);
+    
+    // Play a subtle click sound if available
+    if (this.systems.audio) {
+      this.systems.audio.playIfContextReady("ui", "worldClick", 0.3);
+    }
+  }
+  
 
   _updateCountdown() {
     // Skip if game is paused
