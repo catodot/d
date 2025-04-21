@@ -49,6 +49,7 @@ class AudioManager {
       immediate: ["slap1", "slap2", "slap3", "slap4", "smash"], // Highest priority for immediate response
       critical: ["click", "gameStart", "trumpGrabbing1", "grabWarning"],
       important: ["partialAnnex1", "fullAnnex1", "stopHim", "smackThatHand", "been-very-nice-to-you"],
+        // ["trump", "trumpGrabbing", 0],],
       background: [], // Will be filled with remaining sounds
     };
 
@@ -778,8 +779,8 @@ class AudioManager {
     const criticalPairs = [
       ["ui", "click"],
       ["ui", "gameStart"],
-      ["ui", "grabWarning"],
-      ["trump", "trumpGrabbing", 0],
+      // ["ui", "grabWarning"],
+      // ["trump", "trumpGrabbing", 0],
       ["music", "background"],
     ];
 
