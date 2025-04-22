@@ -1587,6 +1587,7 @@ button:hover {
     position: absolute;
     z-index: 25;
     transition: transform 0.3s ease-out;
+    opacity: .8;
   }
   
   .trump-flag-animation:hover {
@@ -1677,6 +1678,7 @@ button:hover {
     transform: scale(1.2);
     pointer-events: none;
   }
+
   
   #elon-sprite {
     width: var(--elon-sprite-size);
