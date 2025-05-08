@@ -157,6 +157,8 @@ class AudioManager {
             "protestEastCan19.mp3",
             "protestEastCan20.mp3",
             "protestEastCan21.mp3",
+            "protestEastCan22.mp3",
+
           ],
           westCanadaSaysNo: [
             "protestWestCan1.mp3",
@@ -175,6 +177,16 @@ class AudioManager {
             "protestWestCan14.mp3",
             "protestWestCan15.mp3",
             "protestWestCan16.mp3",
+            "protestWestCan17.mp3",
+            "protestWestCan18.mp3",
+            "protestWestCan19.mp3",
+            "protestWestCan20.mp3",
+            "protestWestCan21.mp3",
+            "protestWestCan22.mp3",
+            "protestWestCan23.mp3",
+            "protestWestCan24.mp3",
+
+
 
           ],
           mexicoSaysNo: [
