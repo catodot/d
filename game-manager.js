@@ -4219,6 +4219,9 @@ class TrumpHandEffectsController {
     // Apply screen shake
     this.elements.gameContainer.classList.add("grab-screen-shake");
 
+    this.showDangerFlash();
+
+
     // Force reflow for animation
     void this.elements.visual.offsetWidth;
 
@@ -4238,6 +4241,20 @@ class TrumpHandEffectsController {
       window.handHitboxManager.hideHandHitbox();
     }
   }
+
+  showDangerFlash() {
+    const gameContainer = document.getElementById("game-container");
+    if (!gameContainer) return;
+    
+    // Add the flash class which will be defined in CSS
+    gameContainer.classList.add("danger-flash");
+    
+    // Remove it after animation completes
+    setTimeout(() => {
+      gameContainer.classList.remove("danger-flash");
+    }, 600); // Match this to your CSS animation duration
+  }
+  
   /**
    * Create shard elements for grab success effect
    */
@@ -4432,10 +4449,10 @@ class TrumpHandEffectsController {
 
     const isMobile = window.DeviceUtils ? window.DeviceUtils.isMobile() : false;
 
-    // Create the prompt element
-    this.clickPromptElement = document.createElement("div");
-    this.clickPromptElement.id = "trump-hand-click-prompt";
-    this.clickPromptElement.textContent = "CLICK HERE";
+   // Create the prompt element
+this.clickPromptElement = document.createElement("div");
+this.clickPromptElement.id = "trump-hand-click-prompt";
+this.clickPromptElement.textContent = isMobile ? "TAP HERE" : "CLICK HERE";
 
     // Add base classes
     this.clickPromptElement.classList.add(
@@ -7934,9 +7951,9 @@ class FreedomManager {
   static PROTESTOR_TIMING = {
     // Regular (non-USA) protestors
     INITIAL_ANNEX_MIN_DELAY: 5000, // When a country is first annexed, wait at least 10 seconds before showing protestors
-    INITIAL_ANNEX_MAX_DELAY: 10000, // When a country is first annexed, wait at most 40 seconds before showing protestors
-    FADE_AWAY_TIME: 4000, // If protestors aren't clicked, they fade away after 4 seconds
-    REGENERATION_DELAY: 8000, // After protestors disappear (fade or liberate), wait 60 seconds before next group appears
+    INITIAL_ANNEX_MAX_DELAY: 20000, // When a country is first annexed, wait at most X seconds before showing protestors
+    FADE_AWAY_TIME: 4000, // If protestors aren't clicked, they fade away after X seconds
+    REGENERATION_DELAY: 30000, // After protestors disappear (fade or liberate), wait X seconds before next group appears
 
     // USA protestors
     USA_INITIAL_APPEARANCE_THRESHOLD: 0.5, // USA protestors first appear when 10% of total game time has elapsed
