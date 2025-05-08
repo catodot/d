@@ -426,54 +426,7 @@ class AudioManager {
     });
   }
 
-  _returnAudioToPool(audio, options = {}) {
-    if (!audio) return;
-
-    try {
-      // 1. Remove from tracking collections first
-      const playingIndex = this.currentlyPlaying.indexOf(audio);
-      if (playingIndex !== -1) {
-        this.currentlyPlaying.splice(playingIndex, 1);
-      }
-
-      // 2. Stop playback
-      audio.pause();
-
-      // 3. Clear all event listeners to prevent memory leaks
-      audio.onended = null;
-      audio.oncanplay = null;
-      audio.oncanplaythrough = null;
-      audio.onerror = null;
-      audio.onloadeddata = null;
-      audio.onloadedmetadata = null;
-      audio.onpause = null;
-      audio.onplay = null;
-
-      // 4. Reset audio element state
-      audio.currentTime = 0;
-      audio.loop = false;
-      audio.volume = 1.0;
-      audio.playbackRate = 1.0;
-      audio.muted = false;
-
-      // 5. Clear src to release resources
-      if (!options.keepSrc) {
-        audio.src = "";
-      }
-
-      // 6. Check pool size and return to pool if not too large
-      const MAX_POOL_SIZE = 20; // Set a reasonable limit
-      if (window._primedAudioPool && window._primedAudioPool.length < MAX_POOL_SIZE) {
-        window._primedAudioPool.push(audio);
-        console.log(`[AUDIO POOL] Returned audio to pool. Size now: ${window._primedAudioPool.length}`);
-      } else {
-        console.log(`[AUDIO POOL] Pool full (${window._primedAudioPool?.length || 0}), not returning audio`);
-        // No reference maintained - let GC handle it
-      }
-    } catch (error) {
-      console.warn("[AUDIO POOL] Error returning audio to pool:", error);
-    }
-  }
+  
 
   /**
    * Configure audio for slow connections
@@ -876,38 +829,7 @@ class AudioManager {
     return true;
   }
 
-  /**
-   * Get or create an audio element from the pool
-   */
-  _getOrCreatePrimedAudio() {
-    // Make sure pool exists
-    if (!window._primedAudioPool) {
-      window._primedAudioPool = [];
-    }
 
-    // Get audio from pool or create new
-    const audio = window._primedAudioPool.length > 0 ? window._primedAudioPool.pop() : new Audio();
-
-    if (window._primedAudioPool.length > 0) {
-      console.log(`[AUDIO POOL] Reused audio from pool. Remaining: ${window._primedAudioPool.length}`);
-    } else {
-      console.log(`[AUDIO POOL] Created new Audio() element - pool was empty!`);
-    }
-
-    // Reset ALL properties including volume and src to prevent lingering issues
-    audio.loop = false;
-    audio.muted = false;
-    audio.currentTime = 0;
-    audio.volume = 1.0;
-    audio.playbackRate = 1.0;
-
-    // Reset src on mobile to avoid caching issues with previous audio
-    if (this.isMobile) {
-      audio.src = "";
-    }
-
-    return audio;
-  }
 
   /**
    * Set up an audio element with standard properties
@@ -981,115 +903,448 @@ class AudioManager {
     }
   }
 
-  /**
-   * Load a sound with promise tracking
-   */
-  /**
-   * Load a sound with promise tracking
-   */
-  _loadSoundWithPromise(category, name, index = null) {
-    // Create a unique key for this sound
-    const soundKey = index !== null ? `${category}.${name}.${index}` : `${category}.${name}`;
+ /**
+ * Get or create an audio element from the pool with source optimization
+ * @param {string} [preferredSrc] - Optional preferred source to match
+ * @returns {HTMLAudioElement} - An audio element from the pool or a new one
+ */
+_getOrCreatePrimedAudio(preferredSrc = null) {
+  // Make sure pool exists
+  if (!window._primedAudioPool) {
+    window._primedAudioPool = [];
+  }
 
-    // Don't reload if already loaded or loading
-    if (this.loadedSounds.has(soundKey)) {
-      return Promise.resolve(true);
+  let audio = null;
+  
+  // Try to find an element with matching src first if we have one
+  if (preferredSrc && window._primedAudioPool.length > 0) {
+    const sourceUrl = this.resolvePath(preferredSrc);
+    for (let i = 0; i < window._primedAudioPool.length; i++) {
+      if (window._primedAudioPool[i].src === sourceUrl) {
+        // Found a matching source, use this element
+        audio = window._primedAudioPool.splice(i, 1)[0];
+        console.log(`[AUDIO POOL] Reused audio with matching src. Remaining: ${window._primedAudioPool.length}`);
+        break;
+      }
+    }
+  }
+  
+  // No matching src found, get any element from pool
+  if (!audio) {
+    audio = window._primedAudioPool.length > 0 ? 
+      window._primedAudioPool.pop() : 
+      new Audio();
+      
+    if (window._primedAudioPool.length > 0) {
+      console.log(`[AUDIO POOL] Reused audio from pool. Remaining: ${window._primedAudioPool.length}`);
+    } else {
+      console.log(`[AUDIO POOL] Created new Audio() element - pool was empty!`);
+    }
+  }
+
+  // Reset properties without clearing src if we're going to set it to the same value
+  audio.loop = false;
+  audio.muted = false;
+  audio.currentTime = 0;
+  audio.volume = 1.0;
+  audio.playbackRate = 1.0;
+
+  // Only clear src if it's different from what we're going to set and we're not on mobile
+  // Mobile devices may need fresh src to avoid Safari bugs
+  if (!preferredSrc || (this.isMobile && Math.random() < 0.5)) {
+    audio.src = "";
+  }
+
+  return audio;
+}
+
+/**
+ * Return an audio element to the pool with improved source handling
+ * @param {HTMLAudioElement} audio - The audio element to return to pool
+ * @param {Object} options - Options for returning the audio
+ */
+_returnAudioToPool(audio, options = {}) {
+  if (!audio) return;
+
+  try {
+    // 1. Remove from tracking collections first
+    const playingIndex = this.currentlyPlaying.indexOf(audio);
+    if (playingIndex !== -1) {
+      this.currentlyPlaying.splice(playingIndex, 1);
     }
 
+    // 2. Stop playback
+    audio.pause();
+
+    // 3. Clear all event listeners to prevent memory leaks
+    audio.onended = null;
+    audio.oncanplay = null;
+    audio.oncanplaythrough = null;
+    audio.onerror = null;
+    audio.onloadeddata = null;
+    audio.onloadedmetadata = null;
+    audio.onpause = null;
+    audio.onplay = null;
+
+    // 4. Reset audio element state
+    audio.currentTime = 0;
+    audio.loop = false;
+    audio.volume = 1.0;
+    audio.playbackRate = 1.0;
+    audio.muted = false;
+
+    // 5. Clear src only if explicitly requested or if audio has an error
+    // This is the key change - we keep the src by default to avoid reloading
+    if (options.clearSrc === true || audio.error) {
+      audio.src = "";
+    }
+
+    // 6. Check pool size and return to pool if not too large
+    const MAX_POOL_SIZE = 20; // Set a reasonable limit
+    if (window._primedAudioPool && window._primedAudioPool.length < MAX_POOL_SIZE) {
+      window._primedAudioPool.push(audio);
+      console.log(`[AUDIO POOL] Returned audio to pool. Size now: ${window._primedAudioPool.length}`);
+    } else {
+      console.log(`[AUDIO POOL] Pool full (${window._primedAudioPool?.length || 0}), not returning audio`);
+      // No reference maintained - let GC handle it
+    }
+  } catch (error) {
+    console.warn("[AUDIO POOL] Error returning audio to pool:", error);
+  }
+}
+
+/**
+ * Play a sound with improved caching
+ * @param {string} category - Sound category
+ * @param {string} name - Sound name
+ * @param {number} [volume] - Optional volume override
+ * @returns {Promise<HTMLAudioElement|null>} - Promise resolving to the played audio or null
+ */
+play(category, name, volume = null) {
+  if (!this.initialized || this.muted) return Promise.resolve(null);
+
+  this.debugInfo.playAttempts++;
+  if (!this.debugInfo.firstPlayTimestamp) {
+    this.debugInfo.firstPlayTimestamp = Date.now();
+  }
+
+  // Special fast path for slap sounds - highest priority for immediate response
+  if (category === "defense" && name === "slap") {
+    // Don't wait for audio context or promises for slap sounds
+    return Promise.resolve(this._playInstantSlap(volume));
+  }
+
+  // Resume AudioContext first (crucial for mobile)
+  return this.resumeAudioContext().then(() => {
+    // Create a unified check of all possible cache locations
+    let sound = null;
+    let soundPath = null;
+    
+    // 1. Check critical sounds cache first (highest priority)
+    if (this._criticalSoundsCache[name]) {
+      sound = this._criticalSoundsCache[name];
+    } 
+    // 2. Then check regular sound cache
+    else if (this.sounds[category] && this.sounds[category][name]) {
+      sound = this.sounds[category][name];
+    }
+    // 3. Determine sound path for loading if needed
+    else if (this.soundFiles[category] && this.soundFiles[category][name]) {
+      soundPath = this.soundFiles[category][name];
+    }
+
+    // If we found a sound in the cache
+    if (sound) {
+      return this._playAudioElement(sound, volume);
+    }
+    
+    // No sound in cache but we have a path - check if already loading
+    const soundKey = `${category}.${name}`;
+    
+    // If already loading, wait for that promise
     if (this.loadingPromises[soundKey]) {
-      return this.loadingPromises[soundKey];
+      return this.loadingPromises[soundKey].then(() => {
+        // After loading, try playing again from cache
+        if (this.sounds[category] && this.sounds[category][name]) {
+          return this._playAudioElement(this.sounds[category][name], volume);
+        } else {
+          // Something went wrong with loading - fall back to direct
+          return this.playDirect(soundPath, volume);
+        }
+      });
+    }
+    
+    // Not in cache and not loading - need to load it
+    if (soundPath) {
+      // Check if this is a high priority sound
+      const isHighPriority = 
+        this.soundPriorities.immediate.includes(name) ||
+        this.soundPriorities.critical.includes(name) ||
+        this.soundPriorities.important.includes(name);
+
+      if (isHighPriority) {
+        // Load with promise for high priority sounds
+        return this._loadSoundWithPromise(category, name).then(() => {
+          if (this.sounds[category] && this.sounds[category][name]) {
+            return this._playAudioElement(this.sounds[category][name], volume);
+          } else {
+            // Fall back to direct method
+            return this.playDirect(soundPath, volume);
+          }
+        });
+      } else {
+        // For low priority, load in background but play direct now
+        this.loadSound(category, name);
+        return Promise.resolve(this.playDirect(soundPath, volume));
+      }
     }
 
-    // Create and track the loading promise
-    const loadPromise = new Promise((resolve, reject) => {
-      try {
-        let soundPath;
-        let destination;
+    // No sound found at all
+    console.warn(`[AUDIO] Sound not found: ${category}.${name}`);
+    return Promise.resolve(null);
+  });
+}
 
-        if (index !== null) {
-          // Array sound (like trump.grab[0])
-          if (!this.soundFiles[category] || !this.soundFiles[category][name] || !this.soundFiles[category][name][index]) {
-            return resolve(false);
-          }
+/**
+ * Play an audio element directly with improved handling
+ * @param {string} soundPath - Path to the sound file
+ * @param {number} [volume] - Optional volume override
+ * @returns {HTMLAudioElement|null} - The played audio element or null
+ */
+playDirect(soundPath, volume = null) {
+  if (!this.initialized || this.muted) return null;
 
-          soundPath = this.soundFiles[category][name][index];
+  try {
+    // Get an audio element from pool, optimized for this source
+    const audio = this._getOrCreatePrimedAudio(soundPath);
 
-          // Make sure the array exists
-          if (!this.sounds[category][name]) {
-            this.sounds[category][name] = [];
-          }
+    // Set properties
+    audio.loop = false;
+    audio.muted = false;
+    audio.currentTime = 0;
 
-          destination = this.sounds[category][name];
-        } else {
-          // Named sound (like ui.click)
-          if (!this.soundFiles[category] || !this.soundFiles[category][name]) {
-            return resolve(false);
-          }
+    // Only set source if it's different from current
+    const fullPath = this.resolvePath(soundPath);
+    if (audio.src !== fullPath) {
+      audio.src = fullPath;
+    }
+    
+    audio.volume = volume !== null ? volume : this.volume;
 
-          soundPath = this.soundFiles[category][name];
-          destination = this.sounds[category];
+    // Add to tracking
+    this.currentlyPlaying.push(audio);
+
+    // Set up ended handler for cleanup using our improved method
+    audio.onended = () => {
+      // Keep the source when returning to pool by default
+      this._returnAudioToPool(audio, { clearSrc: false });
+    };
+
+    // Play it
+    const playPromise = audio.play();
+
+    if (playPromise) {
+      playPromise.catch((error) => {
+        console.warn(`[AUDIO] Play failed for ${soundPath}:`, error);
+        // Return to pool on failure, but clear src due to error
+        this._returnAudioToPool(audio, { clearSrc: true });
+      });
+    }
+
+    return audio;
+  } catch (e) {
+    console.warn(`[AUDIO] Error in playDirect:`, e);
+    return null;
+  }
+}
+
+/**
+ * Play an audio element immediately with improved handling
+ * @param {HTMLAudioElement} audioElement - The audio element to play
+ * @param {number} volume - Optional volume override
+ * @returns {Promise<HTMLAudioElement|null>} - Promise resolving to the played audio or null
+ */
+_playAudioElement(audioElement, volume = null) {
+  if (!audioElement || typeof audioElement.play !== "function") {
+    return Promise.resolve(null);
+  }
+
+  // Check if audio is already playing - don't restart unless we need to
+  const needsRestart = audioElement.paused || audioElement.ended || audioElement.currentTime > 0.1;
+  
+  // Only reset currentTime if we need to restart
+  if (needsRestart) {
+    audioElement.currentTime = 0;
+  }
+  
+  // Always update the volume
+  audioElement.volume = volume !== null ? volume : this.volume;
+
+  try {
+    // If already playing and we don't need to restart, just resolve
+    if (!needsRestart && !audioElement.paused) {
+      // Make sure it's in the currently playing list
+      if (!this.currentlyPlaying.includes(audioElement)) {
+        this.currentlyPlaying.push(audioElement);
+      }
+      return Promise.resolve(audioElement);
+    }
+    
+    const playPromise = audioElement.play();
+
+    // Add to currently playing
+    if (!this.currentlyPlaying.includes(audioElement)) {
+      this.currentlyPlaying.push(audioElement);
+    }
+
+    if (playPromise !== undefined) {
+      return playPromise.catch((error) => {
+        // Remove from currently playing if failed
+        const index = this.currentlyPlaying.indexOf(audioElement);
+        if (index !== -1) {
+          this.currentlyPlaying.splice(index, 1);
         }
 
-        // Get an audio element (from pool if available)
-        const audio = this._getOrCreatePrimedAudio();
-        audio.preload = "auto";
+        // Fall back to direct method
+        if (error.name === "NotAllowedError") {
+          // This is likely due to user interaction requirement
+          // Return direct play as fallback
+          return this.playDirect(audioElement.src, volume);
+        }
 
-        // Track load success
-        audio.oncanplaythrough = () => {
-          if (index !== null) {
-            // Push to array
-            destination[index] = audio;
-          } else {
-            // Set named property
-            destination[name] = audio;
+        return null;
+      });
+    }
+
+    return Promise.resolve(audioElement);
+  } catch (e) {
+    // Remove from currently playing if failed
+    const index = this.currentlyPlaying.indexOf(audioElement);
+    if (index !== -1) {
+      this.currentlyPlaying.splice(index, 1);
+    }
+
+    // Try direct play as fallback
+    return Promise.resolve(this.playDirect(audioElement.src, volume));
+  }
+}
+
+/**
+ * Load a sound with promise tracking - improved version
+ * @param {string} category - Sound category
+ * @param {string} name - Sound name
+ * @param {number|null} index - Optional index for array sounds
+ * @returns {Promise<boolean>} - Promise resolving to success state
+ */
+_loadSoundWithPromise(category, name, index = null) {
+  // Create a unique key for this sound
+  const soundKey = index !== null ? `${category}.${name}.${index}` : `${category}.${name}`;
+
+  // Don't reload if already loaded
+  if (this.loadedSounds.has(soundKey)) {
+    return Promise.resolve(true);
+  }
+
+  // Return existing promise if already loading
+  if (this.loadingPromises[soundKey]) {
+    return this.loadingPromises[soundKey];
+  }
+
+  // Create and track the loading promise
+  const loadPromise = new Promise((resolve, reject) => {
+    try {
+      let soundPath;
+      let destination;
+
+      if (index !== null) {
+        // Array sound (like trump.grab[0])
+        if (!this.soundFiles[category] || !this.soundFiles[category][name] || !this.soundFiles[category][name][index]) {
+          return resolve(false);
+        }
+
+        soundPath = this.soundFiles[category][name][index];
+
+        // Make sure the array exists
+        if (!this.sounds[category][name]) {
+          this.sounds[category][name] = [];
+        }
+
+        destination = this.sounds[category][name];
+      } else {
+        // Named sound (like ui.click)
+        if (!this.soundFiles[category] || !this.soundFiles[category][name]) {
+          return resolve(false);
+        }
+
+        soundPath = this.soundFiles[category][name];
+        destination = this.sounds[category];
+      }
+
+      // Get an audio element optimized for this source
+      const audio = this._getOrCreatePrimedAudio(soundPath);
+      audio.preload = "auto";
+
+      // Track load success
+      audio.oncanplaythrough = () => {
+        if (index !== null) {
+          // Push to array
+          destination[index] = audio;
+        } else {
+          // Set named property
+          destination[name] = audio;
+        }
+
+        this.loadedSounds.add(soundKey);
+        delete this.loadingPromises[soundKey];
+
+        // Special handling for slap sounds - add to instant cache
+        if (category === "defense" && name === "slap") {
+          if (!this._instantSlapSounds) {
+            this._instantSlapSounds = [];
           }
-
-          this.loadedSounds.add(soundKey);
-          delete this.loadingPromises[soundKey];
-
-          // Special handling for slap sounds - add to instant cache
-          if (category === "defense" && name === "slap") {
-            if (!this._instantSlapSounds) {
-              this._instantSlapSounds = [];
-            }
+          if (!this._instantSlapSounds.includes(audio)) {
             this._instantSlapSounds.push(audio);
           }
+        }
 
-          // Add to critical cache if it's a critical sound
-          const filename = soundPath.split("/").pop();
-          if (
-            this.soundPriorities.immediate.includes(filename) ||
-            this.soundPriorities.critical.includes(filename) ||
-            this.soundPriorities.critical.includes(name)
-          ) {
-            this._criticalSoundsCache[name] = audio;
-          }
+        // Add to critical cache if it's a critical sound
+        const filename = soundPath.split("/").pop();
+        if (
+          this.soundPriorities.immediate.includes(filename) ||
+          this.soundPriorities.critical.includes(filename) ||
+          this.soundPriorities.critical.includes(name)
+        ) {
+          this._criticalSoundsCache[name] = audio;
+        }
 
-          resolve(true);
-        };
+        resolve(true);
+      };
 
-        // Error handler
-        audio.onerror = (e) => {
-          console.error(`[AUDIO] Error loading sound ${soundPath}`);
-          delete this.loadingPromises[soundKey];
-          resolve(false); // Resolve with false instead of reject to avoid breaking promise chains
-        };
-
-        // Set source and load
-        audio.src = this.resolvePath(soundPath);
-        audio.load();
-      } catch (error) {
-        console.error(`[AUDIO] Error in sound loading: ${error.message}`);
+      // Error handler
+      audio.onerror = (e) => {
+        console.error(`[AUDIO] Error loading sound ${soundPath}`);
         delete this.loadingPromises[soundKey];
-        resolve(false);
+        resolve(false); // Resolve with false instead of reject to avoid breaking promise chains
+      };
+
+      // Set source and load only if different
+      const fullPath = this.resolvePath(soundPath);
+      if (audio.src !== fullPath) {
+        audio.src = fullPath;
+        audio.load();
       }
-    });
+    } catch (error) {
+      console.error(`[AUDIO] Error in sound loading: ${error.message}`);
+      delete this.loadingPromises[soundKey];
+      resolve(false);
+    }
+  });
 
-    // Store the promise for future reference
-    this.loadingPromises[soundKey] = loadPromise;
+  // Store the promise for future reference
+  this.loadingPromises[soundKey] = loadPromise;
 
-    return loadPromise;
-  }
+  return loadPromise;
+}
 
   /**
    * Load a sound into the cache
@@ -1326,67 +1581,7 @@ class AudioManager {
     }
   }
 
-  /**
-   * Play a sound
-   */
-  play(category, name, volume = null) {
-    if (!this.initialized || this.muted) return Promise.resolve(null);
-
-    this.debugInfo.playAttempts++;
-    if (!this.debugInfo.firstPlayTimestamp) {
-      this.debugInfo.firstPlayTimestamp = Date.now();
-    }
-
-    // Special fast path for slap sounds - highest priority for immediate response
-    if (category === "defense" && name === "slap") {
-      // Don't wait for audio context or promises for slap sounds
-      // Return the result directly, not wrapped in a promise
-      return Promise.resolve(this._playInstantSlap(volume));
-    }
-
-    // Resume AudioContext first (crucial for mobile)
-    return this.resumeAudioContext().then(() => {
-      // FAST PATH: Check critical sounds cache first for immediate playback
-      if (this._criticalSoundsCache[name]) {
-        const criticalSound = this._criticalSoundsCache[name];
-        return this._playAudioElement(criticalSound, volume);
-      }
-
-      // Check if the sound exists in our cache
-      if (this.sounds[category] && this.sounds[category][name]) {
-        const sound = this.sounds[category][name];
-        return this._playAudioElement(sound, volume);
-      }
-
-      // Not in cache - need to check if we need to load it
-      if (!this.loadedSounds.has(`${category}.${name}`)) {
-        // If high priority sound, load immediately
-        const isHighPriority =
-          this.soundPriorities.immediate.includes(name) ||
-          this.soundPriorities.critical.includes(name) ||
-          this.soundPriorities.important.includes(name);
-
-        if (isHighPriority) {
-          // Load then play immediately
-          return this._loadSoundWithPromise(category, name).then(() => {
-            if (this.sounds[category] && this.sounds[category][name]) {
-              return this._playAudioElement(this.sounds[category][name], volume);
-            } else {
-              // Fall back to direct method
-              return this.playDirect(this.soundFiles[category][name], volume);
-            }
-          });
-        } else {
-          // For low priority, load in background but play direct now
-          this.loadSound(category, name);
-          return Promise.resolve(this.playDirect(this.soundFiles[category][name], volume));
-        }
-      }
-
-      // Fall back to direct play
-      return Promise.resolve(this.playDirect(this.soundFiles[category][name], volume));
-    });
-  }
+ 
 
   /**
    * Play a sound from a randomly selected file within a category
@@ -1407,55 +1602,8 @@ class AudioManager {
     return this.playDirect(soundFile, volume);
   }
 
-  /**
-   * Play an audio element immediately
-   */
-  _playAudioElement(audioElement, volume = null) {
-    if (!audioElement || typeof audioElement.play !== "function") {
-      return Promise.resolve(null);
-    }
 
-    // Reset and play
-    audioElement.currentTime = 0;
-    audioElement.volume = volume !== null ? volume : this.volume;
-
-    try {
-      const playPromise = audioElement.play();
-
-      // Add to currently playing
-      this.currentlyPlaying.push(audioElement);
-
-      if (playPromise !== undefined) {
-        return playPromise.catch((error) => {
-          // Remove from currently playing if failed
-          const index = this.currentlyPlaying.indexOf(audioElement);
-          if (index !== -1) {
-            this.currentlyPlaying.splice(index, 1);
-          }
-
-          // Fall back to direct method
-          if (error.name === "NotAllowedError") {
-            // This is likely due to user interaction requirement
-            // Return direct play as fallback
-            return this.playDirect(audioElement.src, volume);
-          }
-
-          return null;
-        });
-      }
-
-      return Promise.resolve(audioElement);
-    } catch (e) {
-      // Remove from currently playing if failed
-      const index = this.currentlyPlaying.indexOf(audioElement);
-      if (index !== -1) {
-        this.currentlyPlaying.splice(index, 1);
-      }
-
-      // Try direct play as fallback
-      return Promise.resolve(this.playDirect(audioElement.src, volume));
-    }
-  }
+  
 
   /**
    * Play a slap sound with optimized path for instant response
@@ -1503,50 +1651,8 @@ class AudioManager {
     return this.playDirect(slapPath, volume);
   }
 
-  /**
-   * Play a sound directly (create a new audio element)
-   */
-  playDirect(soundPath, volume = null) {
-    if (!this.initialized || this.muted) return null;
 
-    try {
-      // Get an audio element from pool
-      const audio = this._getOrCreatePrimedAudio();
-
-      // Set properties
-      audio.loop = false;
-      audio.muted = false;
-      audio.currentTime = 0;
-
-      // Set source and volume
-      audio.src = this.resolvePath(soundPath);
-      audio.volume = volume !== null ? volume : this.volume;
-
-      // Add to tracking
-      this.currentlyPlaying.push(audio);
-
-      // Set up ended handler for cleanup using our new method
-      audio.onended = () => {
-        this._returnAudioToPool(audio);
-      };
-
-      // Play it
-      const playPromise = audio.play();
-
-      if (playPromise) {
-        playPromise.catch((error) => {
-          console.warn(`[AUDIO] Play failed for ${soundPath}:`, error);
-          // Return to pool on failure
-          this._returnAudioToPool(audio);
-        });
-      }
-
-      return audio;
-    } catch (e) {
-      console.warn(`[AUDIO] Error in playDirect:`, e);
-      return null;
-    }
-  }
+  
 
 
 

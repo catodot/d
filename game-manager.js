@@ -3722,11 +3722,11 @@ class GlowOutline {
               }
 
               .record-button-glow.recording::before {
-                  --glow-color: rgba(231, 76, 60, 1);
+                  --glow-color: rgba(231, 76, 60, .9);
               }
 
               .record-button-glow.waiting::before {
-                  --glow-color: rgba(243, 156, 18, 1);
+                  --glow-color: rgba(243, 156, 18, .9);
               }
           `;
       document.head.appendChild(styleElement);
@@ -5277,13 +5277,13 @@ class ProtestorHitboxManager {
           height: 300,
           calibrationScale: 0.24,
         },
-        // {
-        //   x: 608, //ed
-        //   y: 1300,
-        //   width: 300,
-        //   height: 300,
-        //   calibrationScale: 0.24,
-        // },
+        {
+          x: 608, //ed
+          y: 1300,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
         {
           x: 508, //wh
           y: 1100,
@@ -5298,20 +5298,20 @@ class ProtestorHitboxManager {
           height: 300,
           calibrationScale: 0.24,
         },
-        // {
-        //   x: 791, //sask
-        //   y: 1300,
-        //   width: 300,
-        //   height: 300,
-        //   calibrationScale: 0.24,
-        // },
-        // {
-        //   x: 891, //win
-        //   y: 900,
-        //   width: 300,
-        //   height: 300,
-        //   calibrationScale: 0.24,
-        // },
+        {
+          x: 791, //sask checked
+          y: 1300,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
+        {
+          x: 891, //nwt checked
+          y: 900,
+          width: 300,
+          height: 300,
+          calibrationScale: 0.24,
+        },
         // {
         //   x: 991, //tor
         //   y: 1500,
@@ -7159,17 +7159,16 @@ class Protestor {
 
   // Create wrapper with glow
   _createWrapper(left, top, width, height) {
-    // Use GlowOutline to create wrapper (assuming this is defined elsewhere)
     const glowOutline = new GlowOutline();
     const wrapper = glowOutline.create({
       parentId: this.countryId,
       position: { left, top },
       size: { width, height },
       color: "#FFD700", // Gold color
-      zIndex: 10210,
+      zIndex: 10,
     });
     wrapper.id = `${this.countryId}-protestors-wrapper`;
-    
+    // wrapper.classList.add("protestor-underglow");
     return wrapper;
   }
 
@@ -7940,7 +7939,7 @@ class FreedomManager {
     REGENERATION_DELAY: 8000, // After protestors disappear (fade or liberate), wait 60 seconds before next group appears
 
     // USA protestors
-    USA_INITIAL_APPEARANCE_THRESHOLD: 0.55, // USA protestors first appear when 10% of total game time has elapsed
+    USA_INITIAL_APPEARANCE_THRESHOLD: 0.5, // USA protestors first appear when 10% of total game time has elapsed
     USA_REAPPEAR_MIN_TIME: 15000, // After USA protestors disappear, wait at least 20 seconds before next group
     USA_REAPPEAR_MAX_TIME: 20000, // After USA protestors disappear, wait at most 1 second before next group
   };
