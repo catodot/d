@@ -867,9 +867,15 @@ class AudioManager {
    * Load a sound by name
    */
   _loadSoundByName(name) {
+    // First check if this sound is already loaded anywhere
+    if (this._isSoundLoaded(name)) {
+      console.log(`[AUDIO] Sound ${name} already loaded, skipping redownload`);
+      return;
+    }
+  
     // Helper function to extract filename from path
     const getFilename = (path) => path.split("/").pop();
-
+  
     // First check defense sounds - specifically slap which is critical
     if (Array.isArray(this.soundFiles.defense.slap)) {
       for (let i = 0; i < this.soundFiles.defense.slap.length; i++) {
@@ -920,7 +926,7 @@ class AudioManager {
  * @param {string} [preferredSrc] - Optional preferred source to match
  * @returns {HTMLAudioElement} - An audio element from the pool or a new one
  */
-_getOrCreatePrimedAudio(preferredSrc = null) {
+ _getOrCreatePrimedAudio(preferredSrc = null) {
   // Make sure pool exists
   if (!window._primedAudioPool) {
     window._primedAudioPool = [];
@@ -961,13 +967,56 @@ _getOrCreatePrimedAudio(preferredSrc = null) {
   audio.volume = 1.0;
   audio.playbackRate = 1.0;
 
-  // Only clear src if it's different from what we're going to set and we're not on mobile
-  // Mobile devices may need fresh src to avoid Safari bugs
-  if (!preferredSrc || (this.isMobile && Math.random() < 0.5)) {
+  // Only clear src if it's different from what we're going to set
+  // IMPORTANT FIX: Removed the random source clearing on mobile
+  if (!preferredSrc) {
     audio.src = "";
   }
 
   return audio;
+}
+
+/**
+ * Check if a sound file is already loaded in any category
+ * @param {string} filename - The filename to check
+ * @returns {boolean} - True if already loaded
+ */
+_isSoundLoaded(filename) {
+  if (!filename) return false;
+  
+  // Extract just the base filename if full path is provided
+  const baseName = filename.includes('/') ? 
+    filename.split('/').pop() : filename;
+  
+  // Check critical sounds cache first (fastest lookup)
+  if (this._criticalSoundsCache[baseName]) {
+    return true;
+  }
+  
+  // Check all sound objects in our hierarchical structure
+  for (const category in this.sounds) {
+    for (const name in this.sounds[category]) {
+      const soundObj = this.sounds[category][name];
+      
+      // Handle array of sounds (like slap sounds)
+      if (Array.isArray(soundObj)) {
+        for (const sound of soundObj) {
+          if (sound && sound.src && 
+              (sound.src.endsWith(baseName) || sound.src.includes(baseName))) {
+            return true;
+          }
+        }
+      } 
+      // Handle direct sound objects
+      else if (soundObj && typeof soundObj === 'object' && soundObj.src) {
+        if (soundObj.src.endsWith(baseName) || soundObj.src.includes(baseName)) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
 }
 
 /**
@@ -1007,8 +1056,16 @@ _returnAudioToPool(audio, options = {}) {
 
     // 5. Clear src only if explicitly requested or if audio has an error
     // This is the key change - we keep the src by default to avoid reloading
+    // if (options.clearSrc === true || audio.error) {
+    //   audio.src = "";
+    // }
+
+
     if (options.clearSrc === true || audio.error) {
       audio.src = "";
+    } else {
+      // For Safari/iOS, we might want to maintain the 'currentSrc' in a property
+      audio._lastSrc = audio.src;
     }
 
     // 6. Check pool size and return to pool if not too large
@@ -1025,6 +1082,29 @@ _returnAudioToPool(audio, options = {}) {
   }
 }
 
+
+
+_isSoundLoaded(filename) {
+  // Check if this exact filename is already in any category
+  for (const category in this.sounds) {
+    for (const name in this.sounds[category]) {
+      if (typeof this.sounds[category][name] === 'object' && 
+          this.sounds[category][name].src && 
+          this.sounds[category][name].src.endsWith(filename)) {
+        return true;
+      } else if (Array.isArray(this.sounds[category][name])) {
+        for (const sound of this.sounds[category][name]) {
+          if (sound && sound.src && sound.src.endsWith(filename)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+
 /**
  * Play a sound with improved caching
  * @param {string} category - Sound category
@@ -1032,6 +1112,7 @@ _returnAudioToPool(audio, options = {}) {
  * @param {number} [volume] - Optional volume override
  * @returns {Promise<HTMLAudioElement|null>} - Promise resolving to the played audio or null
  */
+
 play(category, name, volume = null) {
   if (!this.initialized || this.muted) return Promise.resolve(null);
 
@@ -1046,34 +1127,46 @@ play(category, name, volume = null) {
     return Promise.resolve(this._playInstantSlap(volume));
   }
 
-  // Resume AudioContext first (crucial for mobile)
-  return this.resumeAudioContext().then(() => {
-    // Create a unified check of all possible cache locations
-    let sound = null;
-    let soundPath = null;
-    
-    // 1. Check critical sounds cache first (highest priority)
-    if (this._criticalSoundsCache[name]) {
-      sound = this._criticalSoundsCache[name];
-    } 
-    // 2. Then check regular sound cache
-    else if (this.sounds[category] && this.sounds[category][name]) {
-      sound = this.sounds[category][name];
-    }
-    // 3. Determine sound path for loading if needed
-    else if (this.soundFiles[category] && this.soundFiles[category][name]) {
-      soundPath = this.soundFiles[category][name];
-    }
+  // Check all sound caches first (including critical sounds)
+  const soundKey = `${category}.${name}`;
+  let sound = null;
+  
+  // Check various places where the sound might be stored
+  if (this._criticalSoundsCache[name]) {
+    sound = this._criticalSoundsCache[name];
+  } else if (this.sounds[category] && this.sounds[category][name]) {
+    sound = this.sounds[category][name];
+  }
+  
+  // If we found a sound in the cache and loadedSounds confirms it's ready
+  if (sound && this.loadedSounds.has(soundKey)) {
+    return this._playAudioElement(sound, volume);
+  }
 
-    // If we found a sound in the cache
+  // No valid cached sound found - Resume AudioContext first (crucial for mobile)
+  return this.resumeAudioContext().then(() => {
+    // We need to check again after resume since we might have found sound but it wasn't loaded
+    if (!sound) {
+      // Check critical sounds cache again (might have been loaded in the meantime)
+      if (this._criticalSoundsCache[name]) {
+        sound = this._criticalSoundsCache[name];
+      } else if (this.sounds[category] && this.sounds[category][name]) {
+        sound = this.sounds[category][name];
+      }
+    }
+    
+    // If we found a sound in the cache now
     if (sound) {
       return this._playAudioElement(sound, volume);
     }
     
-    // No sound in cache but we have a path - check if already loading
-    const soundKey = `${category}.${name}`;
+    // Determine sound path for loading if needed
+    let soundPath = null;
+    if (this.soundFiles[category] && this.soundFiles[category][name]) {
+      soundPath = this.soundFiles[category][name];
+    }
     
-    // If already loading, wait for that promise
+    // No sound in cache but we have a path - check if already loading
     if (this.loadingPromises[soundKey]) {
       return this.loadingPromises[soundKey].then(() => {
         // After loading, try playing again from cache
@@ -1262,6 +1355,30 @@ _loadSoundWithPromise(category, name, index = null) {
     return this.loadingPromises[soundKey];
   }
 
+  let soundPath;
+  
+  // Determine the sound path
+  if (index !== null) {
+    // Array sound
+    if (!this.soundFiles[category] || !this.soundFiles[category][name] || !this.soundFiles[category][name][index]) {
+      return Promise.resolve(false);
+    }
+    soundPath = this.soundFiles[category][name][index];
+  } else {
+    // Named sound
+    if (!this.soundFiles[category] || !this.soundFiles[category][name]) {
+      return Promise.resolve(false);
+    }
+    soundPath = this.soundFiles[category][name];
+  }
+  
+  // Check if this exact file is already loaded somewhere else
+  if (this._isSoundLoaded(soundPath)) {
+    console.log(`[AUDIO] Sound ${soundPath} already loaded in another category, skipping redownload`);
+    this.loadedSounds.add(soundKey); // Mark as loaded in this category too
+    return Promise.resolve(true);
+  }
+
   // Create and track the loading promise
   const loadPromise = new Promise((resolve, reject) => {
     try {
@@ -1366,42 +1483,52 @@ _loadSoundWithPromise(category, name, index = null) {
     const soundKey = index !== null ? `${category}.${name}.${index}` : `${category}.${name}`;
 
     // Skip if already loaded
-    if (this.loadedSounds.has(soundKey)) {
-      return null;
-    }
+  if (this.loadedSounds.has(soundKey)) {
+    return null;
+  }
 
-    if (category === "music" && name === "background" && this.backgroundMusicPlaying && this.backgroundMusic) {
-      console.log("[AUDIO] Skipping background music load since it's already playing");
-      return this.backgroundMusic;
-    }
+  let soundPath;
+  let destination;
 
-    let soundPath;
-    let destination;
-
-    try {
-      if (index !== null) {
-        // Array sound (like trump.grab[0])
-        if (!this.soundFiles[category] || !this.soundFiles[category][name] || !this.soundFiles[category][name][index]) {
-          return null;
-        }
-
-        soundPath = this.soundFiles[category][name][index];
-
-        // Make sure the array exists
-        if (!this.sounds[category][name]) {
-          this.sounds[category][name] = [];
-        }
-
-        destination = this.sounds[category][name];
-      } else {
-        // Named sound (like ui.click)
-        if (!this.soundFiles[category] || !this.soundFiles[category][name]) {
-          return null;
-        }
-
-        soundPath = this.soundFiles[category][name];
-        destination = this.sounds[category];
+  try {
+    if (index !== null) {
+      // Array sound (like trump.grab[0])
+      if (!this.soundFiles[category] || !this.soundFiles[category][name] || !this.soundFiles[category][name][index]) {
+        return null;
       }
+
+      soundPath = this.soundFiles[category][name][index];
+      
+      // Check if this exact file is already loaded somewhere else
+      if (this._isSoundLoaded(soundPath)) {
+        console.log(`[AUDIO] Sound ${soundPath} already loaded in another category, skipping redownload`);
+        this.loadedSounds.add(soundKey); // Mark as loaded in this category too
+        return null;
+      }
+
+      // Make sure the array exists
+      if (!this.sounds[category][name]) {
+        this.sounds[category][name] = [];
+      }
+
+      destination = this.sounds[category][name];
+    } else {
+      // Named sound (like ui.click)
+      if (!this.soundFiles[category] || !this.soundFiles[category][name]) {
+        return null;
+      }
+
+      soundPath = this.soundFiles[category][name];
+      
+      // Check if already loaded elsewhere
+      if (this._isSoundLoaded(soundPath)) {
+        console.log(`[AUDIO] Sound ${soundPath} already loaded in another category, skipping redownload`);
+        this.loadedSounds.add(soundKey); // Mark as loaded in this category too
+        return null;
+      }
+      
+      destination = this.sounds[category];
+    }
 
       // Create and load the audio (try to get from pool)
       const audio = this._getOrCreatePrimedAudio();
