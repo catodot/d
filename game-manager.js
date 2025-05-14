@@ -40,19 +40,19 @@ class GameEngine {
       trump_victory: {
         trumpAnimation: "victory",
         audioSequence: ["beenVeryNiceToYou", "lose"],
-        message: "TRUMP TOOK ALL THE COUNTRIES!",
+        message: "'Resistance never dies' refers to the resilient nature of resistance in oppressive systems, according to an Amazon.ca listing",
         playerWon: false,
       },
       resistance_win: {
         trumpAnimation: "slapped",
         audioSequence: ["fourYears", "win"],
-        message: "elections cancelled, forever",
+        message: "We SURVIVED FOUR YEARS!!! ELECTION TIME!!! right???",
         playerWon: true,
       },
       trump_destroyed: {
         trumpAnimation: "slapped",
         audioSequence: ["beenVeryNiceToYou", "win"],
-        message: "VICTORY! TRUMP IS PEA-SIZED!",
+        message: "Honey, you shrunk that junky skunky lunk! ♡♡♡ Next up, land back?",
         playerWon: true,
       },
     };
@@ -171,16 +171,16 @@ class GameEngine {
         if (this.systems.state.isPlaying && !this.systems.state.isPaused) {
           // Set a flag to indicate this was auto-paused due to visibility change
           this.systems.state.autopaused = true;
-          
+
           // If a grab is in progress, force-complete it
           if (this.systems.state.currentTarget) {
             console.log("Tab change detected during grab - forcing grab completion");
             this.grabSuccess(this.systems.state.currentTarget);
           }
-          
+
           // Use the existing pause functionality
           this.togglePause();
-          
+
           // Also pause audio to prevent sound playing in background tab
           if (this.systems.audio) {
             this.systems.audio.pauseAll();
@@ -191,7 +191,7 @@ class GameEngine {
         if (this.systems.state.isPlaying && this.systems.state.isPaused && this.systems.state.autopaused) {
           // Remove auto-pause flag
           this.systems.state.autopaused = false;
-          
+
           // Resume the game
           this.togglePause();
         }
@@ -248,9 +248,9 @@ class GameEngine {
     this.systems.ui.positionElements();
 
     const mapBackground = document.getElementById("map-background");
-if (mapBackground) {
-  mapBackground.addEventListener("click", this.handleGlobeClick);
-}
+    if (mapBackground) {
+      mapBackground.addEventListener("click", this.handleGlobeClick);
+    }
 
     // Start game loop
     this._startGameLoop();
@@ -341,6 +341,14 @@ if (mapBackground) {
     return overlay;
   }
 
+  makeAllCountriesLostAnnouncement() {
+    // Get the speed manager for announcements
+    if (window.speedManager) {
+      const announcementText = "ALL COUNTRIES LOST!";
+      window.speedManager.showNotification(announcementText);
+    }
+  }
+
   triggerGameEnd(endState, endReason = "unspecified") {
     // Guard against multiple calls
     if (this.systems.state.gameEnding) {
@@ -363,6 +371,10 @@ if (mapBackground) {
 
     if (window.speedManager) {
       window.speedManager.stopSpeedProgression();
+    }
+
+    if (endState === this.END_STATES.TRUMP_VICTORY && endReason === "all_countries_claimed") {
+      this.makeAllCountriesLostAnnouncement();
     }
 
     // Validate and get end sequence
@@ -411,8 +423,6 @@ if (mapBackground) {
       // 2. Create flash effect and overlay
       const overlay = this._createEndOverlay(sequence.message);
 
-      // 3. Play ending sounds - using dedicated method
-
       // 4. After animation delay, start world shrink but keep overlay visible
       setTimeout(() => {
         this._playEndGameSounds(sequence);
@@ -430,12 +440,12 @@ if (mapBackground) {
                 overlay.parentNode.removeChild(overlay);
               }
               this._showFullGameOverScreen(sequence.playerWon);
-            }, 800);
+            }, 1100);
           } else {
             // If overlay is gone somehow, just show game over screen
             this._showFullGameOverScreen(sequence.playerWon);
           }
-        }, 3000);
+        }, 6000);
       }, 2500);
 
       return true;
@@ -774,44 +784,50 @@ if (mapBackground) {
 
   grabSuccess(country) {
     console.log(`[Game] Grab success for ${country}`);
-    
+
     // Reset consecutive hits
     this.systems.state.consecutiveHits = 0;
-    
-    // Apply visual effect if available
+
+    // Apply visual effect if available - pass the actual east/west Canada
     if (window.trumpHandEffects) {
       window.trumpHandEffects.applyGrabSuccessEffect(country);
     }
-  
+
     // Determine the actual country to update (handle Canada special case)
     const isCanada = country === "eastCanada" || country === "westCanada";
     const targetCountry = isCanada ? "canada" : country;
-    
+
     // Get current state for the country
     const state = this.systems.state;
     const countryState = state.countries[targetCountry];
-    
+
     if (!countryState) {
       console.error(`[Game] Country state not found for ${targetCountry}`);
       return;
     }
-    
+
     // Update claims with bounds checking
     const newClaims = Math.min(countryState.claims + 1, countryState.maxClaims);
+    const previousClaims = countryState.claims;
     countryState.claims = newClaims;
-    
+
     console.log(`[Game] Updated claims for ${targetCountry}: ${countryState.claims}/${countryState.maxClaims}`);
-  
+
     // Update UI
     this.systems.ui.updateFlagOverlay(targetCountry, countryState.claims);
-    
-    // Play appropriate audio
+
+    // Play appropriate audio and make announcement
     if (isCanada) {
       this._handleCanadaGrab(country);
     } else {
       this._handleStandardCountryGrab(country);
     }
-  
+
+    // ANNOUNCEMENT: Check if country was fully annexed
+    if (previousClaims < countryState.maxClaims && newClaims >= countryState.maxClaims) {
+      this.makeCountryAnnexationAnnouncement(targetCountry);
+    }
+
     // Check if this is the game-winning grab
     const isGameOver = this._checkGameOverCondition();
     if (isGameOver) {
@@ -819,59 +835,41 @@ if (mapBackground) {
       this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY, "all_countries_claimed");
       return;
     }
-  
+
     // Continue game progression if game isn't over
     this._proceedWithGameProgression();
   }
-  
-  
-  // grabSuccess(country) {
-  //   console.log("iii grabsucess!");
-  //   console.log(`iii FULL COUNTRY STATE BEFORE GRAB:`, JSON.stringify(this.systems.state.countries, null, 2));
-  //   console.log(`iii country being grabbed: ${country}`);
-    
-  //   // Reset consecutive hits
-  //   this.systems.state.consecutiveHits = 0;
-  //   window.trumpHandEffects.applyGrabSuccessEffect(country);
-  
-  //   // Check if this is the game-winning grab
-  //   const isGameOver = this._checkGameOverCondition();
-  
-  //   if (isGameOver) {
-  //     console.log("game is over grabSuccess");
-  //     this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY, "all_countries_claimed");
-  //     return; // Important! Don't continue execution
-  //   }
-  
-  //   // Handle country grab (visual updates)
-  //   this._updateCountryClaims(country);
-  
-  //   console.log(`iii FULL COUNTRY STATE AFTER GRAB:`, JSON.stringify(this.systems.state.countries, null, 2));
-  
-  //   // Handle game progression
-  //   this._proceedWithGameProgression();
-  // }
-  
+
+  makeCountryAnnexationAnnouncement(countryId) {
+    // Get the speed manager for announcements
+    if (window.speedManager) {
+      const announcementText = `${countryId.toUpperCase()} LOST!`;
+      window.speedManager.showNotification(announcementText);
+
+      // Play country-specific annexation cry
+      if (this.systems.audio) {
+        this.systems.audio.play("ui", `${countryId}Lost`, 0.8);
+      }
+    }
+  }
+
   _updateCountryClaims(country) {
     console.log("iii updating country claims!");
-  
+
     const state = this.systems.state;
     const isCanada = country === "eastCanada" || country === "westCanada";
     const targetCountry = isCanada ? "canada" : country;
-  
+
     console.log(`iii target country: ${targetCountry}`);
     console.log(`iii current claims: ${state.countries[targetCountry].claims}`);
     console.log(`iii max claims: ${state.countries[targetCountry].maxClaims}`);
-  
-    state.countries[targetCountry].claims = Math.min(
-      state.countries[targetCountry].claims + 1, 
-      state.countries[targetCountry].maxClaims
-    );
-  
+
+    state.countries[targetCountry].claims = Math.min(state.countries[targetCountry].claims + 1, state.countries[targetCountry].maxClaims);
+
     console.log(`iii claims after increment: ${state.countries[targetCountry].claims}`);
-  
+
     this.systems.ui.updateFlagOverlay(isCanada ? "canada" : country, state.countries[targetCountry].claims);
-  
+
     try {
       if (country === "eastCanada" || country === "westCanada") {
         this._handleCanadaGrab(country);
@@ -957,7 +955,6 @@ if (mapBackground) {
     this.grabSuccess = this.grabSuccess.bind(this);
     this.handleGlobeClick = this.handleGlobeClick.bind(this);
 
-
     // Game flow control
     this.togglePause = this.togglePause.bind(this);
     this.startGame = this.startGame.bind(this);
@@ -1011,8 +1008,7 @@ if (mapBackground) {
             this.systems.audio,
             {}, // Default config
             this, // Pass the game engine instance
-            this.systems.animation,
-
+            this.systems.animation
           );
         } catch (error) {
           console.error("aaa Error creating FreedomManager:", error);
@@ -1053,7 +1049,6 @@ if (mapBackground) {
     this.systems.input.connectUI(this.systems.ui);
 
     this.systems.state.setGameEngine(this);
-
   }
 
   /**
@@ -1122,50 +1117,48 @@ if (mapBackground) {
     }
   }
 
+  /**
+   * Adds event listeners with proper tracking for cleanup
+   * @param {HTMLElement} element - Element to attach events to
+   * @param {Object} eventMap - Map of event types to handler functions
+   * @param {boolean} useCapture - Whether to use capture phase
+   */
+  _addTrackedEventListeners(element, eventMap, useCapture = false) {
+    if (!element) return;
+
+    // Initialize tracking array if it doesn't exist
+    if (!this.resources.eventListeners) {
+      this.resources.eventListeners = [];
+    }
+
+    // Add each event listener and track it
+    Object.entries(eventMap).forEach(([eventType, handler]) => {
+      element.addEventListener(eventType, handler, useCapture);
+
+      // Store reference for cleanup
+      this.resources.eventListeners.push({
+        element,
+        eventType,
+        handler,
+        useCapture,
+      });
+    });
+  }
 
   /**
- * Adds event listeners with proper tracking for cleanup
- * @param {HTMLElement} element - Element to attach events to
- * @param {Object} eventMap - Map of event types to handler functions
- * @param {boolean} useCapture - Whether to use capture phase
- */
-_addTrackedEventListeners(element, eventMap, useCapture = false) {
-  if (!element) return;
-  
-  // Initialize tracking array if it doesn't exist
-  if (!this.resources.eventListeners) {
+   * Removes all tracked event listeners
+   */
+  _removeTrackedEventListeners() {
+    if (!this.resources.eventListeners) return;
+
+    this.resources.eventListeners.forEach(({ element, eventType, handler, useCapture }) => {
+      if (element) {
+        element.removeEventListener(eventType, handler, useCapture);
+      }
+    });
+
     this.resources.eventListeners = [];
   }
-  
-  // Add each event listener and track it
-  Object.entries(eventMap).forEach(([eventType, handler]) => {
-    element.addEventListener(eventType, handler, useCapture);
-    
-    // Store reference for cleanup
-    this.resources.eventListeners.push({
-      element,
-      eventType,
-      handler,
-      useCapture
-    });
-  });
-}
-
-/**
- * Removes all tracked event listeners
- */
-_removeTrackedEventListeners() {
-  if (!this.resources.eventListeners) return;
-  
-  this.resources.eventListeners.forEach(({ element, eventType, handler, useCapture }) => {
-    if (element) {
-      element.removeEventListener(eventType, handler, useCapture);
-    }
-  });
-  
-  this.resources.eventListeners = [];
-}
-
 
   /**
    * Clean up all tracked resources
@@ -1175,15 +1168,15 @@ _removeTrackedEventListeners() {
     // Clear all timeouts
     this.resources.timeouts.forEach((id) => clearTimeout(id));
     this.resources.timeouts = [];
-  
+
     // Clear all intervals
     this.resources.intervals.forEach((id) => clearInterval(id));
     this.resources.intervals = [];
-  
+
     // Cancel all animation frames
     this.resources.animationFrames.forEach((id) => cancelAnimationFrame(id));
     this.resources.animationFrames = [];
-    
+
     // Remove all tracked event listeners
     this._removeTrackedEventListeners();
   }
@@ -1274,30 +1267,27 @@ _removeTrackedEventListeners() {
 
   handleGlobeClick(event) {
     // Ignore if we're clicking on a hitbox or during game ending
-    if (event.target.classList.contains('hitbox') || 
-        this.systems.state.gameEnding || 
-        !this.systems.state.isPlaying) {
+    if (event.target.classList.contains("hitbox") || this.systems.state.gameEnding || !this.systems.state.isPlaying) {
       return;
     }
-    
+
     // Get the game container
     const gameContainer = document.getElementById("game-container");
     if (!gameContainer) return;
-    
+
     // Apply light shake effect
     gameContainer.classList.add("light-screen-shake");
-    
+
     // Remove the class after animation completes
     setTimeout(() => {
       gameContainer.classList.remove("light-screen-shake");
     }, 400);
-    
+
     // Play a subtle click sound if available
     if (this.systems.audio) {
       this.systems.audio.playIfContextReady("ui", "worldClick", 0.3);
     }
   }
-  
 
   _updateCountdown() {
     // Skip if game is paused
@@ -1483,8 +1473,16 @@ _removeTrackedEventListeners() {
       // this.systems.audio.loadCountrySounds(targetCountry);
     }
 
-    // Set state flags
-    this.systems.state.currentTarget = targetCountry;
+    // Set state flags - preserve east/west Canada information for visual placement
+    // but keep targetCountry as "canada" for shared annexation state
+    if (animationInfo.isEastCanada) {
+      this.systems.state.currentTarget = "eastCanada";
+    } else if (animationInfo.isWestCanada) {
+      this.systems.state.currentTarget = "westCanada";
+    } else {
+      this.systems.state.currentTarget = targetCountry;
+    }
+
     this.systems.state.isEastCanadaGrab = animationInfo.isEastCanada;
     this.systems.state.isWestCanadaGrab = animationInfo.isWestCanada;
 
@@ -1493,6 +1491,7 @@ _removeTrackedEventListeners() {
 
     if (window.trumpHandEffects) {
       window.trumpHandEffects.makeHittable(isBeforeFirstBlock);
+      // Always use the generic country ("canada") for UI highlighting
       window.trumpHandEffects.highlightTargetCountry(targetCountry, true);
       window.trumpHandEffects.setGrabbingState();
 
@@ -1514,10 +1513,17 @@ _removeTrackedEventListeners() {
     // Start the animation with completion callback
     this.systems.animation.changeState(animationName, () => {
       try {
+        // Check if the grab is still valid
+        // For Canada, we need to check if targetCountry is "canada" and currentTarget is east/west variant
+        const isCanadaGrab =
+          targetCountry === "canada" && (this.systems.state.currentTarget === "eastCanada" || this.systems.state.currentTarget === "westCanada");
+
+        const isValidGrab = this.systems.state.currentTarget === targetCountry || isCanadaGrab;
+
         // This runs when grab completes without being blocked
-        if (this.systems.state.currentTarget === targetCountry && this.systems.state.isPlaying && !this.systems.state.isPaused) {
-          // Handle successful grab
-          this.grabSuccess(targetCountry);
+        if (isValidGrab && this.systems.state.isPlaying && !this.systems.state.isPaused) {
+          // Handle successful grab - pass the actual currentTarget which may be eastCanada/westCanada
+          this.grabSuccess(this.systems.state.currentTarget);
         } else if (this.systems.state.isPlaying && !this.systems.state.isPaused) {
           // Grab was interrupted or blocked - start next cycle
           this.initiateGrab();
@@ -1635,7 +1641,7 @@ _removeTrackedEventListeners() {
     const state = this.systems.state;
 
     // Increment claim on the shared Canada entity
-    state.countries.canada.claims = Math.min(state.countries.canada.claims + 1, state.countries.canada.maxClaims);
+    // state.countries.canada.claims = Math.min(state.countries.canada.claims + 1, state.countries.canada.maxClaims);
 
     // Get current claim count
     const claimCount = state.countries.canada.claims;
@@ -1645,12 +1651,13 @@ _removeTrackedEventListeners() {
       //   try {
       if (claimCount < state.countries.canada.maxClaims) {
         console.log("iii grabbed canada");
-        
+
         this.systems.audio.playSuccessfulGrab("canada");
       } else {
         console.log("iii fully annexed canada");
 
         this.systems.audio.playCountryFullyAnnexedCry("canada");
+        this.makeCountryAnnexationAnnouncement("canada");
       }
       //   } catch (error) {
       //     console.warn("[Engine] Error playing grab success sound:", error);
@@ -1668,24 +1675,25 @@ _removeTrackedEventListeners() {
   }
   _handleStandardCountryGrab(country) {
     console.log("iii handling a standard country grab");
-  
+
     const state = this.systems.state;
     const claimCount = state.countries[country].claims;
     const isFullAnnexation = claimCount >= state.countries[country].maxClaims;
-  
+
     console.log("iii claimcount is", claimCount);
-  
+
     if (isFullAnnexation) {
       console.log("iii fully annexed");
       this.systems.audio.playCountryFullyAnnexedCry(country);
+      this.makeCountryAnnexationAnnouncement(country);
     } else {
       console.log("iii partially annexed");
       this.systems.audio.playSuccessfulGrab(country);
     }
-  
+
     // Update flag overlay
     this.systems.ui.updateFlagOverlay(country, claimCount);
-  
+
     // Announce for screen readers
     this.systems.ui.announceForScreenReaders(`Trump has claimed part of ${country}! ${claimCount} out of 3 parts taken.`);
   }
@@ -1707,6 +1715,7 @@ _removeTrackedEventListeners() {
 
     if (isGameOver) {
       // Only announce - DON'T end the game here
+
       this.systems.ui.announceForScreenReaders("All countries have fallen to Trump! Game over!");
     }
 
@@ -1756,8 +1765,6 @@ _removeTrackedEventListeners() {
       window.animationManager.removeAllFlags();
     }
   }
-
-
 }
 
 // window.GameEngine = GameEngine;
@@ -1772,7 +1779,6 @@ class GameState {
 
     this.reset();
   }
-
 
   setGameEngine(gameEngine) {
     this.gameEngine = gameEngine;
@@ -1838,8 +1844,7 @@ class GameState {
           claims: 0,
           maxClaims: 3, // Default max claims
           flagPositions: this._getFlagPositionsForCountry(country), // Get flag positions
-          flags: [] // Initialize the flags array
-
+          flags: [], // Initialize the flags array
         };
       });
     }
@@ -1848,8 +1853,7 @@ class GameState {
   }
 
   _getFlagPositionsForCountry(country) {
-    // Define flag positions for each country
-    // These should be tuned for your map
+    // Define flag positions for other countries (existing code)
     const positions = {
       canada: [
         { x: 650, y: 1100, scale: 0.7 }, // Western Canada
@@ -1863,7 +1867,7 @@ class GameState {
       ],
       eastCanada: [
         { x: 1400, y: 1300, scale: 0.7 }, // Eastern Canada
-        { x: 950, y: 1300, scale: 0.7 }, // Central Canada
+        { x: 1500, y: 1300, scale: 0.7 }, // Central Canada
         { x: 1300, y: 1400, scale: 0.7 }, // Eastern Canada
       ],
       mexico: [
@@ -3228,28 +3232,38 @@ class GameSpeedManager {
     // Speed levels configuration
     this.baseSpeedLevels = [
       { multiplier: 1.2, name: "Tutorial", sound: "tutorial" },
-      { multiplier: 2.5, name: "Faster?", sound: "faster" },
-      { multiplier: 3.3, name: "oopsie trade war", sound: "oopsieTradeWar" },
-      { multiplier: 4.3, name: "Faster", sound: "faster" },
-      { multiplier: 4.9, name: "no one is coming", sound: "noOneIsComingToSaveUs" }, // Reduced from 3.5
+      { multiplier: 2.1, name: "Faster?", sound: "faster" },
+      { multiplier: 3.1, name: "oopsie trade war", sound: "oopsieTradeWar" },
+      { multiplier: 4.1, name: "Faster", sound: "faster" },
+      { multiplier: 4.8, name: "Faster", sound: "faster" },
       { multiplier: 5.5, name: "get up and fight", sound: "getUpAndFight" },
-    ];
-    
-    this.isMobile = window.DeviceUtils ? window.DeviceUtils.isMobile() : false;
 
+      { name: "CANADA LOST!", sound: "canadaLost", isCustom: true },
+      { name: "MEXICO LOST!", sound: "mexicoLost", isCustom: true },
+      { name: "GREENLAND LOST!", sound: "greenlandLost", isCustom: true },
+      { name: "CANADA LIBERATED!", sound: "canadaLiberated", isCustom: true },
+      { name: "MEXICO LIBERATED!", sound: "mexicoLiberated", isCustom: true },
+      { name: "GREENLAND LIBERATED!", sound: "greenlandLiberated", isCustom: true },
+
+      { name: "Nice! YOU SHRUNK him!", sound: "shrink1", isCustom: true },
+      { name: "SHRINKY DINK!", sound: "shrink2", isCustom: true },
+      { name: "BITE-SIZED!", sound: "shrink3", isCustom: true },
+      { name: "BYE TRUMPY!", sound: "finalShrink", isCustom: true },
+    ];
+
+    this.isMobile = window.DeviceUtils ? window.DeviceUtils.isMobile() : false;
 
     // Mobile speed levels (keep original as mobile is already easier)
     this.mobileSpeedLevels = this.baseSpeedLevels;
-    
+
     // Desktop speed levels (slower for trackpad users)
-    this.desktopSpeedLevels = this.baseSpeedLevels.map(level => ({
+    this.desktopSpeedLevels = this.baseSpeedLevels.map((level) => ({
       ...level,
-      multiplier: Math.max(level.multiplier * 0.7, 0.7) // 30% slower for desktop/trackpad
+      multiplier: Math.max(level.multiplier * 0.7, 0.7), // 30% slower for desktop/trackpad
     }));
-    
+
     // Choose appropriate speed levels based on device
     this.speedLevels = this.isMobile ? this.mobileSpeedLevels : this.desktopSpeedLevels;
-
 
     // Tutorial instruction messages
     this.instructionMessages = [
@@ -3283,7 +3297,7 @@ class GameSpeedManager {
     // Nothing needed here for initialization
   }
 
-  showNotification(message) {
+  showNotification(message, customSound = null) {
     // Create notification element
     const notification = this._createNotificationElement(message);
 
@@ -3291,6 +3305,11 @@ class GameSpeedManager {
     const gameScreen = document.getElementById("game-screen");
     if (gameScreen) {
       gameScreen.appendChild(notification);
+
+      // Play custom sound if provided
+      if (customSound && this.audioManager) {
+        this.audioManager.playIfContextReady("ui", customSound, 0.8);
+      }
 
       // Remove after animation completes
       setTimeout(() => {
@@ -3909,7 +3928,7 @@ class TrumpHandEffectsController {
   }
 
   _addFlagToCountry(country) {
-    console.log("yyy in add flagAdding flag");
+    console.log("yyy in add flagAdding flag for:", country);
 
     // For Canada, handle east/west special case
     const targetCountry = country === "eastCanada" || country === "westCanada" ? "canada" : country;
@@ -3917,48 +3936,76 @@ class TrumpHandEffectsController {
     // Get current claim count to determine which flag position to use
     const countryState = this.gameState.countries[targetCountry];
     const claimIndex = Math.min(countryState.claims, countryState.maxClaims);
+
     if (claimIndex >= 0) {
+      console.log(`Adding flag ${claimIndex} for ${targetCountry}`);
     }
 
-    if (countryState.flagPositions.length) {
-      console.log("countryState.flagPositions.length");
+    // Define positions - fixing the coordinates based on actual map layout
+    let positions;
+
+    if (country === "eastCanada") {
+      // Eastern Canada should be further RIGHT on the map (higher X values)
+      // These coordinates point to Quebec, Newfoundland, Maritime provinces
+      positions = [
+        { x: 1900, y: 1600, scale: 0.7 }, // Far eastern Canada (Newfoundland area)
+        { x: 2000, y: 1550, scale: 0.7 }, // Eastern Quebec
+        { x: 2100, y: 1750, scale: 0.7 }, // Maritime provinces
+      ];
+    } else if (country === "westCanada") {
+      // Western Canada should be further LEFT on the map (lower X values)
+      // These coordinates point to British Columbia, Alberta, Manitoba
+      positions = [
+        { x: 500, y: 1100, scale: 0.7 }, // British Columbia
+        { x: 650, y: 1200, scale: 0.7 }, // Alberta
+        { x: 800, y: 1250, scale: 0.7 }, // Saskatchewan/Manitoba
+      ];
+    } else {
+      // For other countries, use the positions from the country state
+      positions = countryState.flagPositions;
     }
-    // Only proceed if there's a valid position and we haven't exceeded max claims
-    if (claimIndex >= 0 && claimIndex < countryState.flagPositions.length) {
-      const position = countryState.flagPositions[claimIndex];
 
-      // Scale position based on current map scale
-      const mapElement = document.getElementById("map-background");
-      if (mapElement) {
-        const mapScale = mapElement.clientWidth / mapElement.naturalWidth;
-        const scaledPosition = {
-          x: position.x * mapScale,
-          y: position.y * mapScale,
-          scale: position.scale * mapScale,
-        };
+    if (!positions || claimIndex >= positions.length) {
+      console.warn(`No flag position available for ${country} at index ${claimIndex}`);
+      return;
+    }
 
-        // Add map offset
-        const mapRect = mapElement.getBoundingClientRect();
-        const gameContainer = document.getElementById("game-container");
-        if (gameContainer) {
-          const containerRect = gameContainer.getBoundingClientRect();
-          scaledPosition.x += mapRect.left - containerRect.left;
-          scaledPosition.y += mapRect.top - containerRect.top;
+    const position = positions[claimIndex];
+
+    // Add debug logging to verify positions
+    console.log(`Using position for ${country} flag ${claimIndex}:`, position);
+
+    // Scale position based on current map scale
+    const mapElement = document.getElementById("map-background");
+    if (mapElement) {
+      const mapScale = mapElement.clientWidth / mapElement.naturalWidth;
+      const scaledPosition = {
+        x: position.x * mapScale,
+        y: position.y * mapScale,
+        scale: position.scale * mapScale,
+      };
+
+      // Add map offset
+      const mapRect = mapElement.getBoundingClientRect();
+      const gameContainer = document.getElementById("game-container");
+      if (gameContainer) {
+        const containerRect = gameContainer.getBoundingClientRect();
+        scaledPosition.x += mapRect.left - containerRect.left;
+        scaledPosition.y += mapRect.top - containerRect.top;
+      }
+
+      // Create the flag animation
+      const flagInfo = window.animationManager.createFlagAnimation(`${targetCountry}-${claimIndex}`, scaledPosition, scaledPosition.scale);
+
+      // Store reference to the flag
+      if (flagInfo) {
+        // Initialize flags array if it doesn't exist yet
+        if (!countryState.flags) {
+          countryState.flags = [];
         }
 
-        // Create the flag animation
-        const flagInfo = window.animationManager.createFlagAnimation(`${targetCountry}-${claimIndex}`, scaledPosition, scaledPosition.scale);
-
-        // Store reference to the flag
-        if (flagInfo) {
-          // Initialize flags array if it doesn't exist yet (defensive programming)
-          if (!countryState.flags) {
-            countryState.flags = [];
-          }
-          
-          countryState.flags.push(flagInfo);
-          console.log(`Flag added to ${targetCountry}, total flags: ${countryState.flags.length}`);
-        }
+        countryState.flags.push(flagInfo);
+        console.log(`Flag added to ${targetCountry}, total flags: ${countryState.flags.length}`);
       }
     }
   }
@@ -4219,8 +4266,7 @@ class TrumpHandEffectsController {
     // Apply screen shake
     this.elements.gameContainer.classList.add("grab-screen-shake");
 
-    this.showDangerFlash();
-
+    this.showDangerFlash(targetCountry);
 
     // Force reflow for animation
     void this.elements.visual.offsetWidth;
@@ -4229,11 +4275,10 @@ class TrumpHandEffectsController {
     // Add Trump flag to the country - using targetCountry if provided, otherwise from game state
     if (targetCountry) {
       this._addFlagToCountry(targetCountry);
-    }  else {
-        console.log("yyy no target country");
-        
-      }
-    
+    } else {
+      console.log("yyy no target country");
+    }
+
     // Clean up after animation
     this._scheduleGrabEffectCleanup();
 
@@ -4242,19 +4287,255 @@ class TrumpHandEffectsController {
     }
   }
 
-  showDangerFlash() {
-    const gameContainer = document.getElementById("game-container");
-    if (!gameContainer) return;
-    
-    // Add the flash class which will be defined in CSS
-    gameContainer.classList.add("danger-flash");
-    
-    // Remove it after animation completes
+  showDangerFlash(targetCountry) {
+    console.log("showDangerFlash called with targetCountry:", targetCountry);
+
+    // Normalize the country ID for Canada regions
+    const countryToFlash = targetCountry === "eastCanada" || targetCountry === "westCanada" ? "canada" : targetCountry;
+
+    // Get the flag overlay element
+    const flagOverlay = document.getElementById(`${countryToFlash}-flag-overlay`);
+
+    if (!flagOverlay) {
+      console.warn(`[DangerFlash] Flag overlay not found for ${countryToFlash}`);
+      return;
+    }
+
+    // Add a danger flash class if it doesn't exist
+    if (!document.getElementById("danger-flash-styles")) {
+      const style = document.createElement("style");
+      style.id = "danger-flash-styles";
+      style.textContent = `
+        .danger-flash {
+          animation: dangerFlashAnimation 0.8s ease-out !important;
+        }
+        
+        @keyframes dangerFlashAnimation {
+          0% {
+            filter: brightness(1) sepia(0) saturate(1) hue-rotate(0deg);
+            opacity: 0;
+            transform: scale(1);
+          }
+          15% {
+            filter: brightness(2) sepia(1) saturate(8) hue-rotate(-15deg);
+            opacity: 1;
+            transform: scale(1.05);
+          }
+          30% {
+            filter: brightness(1.8) sepia(0.9) saturate(6) hue-rotate(-10deg);
+            opacity: 0.9;
+            transform: scale(1.02);
+          }
+          45% {
+            filter: brightness(2.2) sepia(1) saturate(8) hue-rotate(-15deg);
+            opacity: 1;
+            transform: scale(1.06);
+          }
+          60% {
+            filter: brightness(1.6) sepia(0.8) saturate(5) hue-rotate(-8deg);
+            opacity: 0.8;
+            transform: scale(1.01);
+          }
+          80% {
+            filter: brightness(1.4) sepia(0.6) saturate(3) hue-rotate(-5deg);
+            opacity: 0.6;
+            transform: scale(1);
+          }
+          100% {
+            filter: brightness(1) sepia(0) saturate(1) hue-rotate(0deg);
+            opacity: 0;
+            transform: scale(1);
+          }
+        }
+        
+        .danger-flash-intense {
+          animation: dangerFlashIntenseAnimation 1.2s ease-out !important;
+        }
+        
+        @keyframes dangerFlashIntenseAnimation {
+          0% {
+            filter: brightness(1) sepia(0) saturate(1) hue-rotate(0deg);
+            opacity: 0;
+            transform: scale(1);
+          }
+          10% {
+            filter: brightness(3) sepia(1) saturate(10) hue-rotate(-20deg);
+            opacity: 1;
+            transform: scale(1.1);
+          }
+          20% {
+            filter: brightness(2) sepia(0.8) saturate(6) hue-rotate(-10deg);
+            opacity: 0.7;
+            transform: scale(1.05);
+          }
+          35% {
+            filter: brightness(3.5) sepia(1) saturate(12) hue-rotate(-25deg);
+            opacity: 1;
+            transform: scale(1.15);
+          }
+          50% {
+            filter: brightness(2.5) sepia(0.9) saturate(8) hue-rotate(-15deg);
+            opacity: 0.9;
+            transform: scale(1.08);
+          }
+          65% {
+            filter: brightness(2) sepia(0.7) saturate(5) hue-rotate(-10deg);
+            opacity: 0.8;
+            transform: scale(1.04);
+          }
+          80% {
+            filter: brightness(1.5) sepia(0.5) saturate(3) hue-rotate(-5deg);
+            opacity: 0.6;
+            transform: scale(1.02);
+          }
+          100% {
+            filter: brightness(1) sepia(0) saturate(1) hue-rotate(0deg);
+            opacity: 0;
+            transform: scale(1);
+          }
+        }
+        
+        /* White-hot flash overlay */
+        .danger-flash-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: #ff0000;
+          mix-blend-mode: color-dodge;
+          pointer-events: none;
+          z-index: 9999;
+          animation: screenFlashAnimation 0.3s ease-out;
+        }
+        
+        @keyframes screenFlashAnimation {
+          0% {
+            opacity: 0;
+          }
+          50% {
+            opacity: 0.3;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+        
+        /* Danger vignette effect */
+        .danger-vignette {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 9998;
+          background: radial-gradient(circle at center, transparent 40%, rgba(255, 0, 0, 0.4) 100%);
+          animation: vignetteAnimation 1s ease-out;
+        }
+        
+        @keyframes vignetteAnimation {
+          0% {
+            opacity: 0;
+          }
+          30% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Store original opacity and classes
+    const originalOpacity = flagOverlay.style.opacity;
+    const originalClasses = flagOverlay.className;
+
+    // Determine if this is the final claim
+    const countryState = this.gameState.countries[countryToFlash];
+    const isFinalClaim = countryState && countryState.claims >= countryState.maxClaims;
+
+    // Create screen-wide flash effect
+    const flashOverlay = document.createElement("div");
+    flashOverlay.className = "danger-flash-overlay";
+    document.body.appendChild(flashOverlay);
+
+    // Create danger vignette
+    if (isFinalClaim) {
+      const vignette = document.createElement("div");
+      vignette.className = "danger-vignette";
+      document.body.appendChild(vignette);
+
+      // Remove vignette after animation
+      setTimeout(() => {
+        if (vignette.parentNode) {
+          vignette.parentNode.removeChild(vignette);
+        }
+      }, 1000);
+    }
+
+    // Remove flash overlay after animation
     setTimeout(() => {
-      gameContainer.classList.remove("danger-flash");
-    }, 600); // Match this to your CSS animation duration
+      if (flashOverlay.parentNode) {
+        flashOverlay.parentNode.removeChild(flashOverlay);
+      }
+    }, 300);
+
+    // Remove any existing animation classes
+    flagOverlay.classList.remove("danger-flash", "danger-flash-intense");
+
+    // Force a reflow to ensure the animation can restart
+    void flagOverlay.offsetWidth;
+
+    // Apply animation to flag overlay
+    if (isFinalClaim) {
+      flagOverlay.classList.add("danger-flash-intense");
+
+      // Enhanced screen shake for final claim
+      const gameContainer = document.getElementById("game-container");
+      if (gameContainer) {
+        gameContainer.classList.add("heavy-screen-shake");
+        setTimeout(() => {
+          gameContainer.classList.remove("heavy-screen-shake");
+        }, 1000);
+      }
+    } else {
+      flagOverlay.classList.add("danger-flash");
+
+      // Light screen shake for regular claim
+      const gameContainer = document.getElementById("game-container");
+      if (gameContainer) {
+        gameContainer.classList.add("screen-shake");
+        setTimeout(() => {
+          gameContainer.classList.remove("screen-shake");
+        }, 500);
+      }
+    }
+
+    // Remove classes after animation
+    setTimeout(
+      () => {
+        flagOverlay.classList.remove("danger-flash", "danger-flash-intense");
+      },
+      isFinalClaim ? 1200 : 800
+    );
+
+    // Pulsing red border effect
+    if (isFinalClaim) {
+      const originalBorder = flagOverlay.style.border;
+      flagOverlay.style.border = "5px solid rgba(255, 0, 0, 0.9)";
+      flagOverlay.style.boxShadow = "0 0 20px rgba(255, 0, 0, 0.8)";
+      flagOverlay.style.transition = "border 0.3s ease-out, box-shadow 0.3s ease-out";
+
+      setTimeout(() => {
+        flagOverlay.style.border = originalBorder || "";
+        flagOverlay.style.boxShadow = "";
+      }, 1000);
+    }
   }
-  
+
   /**
    * Create shard elements for grab success effect
    */
@@ -4449,10 +4730,10 @@ class TrumpHandEffectsController {
 
     const isMobile = window.DeviceUtils ? window.DeviceUtils.isMobile() : false;
 
-   // Create the prompt element
-this.clickPromptElement = document.createElement("div");
-this.clickPromptElement.id = "trump-hand-click-prompt";
-this.clickPromptElement.textContent = isMobile ? "TAP HERE" : "CLICK HERE";
+    // Create the prompt element
+    this.clickPromptElement = document.createElement("div");
+    this.clickPromptElement.id = "trump-hand-click-prompt";
+    this.clickPromptElement.textContent = isMobile ? "TAP HERE" : "CLICK HERE";
 
     // Add base classes
     this.clickPromptElement.classList.add(
@@ -5336,20 +5617,20 @@ class ProtestorHitboxManager {
         //   height: 300,
         //   calibrationScale: 0.24,
         // },
-        {
-          x: 1091, //ott
-          y: 1400,
-          width: 300,
-          height: 300,
-          calibrationScale: 0.24,
-        },
-        {
-          x: 1091, //north of ott
-          y: 1600,
-          width: 300,
-          height: 300,
-          calibrationScale: 0.24,
-        },
+        // {
+        //   x: 1091, //ott
+        //   y: 1400,
+        //   width: 300,
+        //   height: 300,
+        //   calibrationScale: 0.24,
+        // },
+        // {
+        //   x: 1091, //north of ott
+        //   y: 1600,
+        //   width: 300,
+        //   height: 300,
+        //   calibrationScale: 0.24,
+        // },
         {
           x: 1291, //north of mon
           y: 1400,
@@ -6256,7 +6537,6 @@ class ProtestorHitboxManager {
 // Make available to window
 window.ProtestorHitboxManager = ProtestorHitboxManager;
 
-
 /**
  * Unified Particle System that handles both confetti and fireworks
  */
@@ -6285,39 +6565,37 @@ class ParticleSystem {
    */
   createBurst(options) {
     const {
-      type,                 // 'confetti' or 'firework'
-      position,             // {x, y, width, height}
-      container,            // DOM container to append particles to
-      count,                // Number of particles to create
-      mobileCount = null,   // Optional override for particle count on mobile
+      type, // 'confetti' or 'firework'
+      position, // {x, y, width, height}
+      container, // DOM container to append particles to
+      count, // Number of particles to create
+      mobileCount = null, // Optional override for particle count on mobile
     } = options;
 
     if (!container) return;
     if (!position) return;
 
     // Determine particle count based on device
-    const particleCount = this.isMobile && mobileCount !== null 
-      ? mobileCount 
-      : count;
+    const particleCount = this.isMobile && mobileCount !== null ? mobileCount : count;
 
     // Calculate spawn points
     const spawnPoints = this._calculateSpawnPoints(position);
-    
+
     // Stagger particle creation
     for (let i = 0; i < particleCount; i++) {
       setTimeout(() => {
         // Choose a random spawn point
         const point = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
-        
+
         // Add variation to position
         const spreadFactor = this.isMobile ? 70 : 50;
         const startX = point.x + (Math.random() * spreadFactor - spreadFactor / 2);
         const startY = point.y + (Math.random() * spreadFactor - spreadFactor / 2);
-        
+
         // Create the appropriate particle
-        if (type === 'confetti') {
+        if (type === "confetti") {
           this._createConfettiParticle(startX, startY, container, i % 2 === 0);
-        } else if (type === 'firework') {
+        } else if (type === "firework") {
           this._createFireworkParticle(startX, startY, container);
         }
       }, i * (this.isMobile ? 30 : 15)); // Slower spawn rate on mobile
@@ -6332,7 +6610,7 @@ class ParticleSystem {
    */
   _calculateSpawnPoints(position) {
     const { left, top, width, height } = position;
-    
+
     return [
       { x: left + width * 0.2, y: top + height * 0.3 },
       { x: left + width * 0.5, y: top + height * 0.5 },
@@ -6370,9 +6648,7 @@ class ParticleSystem {
     const shouldBeLarger = this.isMobile ? Math.random() > 0.5 : isLarger;
     const baseSize = this.isMobile ? 7 : 4;
     const variance = this.isMobile ? 8 : 6;
-    const size = shouldBeLarger
-      ? baseSize + Math.random() * variance * 1.5
-      : baseSize + Math.random() * variance;
+    const size = shouldBeLarger ? baseSize + Math.random() * variance * 1.5 : baseSize + Math.random() * variance;
 
     particle.style.width = `${size}px`;
     particle.style.height = shape === "rectangle" ? `${size * 2}px` : `${size}px`;
@@ -6394,9 +6670,7 @@ class ParticleSystem {
 
     // Set up animation parameters
     const angle = Math.random() * Math.PI * 2;
-    const distance = this.isMobile
-      ? 60 + Math.random() * 140
-      : 40 + Math.random() * 120;
+    const distance = this.isMobile ? 60 + Math.random() * 140 : 40 + Math.random() * 120;
 
     const destinationX = startX + Math.cos(angle) * distance;
     const destinationY = startY + Math.sin(angle) * distance;
@@ -6414,7 +6688,7 @@ class ParticleSystem {
 
     // Create particle data
     const particleData = {
-      type: 'confetti',
+      type: "confetti",
       element: particle,
       startTime: performance.now(),
       animationCompleted: false,
@@ -6479,9 +6753,7 @@ class ParticleSystem {
 
     // Size based on device and type
     const sizeFactor = this.isMobile ? 1.3 : 1.0;
-    const size = particleType === "spark" 
-      ? (6 + Math.random() * 12) * sizeFactor 
-      : (10 + Math.random() * 15) * sizeFactor;
+    const size = particleType === "spark" ? (6 + Math.random() * 12) * sizeFactor : (10 + Math.random() * 15) * sizeFactor;
 
     particle.style.width = `${size}px`;
     if (particleType === "spark") {
@@ -6502,21 +6774,17 @@ class ParticleSystem {
 
     // Set up animation parameters
     const angle = Math.random() * Math.PI * 2;
-    const distance = this.isMobile
-      ? 60 + Math.random() * 100
-      : 80 + Math.random() * 180;
+    const distance = this.isMobile ? 60 + Math.random() * 100 : 80 + Math.random() * 180;
 
     const destinationX = startX + Math.cos(angle) * distance;
     const destinationY = startY + Math.sin(angle) * distance;
 
     // Duration based on device
-    const duration = this.isMobile
-      ? 1000 + Math.random() * 500
-      : 1500 + Math.random() * 1000;
+    const duration = this.isMobile ? 1000 + Math.random() * 500 : 1500 + Math.random() * 1000;
 
     // Create particle data
     const particleData = {
-      type: 'firework',
+      type: "firework",
       element: particle,
       startTime: performance.now(),
       animationCompleted: false,
@@ -6561,9 +6829,9 @@ class ParticleSystem {
 
       if (progress < 1) {
         // Handle animation based on particle type
-        if (particleData.type === 'confetti') {
+        if (particleData.type === "confetti") {
           this._updateConfettiParticle(particleData, progress);
-        } else if (particleData.type === 'firework') {
+        } else if (particleData.type === "firework") {
           this._updateFireworkParticle(particleData, progress);
         }
 
@@ -6591,7 +6859,7 @@ class ParticleSystem {
    */
   _updateConfettiParticle(particleData, progress) {
     const element = particleData.element;
-    
+
     let currentX, currentY;
 
     if (particleData.simplifiedPath) {
@@ -6603,15 +6871,17 @@ class ParticleSystem {
       const t = progress;
       const t_ = 1 - t;
 
-      currentX = Math.pow(t_, 3) * particleData.startX + 
-                3 * Math.pow(t_, 2) * t * particleData.cp1x + 
-                3 * t_ * Math.pow(t, 2) * particleData.cp2x + 
-                Math.pow(t, 3) * particleData.destinationX;
-                
-      currentY = Math.pow(t_, 3) * particleData.startY + 
-                3 * Math.pow(t_, 2) * t * particleData.cp1y + 
-                3 * t_ * Math.pow(t, 2) * particleData.cp2y + 
-                Math.pow(t, 3) * particleData.destinationY;
+      currentX =
+        Math.pow(t_, 3) * particleData.startX +
+        3 * Math.pow(t_, 2) * t * particleData.cp1x +
+        3 * t_ * Math.pow(t, 2) * particleData.cp2x +
+        Math.pow(t, 3) * particleData.destinationX;
+
+      currentY =
+        Math.pow(t_, 3) * particleData.startY +
+        3 * Math.pow(t_, 2) * t * particleData.cp1y +
+        3 * t_ * Math.pow(t, 2) * particleData.cp2y +
+        Math.pow(t, 3) * particleData.destinationY;
     }
 
     // Update position
@@ -6644,7 +6914,7 @@ class ParticleSystem {
    */
   _updateFireworkParticle(particleData, progress) {
     const element = particleData.element;
-    
+
     // Arc path with gentle gravity
     const easedProgress = progress;
     const currentX = particleData.centerX + (particleData.destinationX - particleData.centerX) * easedProgress;
@@ -6655,10 +6925,7 @@ class ParticleSystem {
 
     const verticalOffset = Math.sin(progress * Math.PI) * arcHeight;
     const gravity = Math.pow(progress, 2) * gravityStrength;
-    const currentY = particleData.centerY + 
-                    (particleData.destinationY - particleData.centerY) * easedProgress - 
-                    verticalOffset + 
-                    gravity;
+    const currentY = particleData.centerY + (particleData.destinationY - particleData.centerY) * easedProgress - verticalOffset + gravity;
 
     // Update position
     element.style.left = `${currentX}px`;
@@ -6711,7 +6978,7 @@ class ParticleSystem {
    * Pause all active particles
    */
   pauseAll() {
-    this.activeParticles.forEach(particle => {
+    this.activeParticles.forEach((particle) => {
       particle.paused = true;
     });
   }
@@ -6720,11 +6987,10 @@ class ParticleSystem {
    * Resume all paused particles
    */
   resumeAll() {
-    this.activeParticles.forEach(particle => {
+    this.activeParticles.forEach((particle) => {
       if (particle.paused) {
         particle.paused = false;
-        particle.startTime = performance.now() - 
-                           (particle.duration * (particle.lastProgress || 0));
+        particle.startTime = performance.now() - particle.duration * (particle.lastProgress || 0);
         this._animateParticle(particle);
       }
     });
@@ -6736,14 +7002,14 @@ class ParticleSystem {
   cleanupAll() {
     // Make a copy of the array since we'll be modifying it
     const particles = [...this.activeParticles];
-    
-    particles.forEach(particle => {
+
+    particles.forEach((particle) => {
       particle.animationCompleted = true;
       if (particle.element && particle.element.parentNode) {
         particle.element.parentNode.removeChild(particle.element);
       }
     });
-    
+
     this.activeParticles = [];
   }
 }
@@ -6760,12 +7026,12 @@ class VisualEffectsManager {
       FLASH: 0,
       TEXT: 520,
     };
-    
+
     this.particleSystem = new ParticleSystem(this.Z_INDEXES);
     this.isMobile = this._isMobile();
     this.activeEffects = {
       flashes: [],
-      texts: []
+      texts: [],
     };
   }
 
@@ -6794,7 +7060,7 @@ class VisualEffectsManager {
       screenShake: true,
       confetti: true,
       fireworks: true,
-      ...options
+      ...options,
     };
 
     // Create flash effect
@@ -6959,11 +7225,11 @@ class VisualEffectsManager {
    */
   createConfettiBurst(left, top, width, height, container) {
     this.particleSystem.createBurst({
-      type: 'confetti',
+      type: "confetti",
       position: { left, top, width, height },
       container,
       count: 60,
-      mobileCount: 20
+      mobileCount: 20,
     });
   }
 
@@ -6986,22 +7252,22 @@ class VisualEffectsManager {
           { x: left + width * 0.7, y: top + height * 0.4, delay: 300 },
           { x: left + width * 0.5, y: top + height * 0.2, delay: 600 },
         ];
-  
+
     const burstArea = Math.min(width, height) * 0.3; // Create a reasonable area around burst point
-  
+
     burstLocations.forEach((burst) => {
       setTimeout(() => {
         this.particleSystem.createBurst({
-          type: 'firework',
-          position: { 
-            left: burst.x - burstArea/2, 
-            top: burst.y - burstArea/2, 
-            width: burstArea, 
-            height: burstArea 
+          type: "firework",
+          position: {
+            left: burst.x - burstArea / 2,
+            top: burst.y - burstArea / 2,
+            width: burstArea,
+            height: burstArea,
           },
           container,
           count: 15 + Math.floor(Math.random() * 10),
-          mobileCount: 8
+          mobileCount: 8,
         });
       }, burst.delay);
     });
@@ -7014,9 +7280,9 @@ class VisualEffectsManager {
    */
   applyScreenShake(container, isHeavy = false) {
     if (!container) return;
-    
+
     container.classList.add(isHeavy ? "heavy-screen-shake" : "screen-shake");
-    
+
     setTimeout(
       () => {
         container.classList.remove("screen-shake", "heavy-screen-shake");
@@ -7046,7 +7312,7 @@ class VisualEffectsManager {
     element.parentNode.removeChild(element);
 
     // Remove from active effects
-    Object.keys(this.activeEffects).forEach(key => {
+    Object.keys(this.activeEffects).forEach((key) => {
       const index = this.activeEffects[key].indexOf(element);
       if (index !== -1) {
         this.activeEffects[key].splice(index, 1);
@@ -7076,7 +7342,7 @@ class VisualEffectsManager {
     this.particleSystem.cleanupAll();
 
     // Clean up flashes
-    this.activeEffects.flashes.forEach(flash => {
+    this.activeEffects.flashes.forEach((flash) => {
       if (flash.parentNode) {
         flash.parentNode.removeChild(flash);
       }
@@ -7084,7 +7350,7 @@ class VisualEffectsManager {
     this.activeEffects.flashes = [];
 
     // Clean up texts
-    this.activeEffects.texts.forEach(text => {
+    this.activeEffects.texts.forEach((text) => {
       if (text.parentNode) {
         text.parentNode.removeChild(text);
       }
@@ -7134,7 +7400,7 @@ class Protestor {
 
     // Create wrapper with glow
     this.wrapper = this._createWrapper(left, top, width, height);
-    
+
     // Create protestors sprite
     const protestors = document.createElement("div");
     protestors.id = `${this.countryId}-protestors`;
@@ -7154,13 +7420,13 @@ class Protestor {
     this.element = protestors;
 
     this.gameContainer.appendChild(this.wrapper);
-    
+
     // Start animations
     this._setupAnimations();
-    
+
     // Set disappear timeout
     this._setDisappearTimeout();
-    
+
     return this.wrapper;
   }
 
@@ -7170,7 +7436,7 @@ class Protestor {
       left: parseInt(this.hitbox.style.left) || 0,
       top: parseInt(this.hitbox.style.top) || 0,
       width: parseInt(this.hitbox.style.width) || 100,
-      height: parseInt(this.hitbox.style.height) || 100
+      height: parseInt(this.hitbox.style.height) || 100,
     };
   }
 
@@ -7193,13 +7459,17 @@ class Protestor {
   _setupAnimations() {
     // Get the outline element
     const outline = document.getElementById(`${this.countryId}-protestors-outline`);
-  
+
     if (this.element) {
       // Track sprite transition separately
-      this.element.addEventListener("transitionend", () => {
-        console.debug(`Protestor sprite for ${this.countryId} visible`);
-      }, { once: true });
-  
+      this.element.addEventListener(
+        "transitionend",
+        () => {
+          console.debug(`Protestor sprite for ${this.countryId} visible`);
+        },
+        { once: true }
+      );
+
       // Use animation manager for sprite animation
       if (window.animationManager) {
         const animationId = window.animationManager.createSpriteAnimation({
@@ -7209,16 +7479,16 @@ class Protestor {
           loop: true,
           id: `protestor-${this.countryId}`,
         });
-  
+
         // Store the animation ID for cleanup
         this.animations.main = animationId;
       }
     }
-  
+
     if (this.wrapper) {
       // Add grow-from-ground animation
       this.wrapper.style.transform = "scale(1, 0.2) translateY(10px)"; // Start small from ground
-  
+
       // Fade in protestors after a short delay
       setTimeout(() => {
         if (this.wrapper) {
@@ -7226,11 +7496,11 @@ class Protestor {
           this.wrapper.style.transition = "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out";
           this.wrapper.style.transform = "scale(1, 1)"; // Grow to full size
         }
-        
+
         if (this.element) {
           this.element.style.opacity = "1"; // Fade in the sprite
         }
-  
+
         // Fade in the outline
         if (outline) {
           outline.style.transition = "opacity 0.5s ease-out";
@@ -7245,7 +7515,7 @@ class Protestor {
     if (this.disappearTimeout) {
       clearTimeout(this.disappearTimeout);
     }
-    
+
     this.disappearTimeout = setTimeout(() => {
       this.shrink();
     }, this.config.PROTESTOR_TIMING.FADE_AWAY_TIME);
@@ -7261,9 +7531,9 @@ class Protestor {
     this.lastClickTime = now;
 
     if (this.callbacks.onPlaySound && this.clickCounter < 3) {
-      this.callbacks.onPlaySound('growProtestors', 0.2);
+      this.callbacks.onPlaySound("growProtestors", 0.2);
     }
-    
+
     // Increment counter
     this.clickCounter += 1;
 
@@ -7308,7 +7578,7 @@ class Protestor {
 
     // Play sound
     if (this.callbacks.onPlaySound) {
-      this.callbacks.onPlaySound('growProtestors', 0.2);
+      this.callbacks.onPlaySound("growProtestors", 0.2);
     }
 
     // On larger screens, create additional protestors
@@ -7434,27 +7704,27 @@ class Protestor {
   // Clean up additional protestors
   _cleanupAdditionalProtestors() {
     // Remove DOM elements
-    this.additionalProtestors.forEach(protestor => {
+    this.additionalProtestors.forEach((protestor) => {
       if (protestor.parentNode) {
         protestor.parentNode.removeChild(protestor);
       }
     });
-    
+
     // Stop animations
-    Object.keys(this.animations).forEach(key => {
-      if (key.startsWith('additional-')) {
+    Object.keys(this.animations).forEach((key) => {
+      if (key.startsWith("additional-")) {
         window.animationManager.stopSpriteAnimation(this.animations[key]);
         delete this.animations[key];
       }
     });
-    
+
     this.additionalProtestors = [];
   }
 
   // Clean up all resources
   cleanup() {
     // Stop animations
-    Object.values(this.animations).forEach(animId => {
+    Object.values(this.animations).forEach((animId) => {
       if (animId) {
         window.animationManager.stopSpriteAnimation(animId);
       }
@@ -7466,7 +7736,7 @@ class Protestor {
       clearTimeout(this.disappearTimeout);
       this.disappearTimeout = null;
     }
-    
+
     if (this.shrinkTimeout) {
       clearTimeout(this.shrinkTimeout);
       this.shrinkTimeout = null;
@@ -7482,7 +7752,7 @@ class Protestor {
       document.getElementById(`${this.countryId}-glow-wrapper`),
     ];
 
-    elementsToClean.forEach(element => {
+    elementsToClean.forEach((element) => {
       if (element && element.parentNode) {
         // Remove event listeners if we stored any
         if (element._glowListeners) {
@@ -7491,7 +7761,7 @@ class Protestor {
           });
           element._glowListeners = null;
         }
-        
+
         element.parentNode.removeChild(element);
       }
     });
@@ -7510,16 +7780,16 @@ class ProtestorManager {
     this.config = config;
     this.gameEngine = gameEngine;
     this.logger = logger || this._createDefaultLogger();
-    
+
     // Initialization
     this.protestors = new Map(); // Map of countryId to Protestor instance
     this.protestorTimers = new Map(); // Map of countryId to timer IDs
     this.usaTimingCheckDone = false;
-    
+
     // Set up country data
     this.countries = {};
     this._initCountries();
-    
+
     // Initialize protestor hitbox manager
     this._initProtestorHitboxManager();
   }
@@ -7536,9 +7806,9 @@ class ProtestorManager {
 
   // Initialize country data
   _initCountries() {
-    const countryIds = ['canada', 'mexico', 'greenland', 'usa'];
-    
-    countryIds.forEach(id => {
+    const countryIds = ["canada", "mexico", "greenland", "usa"];
+
+    countryIds.forEach((id) => {
       this.countries[id] = {
         id,
         annexTime: 0,
@@ -7631,16 +7901,10 @@ class ProtestorManager {
     // Calculate delay based on country type
     let delay;
     if (isUSA) {
-      delay = this._getRandomBetween(
-        this.config.PROTESTOR_TIMING.USA_REAPPEAR_MIN_TIME, 
-        this.config.PROTESTOR_TIMING.USA_REAPPEAR_MAX_TIME
-      );
+      delay = this._getRandomBetween(this.config.PROTESTOR_TIMING.USA_REAPPEAR_MIN_TIME, this.config.PROTESTOR_TIMING.USA_REAPPEAR_MAX_TIME);
     } else {
       if (!this.countries[countryId].initialDelaySet) {
-        delay = this._getRandomBetween(
-          this.config.PROTESTOR_TIMING.INITIAL_ANNEX_MIN_DELAY,
-          this.config.PROTESTOR_TIMING.INITIAL_ANNEX_MAX_DELAY
-        );
+        delay = this._getRandomBetween(this.config.PROTESTOR_TIMING.INITIAL_ANNEX_MIN_DELAY, this.config.PROTESTOR_TIMING.INITIAL_ANNEX_MAX_DELAY);
         this.countries[countryId].initialDelaySet = true;
       } else {
         delay = this.config.PROTESTOR_TIMING.REGENERATION_DELAY;
@@ -7681,14 +7945,13 @@ class ProtestorManager {
     if (this.protestors.has(countryId)) {
       this.hideProtestors(countryId);
     }
-console.log(`sss cid ${countryId}`);
+    console.log(`sss cid ${countryId}`);
 
     const hitbox = this.protestorHitboxManager.showHitbox(countryId, this);
     if (!hitbox) return null;
 
     const gameContainer = this._getGameContainer();
     if (!gameContainer) return null;
-
 
     if (this.audioManager) {
       if (countryId === "canada") {
@@ -7699,34 +7962,28 @@ console.log(`sss cid ${countryId}`);
       }
     }
     // Create protestor with callbacks
-    const protestor = new Protestor(
-      countryId, 
-      hitbox, 
-      gameContainer, 
-      this.config, 
-      {
-        onScoreUpdate: () => this._updateScore(),
-        onThirdClick: (id) => this._handleThirdClick(id),
-        onPlaySound: (soundType, volume) => {
-          if (this.audioManager) {
-            if (soundType === 'growProtestors') {
-              this.audioManager.playGrowProtestorsSound(volume);
-            }
+    const protestor = new Protestor(countryId, hitbox, gameContainer, this.config, {
+      onScoreUpdate: () => this._updateScore(),
+      onThirdClick: (id) => this._handleThirdClick(id),
+      onPlaySound: (soundType, volume) => {
+        if (this.audioManager) {
+          if (soundType === "growProtestors") {
+            this.audioManager.playGrowProtestorsSound(volume);
           }
-        },
-        onHide: (id) => this.hideProtestors(id)
-      }
-    );
+        }
+      },
+      onHide: (id) => this.hideProtestors(id),
+    });
 
     // Create and store the protestor instance
     const wrapper = protestor.create();
     this.protestors.set(countryId, protestor);
-    
+
     // Update country state
     this.countries[countryId].protestorsShown = true;
 
     this.logger.info("freedom", `Created protestors for ${countryId}`);
-    
+
     return wrapper;
   }
 
@@ -7734,7 +7991,7 @@ console.log(`sss cid ${countryId}`);
   handleProtestorClick(countryId) {
     const protestor = this.protestors.get(countryId);
     if (!protestor) return;
-    
+
     protestor.handleClick();
   }
 
@@ -7766,7 +8023,7 @@ console.log(`sss cid ${countryId}`);
 
     // Handle audio with slight delay
     if (this.audioManager) {
-      // this.audioManager.playRandom("resistance", countryId, null, 0.9);  
+      // this.audioManager.playRandom("resistance", countryId, null, 0.9);
     }
   }
 
@@ -7774,7 +8031,6 @@ console.log(`sss cid ${countryId}`);
   hideProtestors(countryId) {
     const protestor = this.protestors.get(countryId);
     if (!protestor) return;
-
 
     /// stop protestor sound doesn't exist yet
     // if (this.audioManager) {
@@ -7785,7 +8041,7 @@ console.log(`sss cid ${countryId}`);
     //     this.audioManager.stopProtestorSound(countryId + "Protestors");
     //   }
     // }
-    
+
     // Clean up the protestor instance
     protestor.cleanup();
     this.protestors.delete(countryId);
@@ -7819,18 +8075,18 @@ console.log(`sss cid ${countryId}`);
     // Clean up each protestor instance
     for (const [countryId, protestor] of this.protestors.entries()) {
       protestor.cleanup();
-      
+
       // Hide hitbox
       if (this.protestorHitboxManager) {
         this.protestorHitboxManager.hideProtestorHitbox(countryId);
       }
-      
+
       // Update country state
       if (this.countries[countryId]) {
         this.countries[countryId].protestorsShown = false;
       }
     }
-    
+
     // Clear protestors map
     this.protestors.clear();
 
@@ -7846,17 +8102,17 @@ console.log(`sss cid ${countryId}`);
   pause() {
     // Store current state
     this._pausedState = {
-      protestorIds: Array.from(this.protestors.keys())
+      protestorIds: Array.from(this.protestors.keys()),
     };
-    
+
     // Hide all protestors without scheduling reappearance
     for (const [countryId, protestor] of this.protestors.entries()) {
       protestor.cleanup();
     }
-    
+
     // Clear the protestors map but keep track of which ones were active
     this.protestors.clear();
-    
+
     // Clear timers
     for (const timerId of this.protestorTimers.values()) {
       clearTimeout(timerId);
@@ -7867,12 +8123,12 @@ console.log(`sss cid ${countryId}`);
   // Resume the protestor manager
   resume() {
     if (!this._pausedState) return;
-    
+
     // Restore protestors that were active
-    this._pausedState.protestorIds.forEach(countryId => {
+    this._pausedState.protestorIds.forEach((countryId) => {
       this._scheduleProtestors(countryId);
     });
-    
+
     this._pausedState = null;
   }
 
@@ -7880,10 +8136,10 @@ console.log(`sss cid ${countryId}`);
   reset() {
     // Clean up all protestors
     this.cleanupAllProtestors();
-    
+
     // Reset USA protestor timing
     this.usaTimingCheckDone = false;
-    
+
     // Reset all country states
     Object.keys(this.countries).forEach((countryId) => {
       this.countries[countryId] = {
@@ -7894,7 +8150,7 @@ console.log(`sss cid ${countryId}`);
         initialDelay: null,
       };
     });
-    
+
     // Re-initialize protestor hitbox manager
     this._initProtestorHitboxManager();
   }
@@ -7903,21 +8159,19 @@ console.log(`sss cid ${countryId}`);
   destroy() {
     // Clean up all protestors
     this.cleanupAllProtestors();
-    
+
     // Clear all timers
     for (const timerId of this.protestorTimers.values()) {
       clearTimeout(timerId);
     }
     this.protestorTimers.clear();
-    
+
     // Destroy protestor hitbox manager
     if (this.protestorHitboxManager) {
       this.protestorHitboxManager.destroy();
     }
   }
 }
-
-
 
 class FreedomManager {
   // ===== CONSTANTS =====
@@ -7956,13 +8210,12 @@ class FreedomManager {
     REGENERATION_DELAY: 30000, // After protestors disappear (fade or liberate), wait X seconds before next group appears
 
     // USA protestors
-    USA_INITIAL_APPEARANCE_THRESHOLD: 0.5, // USA protestors first appear when 10% of total game time has elapsed
+    USA_INITIAL_APPEARANCE_THRESHOLD: 0.6, // USA protestors first appear when 10% of total game time has elapsed
     USA_REAPPEAR_MIN_TIME: 15000, // After USA protestors disappear, wait at least 20 seconds before next group
     USA_REAPPEAR_MAX_TIME: 20000, // After USA protestors disappear, wait at most 1 second before next group
   };
 
   // ===== CONSTRUCTOR & INITIALIZATION =====
-
 
   constructor(gameState, elements, audioManager, config = {}, gameEngine) {
     this.gameState = gameState;
@@ -7971,14 +8224,11 @@ class FreedomManager {
     this.gameEngine = gameEngine;
     this.animationManager = animationManager;
 
-
     // Initialization
     this.usaTimingCheckDone = false;
     this.glowOutline = new GlowOutline();
 
     this.visualEffectsManager = new VisualEffectsManager(FreedomManager.Z_INDEXES);
-
-
 
     // Trump size state
     this.trumpShrinkLevel = 0;
@@ -8005,7 +8255,6 @@ class FreedomManager {
     // Set up country data in a unified structure
     this.countries = this._initCountries();
 
-
     // Initialize protestor hitbox manager
     this._initProtestorHitboxManager();
 
@@ -8013,13 +8262,13 @@ class FreedomManager {
     this._createParticleContainers();
 
     this.protestorManager = new ProtestorManager(
-      gameState, 
-      elements, 
-      audioManager, 
+      gameState,
+      elements,
+      audioManager,
       {
         Z_INDEXES: FreedomManager.Z_INDEXES,
         MOBILE_CONFIG: FreedomManager.MOBILE_CONFIG,
-        PROTESTOR_TIMING: FreedomManager.PROTESTOR_TIMING
+        PROTESTOR_TIMING: FreedomManager.PROTESTOR_TIMING,
       },
       gameEngine,
       this.logger
@@ -8039,7 +8288,6 @@ class FreedomManager {
     );
   }
 
-
   _initCountries() {
     return {
       canada: this._createCountryState("canada"),
@@ -8048,7 +8296,6 @@ class FreedomManager {
       usa: this._createCountryState("usa"),
     };
   }
-
 
   _createCountryState(id) {
     return {
@@ -8064,7 +8311,6 @@ class FreedomManager {
     };
   }
 
-
   _initProtestorHitboxManager() {
     if (!window.protestorHitboxManager) {
       this.logger.info("freedom", "Creating new Protestor Hitbox Manager");
@@ -8075,31 +8321,31 @@ class FreedomManager {
 
   _removeCountryFlags(countryId) {
     console.log(`Removing flags for country: ${countryId}`);
-    
+
     if (!countryId || !this.gameState || !this.gameState.countries[countryId]) {
       console.log(`Invalid parameters for flag removal`);
       return;
     }
-    
+
     const country = this.gameState.countries[countryId];
-    
+
     // Initialize flags array if it doesn't exist
     if (!country.flags) {
       country.flags = [];
       console.log(`Initialized flags array for ${countryId}`);
       return; // No flags to remove, so we can return early
     }
-    
+
     // Check if there are any flags to remove
     if (country.flags.length === 0) {
       console.log(`No flags to remove for ${countryId}`);
       return;
     }
-        
+
     // Remove each flag (single loop)
     country.flags.forEach((flagInfo, index) => {
       console.log(`[removeCountryFlags] Processing flag ${index}:`, flagInfo);
-      
+
       // Stop the animation
       if (flagInfo.animationId && window.animationManager) {
         console.log(`[removeCountryFlags] Stopping animation ${flagInfo.animationId}`);
@@ -8107,14 +8353,14 @@ class FreedomManager {
       } else if (!window.animationManager) {
         console.warn(`[removeCountryFlags] window.animationManager is not available!`);
       }
-  
+
       // Remove the element with animation
       if (flagInfo.element) {
         console.log(`[removeCountryFlags] Adding fade-out animation to flag element`);
         flagInfo.element.style.transition = "opacity 0.5s ease-out, transform 0.5s ease-out";
         flagInfo.element.style.opacity = "0";
         flagInfo.element.style.transform = "scale(0.5) rotate(45deg)";
-  
+
         // Remove after animation
         setTimeout(() => {
           if (flagInfo.element && flagInfo.element.parentNode) {
@@ -8128,7 +8374,7 @@ class FreedomManager {
         console.warn(`[removeCountryFlags] Flag ${index} has no element!`);
       }
     });
-    
+
     // Clear the flags array
     country.flags = [];
     console.log(`All flags removed for ${countryId}`);
@@ -8216,7 +8462,6 @@ class FreedomManager {
     return window.DeviceUtils && window.DeviceUtils.isMobile();
   }
 
-
   // ===== GAME STATE MANAGEMENT =====
 
   /**
@@ -8225,24 +8470,18 @@ class FreedomManager {
    */
   update(deltaTime) {
     const startTime = performance.now();
-  
+
     if (!this.gameState.isPlaying || this.gameState.isPaused) return;
-  
+
     // Delegate protestor management to the protestorManager
     this.protestorManager.update(deltaTime);
-  
+
     const processingTime = performance.now() - startTime;
     if (processingTime > 16) {
       // More than one frame
       console.warn("Performance warning: Update took too long", processingTime);
     }
   }
-
-
-
-
-
-
 
   updateFlagOpacity(countryId) {
     const flagOverlay = this._getElement(`${countryId}-flag-overlay`, "flag update");
@@ -8277,26 +8516,24 @@ class FreedomManager {
   cleanupAllEffects() {
     // Clean up all protestors
     this.protestorManager.cleanupAllProtestors();
-  
+
     // Clean up visual effects
     this.visualEffectsManager.cleanupAll();
-  
+
     // Remove any resistance indicators
     document.querySelectorAll(".resistance-possible").forEach((el) => {
       el.classList.remove("resistance-possible");
     });
-  
+
     if (window.animationManager) {
       window.animationManager.reset();
     }
   }
- 
 
   /**
    * Clean up all sound resources
    */
-  cleanup() {   
-  }
+  cleanup() {}
 
   // ===== TRUMP SIZE MANAGEMENT =====
 
@@ -8332,22 +8569,20 @@ class FreedomManager {
     }
   }
 
-
   handleProtestorClick(countryId) {
     this.protestorManager.handleProtestorClick(countryId);
-
   }
   /**
    * Handle USA third click (Trump shrink sequence)
    */
   handleUSAThirdClick() {
     this._handleUSAShrinkSequence();
-    this.protestorManager.hideProtestors('usa');
-
+    this.protestorManager.hideProtestors("usa");
   }
 
-
   _handleUSAShrinkSequence() {
+    console.log("bbb _handleUSAShrinkSequence");
+
     // Get or create effect container
     let effectContainer = document.getElementById("shrink-effects-container");
     if (!effectContainer) {
@@ -8369,64 +8604,14 @@ class FreedomManager {
     // Create shrink effect centered on Trump
     this.createShrinkEffect(effectContainer, isFinalShrink);
 
-    // Add the shrink text message
-    const shrinkMessages = ["SHRINKY!", "SHRUNK!", "SHRINKY DINK!", "BYEEEE!"];
-
-    // const shrinkMessages = ["SHRINKY!", "TRUMBELLINA?!", "SHRINKY-DINK!"];
+    // Use the notification system instead of custom text
+    const shrinkMessages = ["YOU SHRUNK TRUMP!", "SHRINKY DINK!", "BITE-SIZED!", "BYE TRUMPY!"];
     const currentMessage = shrinkMessages[this.trumpShrinkLevel - 1] || shrinkMessages[2];
 
-    const trumpPosition = this._getTrumpPosition();
-
-    const text = document.createElement("div");
-    text.className = "shrink-text";
-    text.textContent = currentMessage;
-    text.style.position = "absolute";
-    text.style.zIndex = FreedomManager.Z_INDEXES.TEXT;
-    
-
-    // Calculate position (centered above Trump)
-    const textWidth = 300;
-    text.style.width = `${textWidth}px`;
-    text.style.left = `${trumpPosition.x - textWidth / 2}px`;
-    text.style.top = `${trumpPosition.y - 150}px`; // Position above Trump
-    text.style.textAlign = "center";
-
-    effectContainer.appendChild(text);
-
-    // Animate the text
-    const startRotation = -5 + Math.random() * 10;
-    const animationId = `shrink-text-${Date.now()}`;
-
-    const style = document.createElement("style");
-    style.textContent = `
-        @keyframes ${animationId} {
-            0% {
-                transform: scale(0.1) rotate(${startRotation - 10}deg);
-                opacity: 0;
-            }
-            20% {
-                transform: scale(1.4) rotate(${startRotation + 5}deg);
-                opacity: 1;
-            }
-            80% {
-                transform: scale(1.2) rotate(${startRotation - 3}deg);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(2.0) rotate(${startRotation}deg);
-                opacity: 0;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-
-    text.style.animation = `${animationId} 1.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards`;
-
-    // Remove text and style after animation
-    setTimeout(() => {
-      if (text.parentNode) text.parentNode.removeChild(text);
-      if (style.parentNode) style.parentNode.removeChild(style);
-    }, 1500);
+    // Use the GameSpeedManager's notification system
+    if (window.speedManager) {
+      window.speedManager.showNotification(currentMessage);
+    }
 
     // Add screen shake
     const gameContainer = document.getElementById("game-container");
@@ -8466,11 +8651,11 @@ class FreedomManager {
     }
 
     // Hide protestors
-    this.protestorManager.hideProtestors("usa")
+    this.protestorManager.hideProtestors("usa");
+
     // Play sound with timing aligned to visual effect
     if (this.audioManager) {
       setTimeout(() => {
-        // Then play the appropriate sound
         if (isFinalShrink) {
           this.audioManager.playRandom("trump", "finalShrink", null, 0.9);
         } else {
@@ -8483,21 +8668,20 @@ class FreedomManager {
     if (isFinalShrink) {
       // Force Trump to an angry or defeated state before ending
       if (this.animationManager?.trumpSprite) {
-        const endStateAnimation = "angryIdle"; // Or whatever your specific end state animation is called
-        
+        const endStateAnimation = "angryIdle";
+
         // Check if the animation exists before changing
         if (this.animationManager.animations?.[endStateAnimation]) {
           this.animationManager.changeState(endStateAnimation);
         }
       }
-      
+
       // Short delay to let the animation start before ending the game
       setTimeout(() => {
         this.gameEngine.triggerGameEnd(this.gameEngine.END_STATES.TRUMP_DESTROYED, "trump_destroyed");
       }, 200);
     }
   }
-
 
   _getTrumpPosition() {
     console.log("Calculating Trump's Position - Start");
@@ -8605,8 +8789,6 @@ class FreedomManager {
     return finalPosition;
   }
 
-
-
   createShrinkEffect(container, isFinal = false) {
     // Get Trump's position
     const trumpPosition = this._getTrumpPosition();
@@ -8667,17 +8849,6 @@ class FreedomManager {
 
     // Insert the effect at the beginning of the container
     container.insertBefore(effect, container.firstChild);
-
-    // Create style element if it doesn't exist
-    if (!document.getElementById("shrink-effect-styles")) {
-      const styleElement = document.createElement("style");
-      styleElement.id = "shrink-effect-styles";
-      styleElement.textContent = `
-    /* Styles for hand-drawn arcs */
-    
-  `;
-      document.head.appendChild(styleElement);
-    }
 
     // Remove effect after animation
     setTimeout(
@@ -8795,10 +8966,8 @@ class FreedomManager {
 
   // ===== COUNTRY RESISTANCE EFFECTS =====
 
-
   triggerCountryResistance(countryId) {
     this.logger.info("freedom", `MAJOR RESISTANCE in ${countryId}!`);
-
 
     // Add 50 points for successful revolution
     if (this.gameState) {
@@ -8822,7 +8991,7 @@ class FreedomManager {
     }
 
     console.log("nnnn about to remove flags");
-    
+
     // Remove Trump flags from the country
     this._removeCountryFlags(countryId);
 
@@ -8839,8 +9008,13 @@ class FreedomManager {
       flagOverlay.style.opacity = "0";
     }
 
+    // ANNOUNCEMENT: Make liberation announcement
+    this.makeCountryLiberationAnnouncement(countryId);
+
     // Store position data before removing elements
     const positionData = this._capturePositionData(countryId);
+
+    this.makeCountryLiberationAnnouncement(countryId);
 
     // Create celebration effects
     this._createResistanceCelebration(countryId, positionData);
@@ -8859,7 +9033,19 @@ class FreedomManager {
     return true;
   }
 
- 
+  makeCountryLiberationAnnouncement(countryId) {
+    // Use the speed manager for announcements
+    if (window.speedManager) {
+      const announcementText = `${countryId.toUpperCase()} LIBERATED!`;
+      window.speedManager.showNotification(announcementText);
+
+      // Play country-specific liberation sound
+      if (window.audioManager) {
+        window.audioManager.play("ui", `${countryId}Liberated`, 0.8);
+      }
+    }
+  }
+
   _capturePositionData(countryId) {
     const protestorWrapper = this._getElement(`${countryId}-protestors-wrapper`, "position capture");
     const hitbox = this.protestorHitboxManager?.protestorHitboxes[countryId]?.element;
@@ -8914,29 +9100,24 @@ class FreedomManager {
   _createResistanceCelebration(countryId, positionData) {
     const gameContainer = this._getGameContainer();
     if (!gameContainer || !positionData) return;
-  
+
     // Generate effect options based on config
     const effectOptions = {
       playSound: true,
       screenShake: this.config.effectsEnabled.screenShake,
       confetti: this.config.effectsEnabled.confetti,
-      fireworks: this.config.effectsEnabled.fireworks
+      fireworks: this.config.effectsEnabled.fireworks,
     };
-  
+
     // Use the visual effects manager to create the celebration
-    this.visualEffectsManager.createResistanceCelebration(
-      countryId, 
-      positionData, 
-      gameContainer, 
-      effectOptions
-    );
-  
+    this.visualEffectsManager.createResistanceCelebration(countryId, positionData, gameContainer, effectOptions);
+
     // Handle audio separately if needed
     if (this.audioManager) {
       this.audioManager.playRandom("particles", "freedom", null, 0.8);
     }
   }
- 
+
   _playResistanceAnimation(countryId) {
     let smackAnimation = "";
 
@@ -8960,7 +9141,6 @@ class FreedomManager {
     }
   }
 
-  
   // ===== SYSTEM LIFECYCLE METHODS =====
 
   /**
@@ -8971,17 +9151,13 @@ class FreedomManager {
 
     this.protestorManager.pause();
 
-
     this.visualEffectsManager.pause();
-
 
     // Store the current state of various animations and timers
     this._pausedState = {
       disappearTimeouts: {},
     };
-
-
-      }
+  }
 
   /**
    * Resume the freedom manager
@@ -8994,9 +9170,7 @@ class FreedomManager {
 
     this.protestorManager.resume();
 
-
     this.visualEffectsManager.resume();
-
 
     // Restore disappear timeouts
     Object.keys(this._pausedState.disappearTimeouts).forEach((countryId) => {
@@ -9008,7 +9182,6 @@ class FreedomManager {
       }
     });
 
-
     // Clear the paused state
     this._pausedState = null;
   }
@@ -9018,7 +9191,7 @@ class FreedomManager {
    */
   reset() {
     // Clear all timers
- 
+
     this.protestorManager.reset();
 
     this.logger.info("freedom", "Resetting Freedom Manager");
@@ -9026,7 +9199,6 @@ class FreedomManager {
     // Stop ALL animations first
     this.cleanupAllEffects();
 
-   
     // Re-initialize protestor hitbox manager
     this._initProtestorHitboxManager();
 
@@ -9079,10 +9251,7 @@ class FreedomManager {
     this.logger.debug("freedom", "Handled grab success");
   }
 
-
   destroy() {
-
-
     // Stop all sounds first
     if (this.audioManager) {
       this.audioManager.stopAll();
@@ -9091,9 +9260,7 @@ class FreedomManager {
     // Clean up all effects and protestors
     this.cleanupAllEffects();
 
-
     this.protestorManager.destroy();
-
 
     // // Explicitly destroy protestor hitbox manager
     // if (this.protestorHitboxManager) {
@@ -9107,15 +9274,12 @@ class FreedomManager {
       country.clickCounter = 0;
     });
 
-    
-
     // Clear references to other systems
     // this.animationManager = null;
     // this.protestorHitboxManager = null;
   }
 
   // ===== DEBUG METHODS =====
-
 
   /**
    * Debug method to set country claims
@@ -9161,7 +9325,6 @@ class FreedomManager {
     return true;
   }
 }
-
 
 window.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -9266,32 +9429,30 @@ document.addEventListener("click", function (event) {
   });
 });
 
-
-
-document.addEventListener('click', function(event) {
+document.addEventListener("click", function (event) {
   // Get the map element
-  const mapElement = document.getElementById('map-background');
+  const mapElement = document.getElementById("map-background");
   if (!mapElement) return;
-  
+
   // Get the game container
-  const gameContainer = document.getElementById('game-container');
+  const gameContainer = document.getElementById("game-container");
   if (!gameContainer) return;
-  
+
   // Get container positions
   const mapRect = mapElement.getBoundingClientRect();
   const containerRect = gameContainer.getBoundingClientRect();
-  
+
   // Get the current map scale
   const currentMapScale = mapRect.width / mapElement.naturalWidth;
-  
+
   // Calculate click position relative to the container
   const clickX = event.clientX - containerRect.left;
   const clickY = event.clientY - containerRect.top;
-  
+
   // Convert to "natural" coordinates by dividing by the current scale
   const naturalX = Math.round((clickX - (mapRect.left - containerRect.left)) / currentMapScale);
   const naturalY = Math.round((clickY - (mapRect.top - containerRect.top)) / currentMapScale);
-  
+
   // Log with the POSPOS prefix
   console.log(`POSPOS x: ${naturalX} y: ${naturalY}`);
 });

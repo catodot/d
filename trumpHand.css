@@ -496,9 +496,9 @@
 /* Grab screen shake */
 @keyframes grab-screen-shake {
   0% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(-1.5px, 1.5px) rotate(-0.5deg); }
-  50% { transform: translate(1.5px, -1px) rotate(0.5deg); }
-  75% { transform: translate(-1px, 0.5px) rotate(-0.25deg); }
+  25% { transform: translate(-3.5px, 3.5px) rotate(-1.5deg); }
+  50% { transform: translate(3.5px, -3px) rotate(3.5deg); }
+  75% { transform: translate(-2px, 0.5px) rotate(-0.25deg); }
   100% { transform: translate(0, 0) rotate(0deg); }
 }
 
