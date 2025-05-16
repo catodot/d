@@ -386,7 +386,7 @@ button:hover {
 
 #restart-button {
   font-family: monospace;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   padding: 5px;
   margin: 10px 0 0 0;
   text-decoration: underline;
@@ -506,7 +506,7 @@ button:hover {
 .score {
   color: rgba(113, 111, 185, 0.9); /* Almost opaque */
   text-shadow: 2px 2px 0px #ff1493; /* Sharp hot pink drop shadow */
-  opacity: 0.6;
+  opacity: 0.9;
 }
 
 @media (min-width: 768px) {

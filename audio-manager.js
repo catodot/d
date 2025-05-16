@@ -459,14 +459,14 @@ class AudioManager {
   // Add this method to AudioManager
   _monitorAudioPoolSize() {
     const poolSize = window._primedAudioPool?.length || 0;
-    console.log(`[AUDIO MONITOR] Audio pool size: ${poolSize}`);
+    // console.log(`[AUDIO MONITOR] Audio pool size: ${poolSize}`);
 
     // Count active protestor sounds
     const activeProtestorCount = Object.keys(this.activeProtestorSounds || {}).length;
-    console.log(`[AUDIO MONITOR] Active protestor sounds: ${activeProtestorCount}`);
+    // console.log(`[AUDIO MONITOR] Active protestor sounds: ${activeProtestorCount}`);
 
     // Count total playing sounds
-    console.log(`[AUDIO MONITOR] Total playing sounds: ${this.currentlyPlaying.length}`);
+    // console.log(`[AUDIO MONITOR] Total playing sounds: ${this.currentlyPlaying.length}`);
 
     return {
       poolSize,
@@ -954,7 +954,7 @@ class AudioManager {
       new Audio();
       
     if (window._primedAudioPool.length > 0) {
-      console.log(`[AUDIO POOL] Reused audio from pool. Remaining: ${window._primedAudioPool.length}`);
+      // console.log(`[AUDIO POOL] Reused audio from pool. Remaining: ${window._primedAudioPool.length}`);
     } else {
       console.log(`[AUDIO POOL] Created new Audio() element - pool was empty!`);
     }

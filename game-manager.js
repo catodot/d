@@ -1,16 +1,37 @@
 // Event handling utility
+// function setupEventHandlers(element, handlers) {
+//   if (!element) return false;
+
+//   // Remove existing handlers with clone technique
+//   const newElement = element.cloneNode(true);
+//   if (element.parentNode) {
+//     element.parentNode.replaceChild(newElement, element);
+//   }
+
+//   // Add new handlers
+//   Object.entries(handlers).forEach(([event, handler]) => {
+//     newElement.addEventListener(event, handler);
+//   });
+
+//   return newElement;
+// }
+
+// In setupEventHandlers function
 function setupEventHandlers(element, handlers) {
   if (!element) return false;
 
-  // Remove existing handlers with clone technique
   const newElement = element.cloneNode(true);
   if (element.parentNode) {
-    element.parentNode.replaceChild(newElement, element);
+      element.parentNode.replaceChild(newElement, element);
   }
 
-  // Add new handlers
   Object.entries(handlers).forEach(([event, handler]) => {
-    newElement.addEventListener(event, handler);
+      // Add passive option for touch events
+      const options = ['touchstart', 'touchmove', 'touchend'].includes(event) 
+          ? { passive: true, capture: false } 
+          : false;
+      
+      newElement.addEventListener(event, handler, options);
   });
 
   return newElement;
@@ -25,7 +46,7 @@ class GameEngine {
     this.config = {
       DEBUG_MODE: config.debug || false,
       GAME_DURATION: 168, // 2min 48sec in seconds
-      AUTO_RESTART_DELAY: 10000,
+      AUTO_RESTART_DELAY: 100,
       INITIAL_GRAB_DELAY: 4000,
       COUNTRIES: ["canada", "mexico", "greenland"],
     };
@@ -40,19 +61,19 @@ class GameEngine {
       trump_victory: {
         trumpAnimation: "victory",
         audioSequence: ["beenVeryNiceToYou", "lose"],
-        message: "'Resistance never dies' refers to the resilient nature of resistance in oppressive systems, according to an Amazon.ca listing",
+        message: "Resistance never dies",
         playerWon: false,
       },
       resistance_win: {
         trumpAnimation: "slapped",
         audioSequence: ["fourYears", "win"],
-        message: "We SURVIVED FOUR YEARS!!! ELECTION TIME!!! right???",
+        message: "ELECTION TIME! right? right???",
         playerWon: true,
       },
       trump_destroyed: {
         trumpAnimation: "slapped",
         audioSequence: ["beenVeryNiceToYou", "win"],
-        message: "Honey, you shrunk that junky skunky lunk! ♡♡♡ Next up, land back?",
+        message: "Honey, you shrunk that junky lunk! ♡♡♡ Next up, land back?",
         playerWon: true,
       },
     };
@@ -508,7 +529,7 @@ class GameEngine {
    * Restart the game
    */
   restartGame() {
-    // console.log("[Engine] Restarting game");
+    console.log("restart [Engine] Restarting game");
 
     // FIRST: Hide UI elements that should be hidden during restart
     const gameOverScreen = document.getElementById("game-over-screen");
@@ -567,9 +588,9 @@ class GameEngine {
       this.startGame();
 
       // Announce restart for screen readers
-      if (this.systems.ui?.announceForScreenReaders) {
-        this.systems.ui.announceForScreenReaders("Game restarted! Get ready to block!");
-      }
+      // if (this.systems.ui?.announceForScreenReaders) {
+      //   this.systems.ui.announceForScreenReaders("Game restarted! Get ready to block!");
+      // }
     }, 200);
 
     this.systems.state.gameEnding = false;
@@ -577,6 +598,8 @@ class GameEngine {
   }
 
   _showFullGameOverScreen(playerWon) {
+    console.log("restart _showFullGameOverScreen");
+
     // Show game over screen
     this.systems.ui.showGameOverScreen(playerWon, this.systems.state);
 
@@ -604,6 +627,8 @@ class GameEngine {
 
     // Schedule auto-restart
     if (this.config.AUTO_RESTART_DELAY > 0) {
+      console.log("restart this.config.AUTO_RESTART_DELAY > 0");
+
       this._scheduleAutoRestart();
     }
   }
@@ -612,12 +637,20 @@ class GameEngine {
     console.log("grabbing");
 
     // Skip if game isn't actively playing
-    if (!this.systems.state.isPlaying || this.systems.state.isPaused) {
+    if (!this.systems.state.isPlaying) {
+      console.log("game state isn't playing");
+    
+      return;
+    }
+
+    if (this.systems.state.isPaused) {
+      console.log("game state is paused");
       return;
     }
 
     if (this._checkGameOverCondition()) {
       this.triggerGameEnd(this.END_STATES.TRUMP_VICTORY, "all_countries_claimed");
+      console.log("triggering game end");
       return;
     }
 
@@ -667,7 +700,7 @@ class GameEngine {
         });
     }
     // Announce for screen readers
-    this.systems.ui.announceForScreenReaders(`Trump is trying to grab ${targetCountry}! Smack his hand!`);
+    // this.systems.ui.announceForScreenReaders(`Trump is trying to grab ${targetCountry}! Smack his hand!`);
 
     // Start animation sequence
     this._startGrabAnimation(targetCountry, animationInfo.animationName);
@@ -682,12 +715,229 @@ class GameEngine {
     // }, 8000);
   }
 
+// _showRedCircleTest() {
+//   // Get the current target country
+//   const targetCountry = this.systems.state.currentTarget;
+//   if (!targetCountry) return;
+
+//   // Special handling for Mexico - always use left position
+//   if (targetCountry === "mexico") {
+//     // Create the red circle element
+//     const redCircle = document.createElement("div");
+//     redCircle.id = "test-red-circle";
+    
+//     // Get the map element and calculate position
+//     const mapElement = document.getElementById("map-background");
+//     const gameContainer = document.getElementById("game-container");
+    
+//     if (mapElement && gameContainer) {
+//       const mapRect = mapElement.getBoundingClientRect();
+//       const containerRect = gameContainer.getBoundingClientRect();
+//       const currentMapScale = mapRect.width / mapElement.naturalWidth;
+      
+//       // Mexico left grab position (from the animation coordinates)
+//       const mexicoLeftPosition = {
+//         x: 906,  // The smaller X value from the coordinates
+//         y: 2445,
+//         width: 737,
+//         height: 737
+//       };
+      
+//       // Scale and position
+//       const scaledX = mexicoLeftPosition.x * currentMapScale;
+//       const scaledY = mexicoLeftPosition.y * currentMapScale;
+//       const scaledWidth = mexicoLeftPosition.width * currentMapScale;
+//       const scaledHeight = mexicoLeftPosition.height * currentMapScale;
+      
+//       // Calculate final position
+//       const finalX = mapRect.left + scaledX + scaledWidth / 2;
+//       const finalY = mapRect.top + scaledY + scaledHeight / 2;
+      
+//       // Style the red circle
+//       redCircle.style.position = "fixed";
+//       redCircle.style.left = `${finalX}px`;
+//       redCircle.style.top = `${finalY}px`;
+//       redCircle.style.transform = "translate(-50%, -50%)";
+//       redCircle.style.width = "60px";
+//       redCircle.style.height = "60px";
+//       redCircle.style.backgroundColor = "red";
+//       redCircle.style.borderRadius = "50%";
+//       redCircle.style.zIndex = "9999";
+//       redCircle.style.pointerEvents = "none";
+//       redCircle.style.border = "3px solid darkred";
+      
+//       // Add to document body
+//       document.body.appendChild(redCircle);
+//     }
+//   } else {
+//     // For all other countries, use the hitbox position
+//     const handHitbox = document.getElementById("trump-hand-hitbox");
+//     if (!handHitbox) {
+//       console.warn("Hand hitbox not found");
+//       return;
+//     }
+
+//     const hitboxRect = handHitbox.getBoundingClientRect();
+    
+//     // Create the red circle element
+//     const redCircle = document.createElement("div");
+//     redCircle.id = "test-red-circle";
+    
+//     // Style it
+//     redCircle.style.position = "fixed";
+//     redCircle.style.left = `${hitboxRect.left + hitboxRect.width / 2}px`;
+//     redCircle.style.top = `${hitboxRect.top + hitboxRect.height / 2}px`;
+//     redCircle.style.transform = "translate(-50%, -50%)";
+//     redCircle.style.width = "60px";
+//     redCircle.style.height = "60px";
+//     redCircle.style.backgroundColor = "red";
+//     redCircle.style.borderRadius = "50%";
+//     redCircle.style.zIndex = "9999";
+//     redCircle.style.pointerEvents = "none";
+//     redCircle.style.border = "3px solid darkred";
+    
+//     // Add to document body
+//     document.body.appendChild(redCircle);
+//   }
+  
+//   // Remove after 2 seconds
+//   setTimeout(() => {
+//     const circle = document.getElementById("test-red-circle");
+//     if (circle && circle.parentNode) {
+//       circle.parentNode.removeChild(circle);
+//     }
+//   }, 2000);
+// }
+
+_showLipsAnimation(country) {
+  if (!country) return;
+
+  // Get the position using the same logic as the red circle
+  const position = this._getLipsPosition(country);
+  if (!position) return;
+
+  // Calculate the delay to match the protest sound timing
+  const gameSpeedMultiplier = this.systems.audio ? this.systems.audio._sanitizeGameSpeed() : 1.0;
+  const sobDelay = this.systems.audio ? this.systems.audio.baseDelays.sobToProtest : 0.5;
+  const totalDelay = (sobDelay / gameSpeedMultiplier) * 1000; // Convert to milliseconds
+
+  // Wait for the same amount of time as the protest sound
+  setTimeout(() => {
+    // Create the animation container
+    const lipsContainer = document.createElement("div");
+    lipsContainer.id = "lips-animation";
+    
+    // Style the container
+    lipsContainer.style.position = "fixed";
+    lipsContainer.style.left = `${position.x}px`;
+    lipsContainer.style.top = `${position.y}px`;
+    lipsContainer.style.transform = "translate(-50%, -50%)";
+    lipsContainer.style.width = "180px";  
+    lipsContainer.style.height = "180px"; 
+    lipsContainer.style.zIndex = "9999";
+    lipsContainer.style.pointerEvents = "none";
+    
+    // Set up the sprite animation
+    const spriteSheet = this._getLipsSpriteSheet(country);
+    lipsContainer.style.backgroundImage = `url('${spriteSheet}')`;
+    lipsContainer.style.backgroundSize = "400% 100%"; // Assuming 4 frames side by side
+    lipsContainer.style.backgroundPosition = "0% 0%";
+    lipsContainer.style.backgroundRepeat = "no-repeat";
+    
+    // Add to document body
+    document.body.appendChild(lipsContainer);
+    
+    // Animate the sprite
+    let frame = 0;
+    const frameCount = 4; // Adjust based on your actual sprite
+    const frameDuration = 100; // milliseconds per frame
+    
+    const animationInterval = setInterval(() => {
+      frame = (frame + 1) % frameCount;
+      const percentPosition = (frame / (frameCount - 1)) * 100;
+      lipsContainer.style.backgroundPosition = `${percentPosition}% 0%`;
+    }, frameDuration);
+    
+    // Remove after 2 seconds
+    setTimeout(() => {
+      clearInterval(animationInterval);
+      if (lipsContainer.parentNode) {
+        lipsContainer.parentNode.removeChild(lipsContainer);
+      }
+    }, 1500);
+  }, totalDelay); // This is the only real change - wrapping everything in setTimeout
+}
+
+// Helper method to get the sprite sheet path for each country
+_getLipsSpriteSheet(targetCountry) {
+  // Map countries to their lip sprite sheets
+  const lipsSprites = {
+    // westCanada: "images/lips-west-canada-sprite.png",
+    // eastCanada: "images/lips-east-canada-sprite.png",
+    // mexico: "images/lips-mexico-sprite.png",
+    // greenland: "images/lips-greenland-sprite.png"
+
+    westCanada: "images/lips-greenland-sprite.png",
+    eastCanada: "images/lips-greenland-sprite.png",
+    mexico: "images/lips-mexico-sprite.png",
+    greenland: "images/lips-greenland-sprite.png"
+  };
+  
+  return lipsSprites[targetCountry] || "images/lips-default-sprite.png";
+}
+
+// Extract the position logic into a helper method
+_getLipsPosition(targetCountry) {
+  const mapElement = document.getElementById("map-background");
+  const gameContainer = document.getElementById("game-container");
+  
+  if (!mapElement || !gameContainer) return null;
+  
+  const mapRect = mapElement.getBoundingClientRect();
+  const currentMapScale = mapRect.width / mapElement.naturalWidth;
+  
+  let x, y;
+  
+  if (targetCountry === "mexico") {
+    const position = { x: 1106, y: 2405, width: 737, height: 737 };
+    x = mapRect.left + (position.x * currentMapScale) + (position.width * currentMapScale / 2);
+    y = mapRect.top + (position.y * currentMapScale) + (position.height * currentMapScale / 2);
+  } else if (targetCountry === "eastCanada") {
+    const position = { x: 1708, y: 1499, width: 737, height: 737 };
+    x = mapRect.left + (position.x * currentMapScale) + (position.width * currentMapScale / 2);
+    y = mapRect.top + (position.y * currentMapScale) + (position.height * currentMapScale / 2);
+  } else if (targetCountry === "greenland") {
+    const position = { x: 2163, y: 354, width: 737, height: 737 };
+    x = mapRect.left + (position.x * currentMapScale) + (position.width * currentMapScale / 2);
+    y = mapRect.top + (position.y * currentMapScale) + (position.height * currentMapScale / 2);
+  } else if (targetCountry === "westCanada") {
+    const position = { x: 336, y: 1398, width: 737, height: 737 };
+    x = mapRect.left + (position.x * currentMapScale) + (position.width * currentMapScale / 2);
+    y = mapRect.top + (position.y * currentMapScale) + (position.height * currentMapScale / 2);
+  } else {
+    // Fallback - this shouldn't happen now
+    console.warn(`Unknown target country: ${targetCountry}`);
+    return null;
+  }
+  
+  return { x, y };
+}
+
   stopGrab(event) {
     const targetCountry = this.systems.state.currentTarget;
+    console.log("target country is " + targetCountry);
+    
     if (!targetCountry) return;
+
+    // this._showRedCircleTest();
+
 
     // Determine specific grab region early
     const smackRegion = this._determineSmackRegion(targetCountry);
+
+
+    this._showLipsAnimation(smackRegion);  
+
 
     // Handle audio effects
     this._playBlockSound(smackRegion);
@@ -772,9 +1022,9 @@ class GameEngine {
   // Handle post-block UI updates
   _handlePostBlockUIUpdates(targetCountry) {
     // Screen reader announcement
-    if (this.systems.ui?.announceForScreenReaders) {
-      this.systems.ui.announceForScreenReaders(`Great job! You blocked Trump's grab on ${targetCountry}!`);
-    }
+    // if (this.systems.ui?.announceForScreenReaders) {
+    //   this.systems.ui.announceForScreenReaders(`Great job! You blocked Trump's grab on ${targetCountry}!`);
+    // }
 
     // Hide hand hitbox if manager exists
     if (window.handHitboxManager) {
@@ -1308,9 +1558,9 @@ class GameEngine {
     this.systems.ui.updateHUD(this.systems.state);
 
     // Announce time at key intervals
-    if (this.systems.state.timeRemaining <= 30 && this.systems.state.timeRemaining % 10 === 0) {
-      this.systems.ui.announceForScreenReaders(`Warning: ${this.systems.state.timeRemaining} seconds remaining`);
-    }
+    // if (this.systems.state.timeRemaining <= 30 && this.systems.state.timeRemaining % 10 === 0) {
+    //   this.systems.ui.announceForScreenReaders(`Warning: ${this.systems.state.timeRemaining} seconds remaining`);
+    // }
 
     // Enhanced check for time-based win condition
     if (this.systems.state.timeRemaining <= 0) {
@@ -1364,7 +1614,7 @@ class GameEngine {
       }
     }
 
-    this.systems.ui.announceForScreenReaders("Game paused");
+    // this.systems.ui.announceForScreenReaders("Game paused");
   }
 
   _resumeGame() {
@@ -1403,7 +1653,7 @@ class GameEngine {
         });
     }
 
-    this.systems.ui.announceForScreenReaders("Game resumed");
+    // this.systems.ui.announceForScreenReaders("Game resumed");
   }
 
   /**
@@ -1606,7 +1856,7 @@ class GameEngine {
     this.systems.ui.updateHUD(state);
 
     // Announce for screen readers
-    this.systems.ui.announceForScreenReaders(`Hand blocked! +10 points. Total score: ${state.score}`);
+    // this.systems.ui.announceForScreenReaders(`Hand blocked! +10 points. Total score: ${state.score}`);
   }
 
   /**
@@ -1671,7 +1921,7 @@ class GameEngine {
     this.systems.ui.updateFlagOverlay("canada", claimCount);
 
     // Announce for screen readers
-    this.systems.ui.announceForScreenReaders(`Trump has claimed part of Canada! ${claimCount} out of 3 parts taken.`);
+    // this.systems.ui.announceForScreenReaders(`Trump has claimed part of Canada! ${claimCount} out of 3 parts taken.`);
   }
   _handleStandardCountryGrab(country) {
     console.log("iii handling a standard country grab");
@@ -1695,7 +1945,7 @@ class GameEngine {
     this.systems.ui.updateFlagOverlay(country, claimCount);
 
     // Announce for screen readers
-    this.systems.ui.announceForScreenReaders(`Trump has claimed part of ${country}! ${claimCount} out of 3 parts taken.`);
+    // this.systems.ui.announceForScreenReaders(`Trump has claimed part of ${country}! ${claimCount} out of 3 parts taken.`);
   }
 
   _checkGameOverCondition() {
@@ -1716,7 +1966,7 @@ class GameEngine {
     if (isGameOver) {
       // Only announce - DON'T end the game here
 
-      this.systems.ui.announceForScreenReaders("All countries have fallen to Trump! Game over!");
+      // this.systems.ui.announceForScreenReaders("All countries have fallen to Trump! Game over!");
     }
 
     return isGameOver;
@@ -1726,6 +1976,8 @@ class GameEngine {
    * @private
    */
   _scheduleAutoRestart() {
+    console.log("restart _scheduleAutoRestart");
+    
     this.createTrackedTimeout(() => {
       const recorderModal = document.getElementById("voice-recorder-modal");
       const thankYouModal = document.getElementById("thank-you-message");
@@ -1737,6 +1989,8 @@ class GameEngine {
         (!window.voiceRecorder || window.voiceRecorder.userInteracted !== true);
 
       if (canAutoRestart) {
+        console.log("restart canAutoRestart");
+
         // document.getElementById("restart-button").style.visibility = "block"
         // this.restartGame();
       }
@@ -3238,9 +3492,9 @@ class GameSpeedManager {
       { multiplier: 4.8, name: "Faster", sound: "faster" },
       { multiplier: 5.5, name: "get up and fight", sound: "getUpAndFight" },
 
-      { name: "CANADA LOST!", sound: "canadaLost", isCustom: true },
-      { name: "MEXICO LOST!", sound: "mexicoLost", isCustom: true },
-      { name: "GREENLAND LOST!", sound: "greenlandLost", isCustom: true },
+      { name: "CANADA IS LOST!", sound: "canadaLost", isCustom: true },
+      { name: "MEXICO IS LOST!", sound: "mexicoLost", isCustom: true },
+      { name: "GREENLAND IS LOST!", sound: "greenlandLost", isCustom: true },
       { name: "CANADA LIBERATED!", sound: "canadaLiberated", isCustom: true },
       { name: "MEXICO LIBERATED!", sound: "mexicoLiberated", isCustom: true },
       { name: "GREENLAND LIBERATED!", sound: "greenlandLiberated", isCustom: true },
@@ -4109,8 +4363,8 @@ class TrumpHandEffectsController {
 
     // Don't hide the visual element completely; instead, make it transparent
     // Remove: this.elements.visual.style.display = "none";
-    this.elements.visual.style.opacity = "0";
-    this.elements.visual.style.zIndex = "0";
+    // this.elements.visual.style.opacity = "0";
+    // this.elements.visual.style.zIndex = "0";
 
     // Remove any dynamic shard elements
     this.removeShards();
@@ -5191,7 +5445,7 @@ class HandHitboxManager {
 
         // Also ensure the visual is hidden if not animating
         if (this.trumpHandHitBoxVisual) {
-          this.trumpHandHitBoxVisual.style.opacity = "0";
+          // this.trumpHandHitBoxVisual.style.opacity = "0";
         }
       }
       return;
@@ -6092,7 +6346,7 @@ class ProtestorHitboxManager {
         const randomIndex = Math.floor(Math.random() * locations.length);
         this.currentCoordinates[countryId] = locations[randomIndex];
 
-        logger.debug("protestor-hitbox", `Selected random spawn location ${randomIndex} for ${countryId}`);
+        // logger.debug("protestor-hitbox", `Selected random spawn location ${randomIndex} for ${countryId}`);
       }
     });
   }
@@ -6138,7 +6392,7 @@ class ProtestorHitboxManager {
       const gameContainer = document.getElementById("game-container");
       if (gameContainer) {
         gameContainer.appendChild(container);
-        logger.debug("protestor-hitbox", "Created protestor hitboxes container");
+        // logger.debug("protestor-hitbox", "Created protestor hitboxes container");
       } else {
         logger.error("protestor-hitbox", "Game container not found, cannot create hitbox container");
       }
@@ -7510,15 +7764,19 @@ class Protestor {
     }
   }
 
-  // Set timeout for protestors to disappear
   _setDisappearTimeout() {
     if (this.disappearTimeout) {
       clearTimeout(this.disappearTimeout);
     }
-
+  
+    // Use the isFirstProtestors flag from callbacks to double fade time
+    const fadeTime = this.callbacks.isFirstProtestors ? 
+      this.config.PROTESTOR_TIMING.FADE_AWAY_TIME * 2 : 
+      this.config.PROTESTOR_TIMING.FADE_AWAY_TIME;
+  
     this.disappearTimeout = setTimeout(() => {
       this.shrink();
-    }, this.config.PROTESTOR_TIMING.FADE_AWAY_TIME);
+    }, fadeTime);
   }
 
   // Handle click on protestor
@@ -7822,7 +8080,7 @@ class ProtestorManager {
   // Initialize protestor hitbox manager
   _initProtestorHitboxManager() {
     if (!window.protestorHitboxManager) {
-      this.logger.info("freedom", "Creating new Protestor Hitbox Manager");
+      // this.logger.info("freedom", "Creating new Protestor Hitbox Manager");
       window.protestorHitboxManager = new ProtestorHitboxManager(true); // Pass flag for lazy initialization
     }
     this.protestorHitboxManager = window.protestorHitboxManager;
@@ -7973,7 +8231,12 @@ class ProtestorManager {
         }
       },
       onHide: (id) => this.hideProtestors(id),
+      isFirstProtestors: !this.hasShownFirstProtestors
+
     });
+
+    this.hasShownFirstProtestors = true;
+
 
     // Create and store the protestor instance
     const wrapper = protestor.create();
@@ -7982,7 +8245,7 @@ class ProtestorManager {
     // Update country state
     this.countries[countryId].protestorsShown = true;
 
-    this.logger.info("freedom", `Created protestors for ${countryId}`);
+    // this.logger.info("freedom", `Created protestors for ${countryId}`);
 
     return wrapper;
   }
@@ -8061,7 +8324,7 @@ class ProtestorManager {
       this._scheduleProtestors(countryId);
     }, 200);
 
-    this.logger.info("freedom", `Removed protestors for ${countryId}`);
+    // this.logger.info("freedom", `Removed protestors for ${countryId}`);
   }
 
   // Clean up all protestors
@@ -8095,7 +8358,7 @@ class ProtestorManager {
       this.protestorHitboxManager.cleanupAll();
     }
 
-    this.logger.info("freedom", "All protestors cleaned up");
+    // this.logger.info("freedom", "All protestors cleaned up");
   }
 
   // Pause the protestor manager
@@ -8258,6 +8521,8 @@ class FreedomManager {
     // Initialize protestor hitbox manager
     this._initProtestorHitboxManager();
 
+    this.hasShownFirstProtestors = false;
+
     // Create containers for particles
     this._createParticleContainers();
 
@@ -8274,7 +8539,7 @@ class FreedomManager {
       this.logger
     );
 
-    this.logger.info("freedom", "Enhanced Freedom Manager initialized");
+    // this.logger.info("freedom", "Enhanced Freedom Manager initialized");
   }
 
   _initLogger() {
@@ -8313,7 +8578,7 @@ class FreedomManager {
 
   _initProtestorHitboxManager() {
     if (!window.protestorHitboxManager) {
-      this.logger.info("freedom", "Creating new Protestor Hitbox Manager");
+      // this.logger.info("freedom", "Creating new Protestor Hitbox Manager");
       window.protestorHitboxManager = new ProtestorHitboxManager(true); // Pass flag for lazy initialization
     }
     this.protestorHitboxManager = window.protestorHitboxManager;
@@ -8407,7 +8672,7 @@ class FreedomManager {
       container.style.overflow = "hidden";
 
       gameContainer.appendChild(container);
-      this.logger.debug("freedom", `Created particle container for ${countryId}`);
+      // this.logger.debug("freedom", `Created particle container for ${countryId}`);
     });
   }
 
@@ -8967,7 +9232,7 @@ class FreedomManager {
   // ===== COUNTRY RESISTANCE EFFECTS =====
 
   triggerCountryResistance(countryId) {
-    this.logger.info("freedom", `MAJOR RESISTANCE in ${countryId}!`);
+    // this.logger.info("freedom", `MAJOR RESISTANCE in ${countryId}!`);
 
     // Add 50 points for successful revolution
     if (this.gameState) {
@@ -9003,7 +9268,7 @@ class FreedomManager {
     // Update the flag overlay to be completely transparent
     const flagOverlay = this._getElement(`${countryId}-flag-overlay`, "resistance");
     if (flagOverlay) {
-      this.logger.info("freedom", `Resetting flag opacity for ${countryId} to zero`);
+      // this.logger.info("freedom", `Resetting flag opacity for ${countryId} to zero`);
       flagOverlay.classList.remove("opacity-33", "opacity-66", "opacity-100");
       flagOverlay.style.opacity = "0";
     }
@@ -9133,7 +9398,7 @@ class FreedomManager {
     if (smackAnimation && (window.animationManager || this.animationManager)) {
       const animationManager = window.animationManager || this.animationManager;
 
-      this.logger.info("freedom", `Playing smack animation ${smackAnimation} for resistance effect`);
+      // this.logger.info("freedom", `Playing smack animation ${smackAnimation} for resistance effect`);
       // Commented out in original code:
       // animationManager.playSmackAnimation(smackAnimation, () => {
       //   this.logger.debug("freedom", "Resistance animation completed");
@@ -9147,7 +9412,7 @@ class FreedomManager {
    * Pause the freedom manager
    */
   pause() {
-    this.logger.info("freedom", "Pausing Freedom Manager");
+    // this.logger.info("freedom", "Pausing Freedom Manager");
 
     this.protestorManager.pause();
 
@@ -9194,7 +9459,7 @@ class FreedomManager {
 
     this.protestorManager.reset();
 
-    this.logger.info("freedom", "Resetting Freedom Manager");
+    // this.logger.info("freedom", "Resetting Freedom Manager");
 
     // Stop ALL animations first
     this.cleanupAllEffects();

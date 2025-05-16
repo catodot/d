@@ -543,31 +543,66 @@ class AnimationManager {
   return this._loadMultipleAnimations([...grabAnimations, ...smackAnimations]);
 }
 
- _startStateMonitor() {
-   // Clear any existing monitor
-   if (this._stateMonitorInterval) {
-     clearInterval(this._stateMonitorInterval);
-   }
+//  _startStateMonitor() {
+//    // Clear any existing monitor
+//    if (this._stateMonitorInterval) {
+//      clearInterval(this._stateMonitorInterval);
+//    }
 
-   // Check animation health every 2 seconds
-   this._stateMonitorInterval = setInterval(() => {
-     const now = Date.now();
-     const timeSinceUpdate = now - this._lastAnimationUpdate;
+//    // Check animation health every 2 seconds
+//    this._stateMonitorInterval = setInterval(() => {
+//      const now = Date.now();
+//      const timeSinceUpdate = now - this._lastAnimationUpdate;
 
-     // If not in idle and animation hasn't updated for too long
-     if (this.currentState !== "idle" && timeSinceUpdate > this._stuckStateTimeout) {
-       console.warn(`Animation appears stuck in state ${this.currentState} for ${timeSinceUpdate}ms`);
+//      // If not in idle and animation hasn't updated for too long
+//      if (this.currentState !== "idle" && timeSinceUpdate > this._stuckStateTimeout) {
+//        console.warn(`Animation appears stuck in state ${this.currentState} for ${timeSinceUpdate}ms`);
        
-       // Reset to idle if not already transitioning
-       if (!this.isTransitioning) {
-         console.warn("Forcing reset to idle state");
-         this.stop();
-         this._updateStateDirectly("idle", null);
-         this.play();
-       }
-     }
-   }, 2000);
- }
+//        // Reset to idle if not already transitioning
+//        if (!this.isTransitioning) {
+//          console.warn("Forcing reset to idle state");
+//          this.stop();
+//          this._updateStateDirectly("idle", null);
+//          this.play();
+//        }
+//      }
+//    }, 2000);
+//  }
+
+_startStateMonitor() {
+  if (this._stateMonitorInterval) {
+      clearInterval(this._stateMonitorInterval);
+  }
+
+  this._stateMonitorInterval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceUpdate = now - this._lastAnimationUpdate;
+
+      if (this.currentState !== "idle" && timeSinceUpdate > this._stuckStateTimeout) {
+          console.warn(`Animation appears stuck in state ${this.currentState} for ${timeSinceUpdate}ms`);
+          
+          if (!this.isTransitioning) {
+              console.warn("Forcing reset to idle state");
+              
+              // More robust reset
+              this.stop();
+              this.currentState = "idle";
+              this.currentFrame = 0;
+              this.loopCount = 0;
+              this.onAnimationEnd = null;
+              
+              // Ensure we have a valid idle animation
+              if (this.animations["idle"]) {
+                  this.trumpSprite.style.backgroundImage = `url('${this.animations["idle"].spriteSheet}')`;
+              }
+              
+              // Update the frame and restart
+              this.updateFrame(0);
+              this.play();
+          }
+      }
+  }, 2000);
+}
 
  /**
   * Load animations by priority level
@@ -917,6 +952,12 @@ class AnimationManager {
  }
 
  play() {
+  // Validate game speed
+  if (!this.gameSpeed || this.gameSpeed <= 0) {
+    console.warn('Invalid game speed, resetting to 5.3');
+    this.gameSpeed = 5.3;
+}
+
    // Clear any existing animation interval
    if (this.animationInterval) {
        clearInterval(this.animationInterval);
