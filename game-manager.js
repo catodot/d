@@ -809,6 +809,7 @@ class GameEngine {
 //   }, 2000);
 // }
 
+
 _showLipsAnimation(country) {
   if (!country) return;
 
@@ -823,17 +824,46 @@ _showLipsAnimation(country) {
 
   // Wait for the same amount of time as the protest sound
   setTimeout(() => {
+    // Get map scale information (same way positions are calculated)
+    const mapElement = document.getElementById("map-background");
+    const mapRect = mapElement.getBoundingClientRect();
+    const currentMapScale = mapRect.width / mapElement.naturalWidth;
+    
+    // Calculate responsive size based on device type and map scale
+    const baseLipsSize = 180; // Your original desktop size
+    const isMobile = window.DeviceUtils ? window.DeviceUtils.isMobile() : 
+                     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    let scaledLipsSize;
+    
+    if (isMobile) {
+      // On mobile, scale down more aggressively
+      scaledLipsSize = Math.max(60, baseLipsSize * currentMapScale * 2); // Multiply by 2 to compensate for small mobile scale
+    } else {
+      // On desktop, use a more conservative scaling approach
+      // If the map is very small (currentMapScale < 0.3), use a minimum size
+      // If the map is normal size, scale proportionally but with a higher minimum
+      if (currentMapScale < 0.3) {
+        scaledLipsSize = Math.max(120, baseLipsSize * currentMapScale * 4); // Boost small desktop scales
+      } else {
+        scaledLipsSize = Math.max(140, baseLipsSize * currentMapScale * 1.5); // Moderate scaling for normal desktop
+      }
+      
+      // Cap the maximum size on desktop to prevent oversized lips
+      scaledLipsSize = Math.min(250, scaledLipsSize);
+    }
+    
     // Create the animation container
     const lipsContainer = document.createElement("div");
     lipsContainer.id = "lips-animation";
     
-    // Style the container
+    // Style the container with responsive sizing
     lipsContainer.style.position = "fixed";
     lipsContainer.style.left = `${position.x}px`;
     lipsContainer.style.top = `${position.y}px`;
     lipsContainer.style.transform = "translate(-50%, -50%)";
-    lipsContainer.style.width = "180px";  
-    lipsContainer.style.height = "180px"; 
+    lipsContainer.style.width = `${scaledLipsSize}px`;  
+    lipsContainer.style.height = `${scaledLipsSize}px`; 
     lipsContainer.style.zIndex = "9999";
     lipsContainer.style.pointerEvents = "none";
     
@@ -865,8 +895,9 @@ _showLipsAnimation(country) {
         lipsContainer.parentNode.removeChild(lipsContainer);
       }
     }, 1500);
-  }, totalDelay); // This is the only real change - wrapping everything in setTimeout
+  }, totalDelay);
 }
+
 
 // Helper method to get the sprite sheet path for each country
 _getLipsSpriteSheet(targetCountry) {
