@@ -1070,7 +1070,7 @@ _startStateMonitor() {
    };
 
    // Log animation start
-   console.log(`Starting animation: ${this.currentState} with duration ${frameDuration}ms`);
+  //  console.log(`Starting animation: ${this.currentState} with duration ${frameDuration}ms`);
 
    // Start the animation loop
    if (!this.isPaused) {

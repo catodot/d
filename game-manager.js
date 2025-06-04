@@ -4407,7 +4407,7 @@ class TrumpHandEffectsController {
     this.state.targetCountry = null;
     this.state.current = this.STATES.IDLE;
 
-    logger.debug("effects", "Visual reset to default state");
+    // logger.debug("effects", "Visual reset to default state");
   }
 
   isFirstBlock() {
@@ -9680,49 +9680,49 @@ document.addEventListener("click", function (event) {
     };
   });
 
-  console.log("bbb 🤚 Comprehensive Click Debug:", {
-    clickCoordinates: {
-      x: event.clientX,
-      y: event.clientY,
-    },
-    clickedElement: {
-      tagName: event.target.tagName,
-      id: event.target.id,
-      className: event.target.className,
-    },
-    trumpHandHitbox: trumpHandHitbox
-      ? {
-          exists: true,
-          rect: trumpHandHitbox.getBoundingClientRect(),
-          style: {
-            display: trumpHandHitbox.style.display,
-            visibility: trumpHandHitbox.style.visibility,
-            opacity: trumpHandHitbox.style.opacity,
-            pointerEvents: trumpHandHitbox.style.pointerEvents,
-            zIndex: trumpHandHitbox.style.zIndex,
-          },
-          isClickWithin: isClickInTrumpHitbox,
-        }
-      : { exists: false },
-    protestorHitboxes: {
-      count: protestorHitboxes.length,
-      intersections: protestorHitboxIntersections,
-    },
-    handHitboxManager: window.handHitboxManager
-      ? {
-          isVisible: window.handHitboxManager.isVisible,
-          currentState: window.handHitboxManager.currentState,
-          currentFrame: window.handHitboxManager.currentFrame,
-        }
-      : "No HandHitboxManager",
-    gameState: window.gameEngine
-      ? {
-          isPlaying: window.gameEngine.systems.state.isPlaying,
-          isPaused: window.gameEngine.systems.state.isPaused,
-          currentTarget: window.gameEngine.systems.state.currentTarget,
-        }
-      : "Game engine not available",
-  });
+  // console.log("bbb 🤚 Comprehensive Click Debug:", {
+  //   clickCoordinates: {
+  //     x: event.clientX,
+  //     y: event.clientY,
+  //   },
+  //   clickedElement: {
+  //     tagName: event.target.tagName,
+  //     id: event.target.id,
+  //     className: event.target.className,
+  //   },
+  //   trumpHandHitbox: trumpHandHitbox
+  //     ? {
+  //         exists: true,
+  //         rect: trumpHandHitbox.getBoundingClientRect(),
+  //         style: {
+  //           display: trumpHandHitbox.style.display,
+  //           visibility: trumpHandHitbox.style.visibility,
+  //           opacity: trumpHandHitbox.style.opacity,
+  //           pointerEvents: trumpHandHitbox.style.pointerEvents,
+  //           zIndex: trumpHandHitbox.style.zIndex,
+  //         },
+  //         isClickWithin: isClickInTrumpHitbox,
+  //       }
+  //     : { exists: false },
+  //   protestorHitboxes: {
+  //     count: protestorHitboxes.length,
+  //     intersections: protestorHitboxIntersections,
+  //   },
+  //   handHitboxManager: window.handHitboxManager
+  //     ? {
+  //         isVisible: window.handHitboxManager.isVisible,
+  //         currentState: window.handHitboxManager.currentState,
+  //         currentFrame: window.handHitboxManager.currentFrame,
+  //       }
+  //     : "No HandHitboxManager",
+  //   gameState: window.gameEngine
+  //     ? {
+  //         isPlaying: window.gameEngine.systems.state.isPlaying,
+  //         isPaused: window.gameEngine.systems.state.isPaused,
+  //         currentTarget: window.gameEngine.systems.state.currentTarget,
+  //       }
+  //     : "Game engine not available",
+  // });
 });
 
 document.addEventListener("click", function (event) {
